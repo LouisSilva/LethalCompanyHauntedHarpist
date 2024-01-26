@@ -1,7 +1,6 @@
 ﻿obj/
 dll/
 bin/
-UnityProject/
 
 Assets/
 !Assets/harpghostbundle.*
