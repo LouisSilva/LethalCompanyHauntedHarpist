@@ -7,6 +7,8 @@
         <Version>1.0.0</Version>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
+        <Configurations>Debug;Release</Configurations>
+        <DebugType>embedded</DebugType>
     </PropertyGroup>
 
     <ItemGroup>
@@ -45,13 +47,17 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Remove="UnityProject\**" />
-    </ItemGroup>
-
-    <ItemGroup>
         <None Remove="UnityProject\**" />
         <EmbeddedResource Remove="UnityProject\**" />
         <None Remove="Assets\harpghostbundle" />
         <EmbeddedResource Include="Assets\harpghostbundle" />
     </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="UnityProject\**" />
+    </ItemGroup>
+
+    <Target Name="NetcodePatch" AfterTargets="PostBuildEvent">
+        <Exec Command="netcode-patch &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')"/>
+    </Target>
 </Project>
