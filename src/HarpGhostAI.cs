@@ -282,3 +282,14 @@ public class HarpGhostAI : EnemyAI
         harpObjectRef = harpObject;
     }
 }
+
+/*
+ TODO:
+
+1). Add animations
+2). Make harp play music
+3). Make ghost able to open doors
+4). Make ghost able to change elevation
+5). Add tooltip for harp
+ 
+ */
