@@ -41,8 +41,8 @@ public class HarpBehaviour : PhysicsProp
         musicRandomizer = new System.Random(FindObjectOfType<StartOfRound>().randomMapSeed - 10);
         playerHarpOffset = new ItemOffset(new Vector3(-0.8f, 0.22f, 0.07f), new Vector3(3, 12, -100));
         enemyHarpOffset = new ItemOffset(new Vector3(0, -0.6f, 0.6f));
+        isPlayingMusic = false;
         
-        mls.LogInfo("Harp spawned");
     }
 
     public override void Update()
@@ -67,7 +67,7 @@ public class HarpBehaviour : PhysicsProp
         {
             noiseInterval = 1f;
             ++timesPlayedWithoutTurningOff;
-            roundManager.PlayAudibleNoise(transform.position, 16f, 0.9f, timesPlayedWithoutTurningOff, noiseID: 590);
+            roundManager.PlayAudibleNoise(transform.position, 16f, 3f, timesPlayedWithoutTurningOff, noiseID: 540);
         }
 
         else noiseInterval -= Time.deltaTime;
@@ -76,35 +76,45 @@ public class HarpBehaviour : PhysicsProp
     public override void ItemActivate(bool used, bool buttonDown = true)
     {
         base.ItemActivate(used, buttonDown);
-        StartMusic(used);
+        mls.LogInfo("Harp ItemActivate() called");
+        switch (isPlayingMusic)
+        {
+            case false:
+                StartMusic();
+                break;
+            
+            case true:
+                StopMusic();
+                break;
+        }
+
+        isBeingUsed = used;
     }
 
-    private void StartMusic(bool startMusic, bool pitchDown = false)
+    private void StartMusic()
     {
-        if (startMusic)
+        if (harpAudioSource == null)
         {
-            int musicClipIndex = musicRandomizer.Next(0, harpAudioClips.Count - 1);
-            harpAudioSource.clip = harpAudioClips[musicClipIndex];
-            harpAudioSource.pitch = 1f;
-            harpAudioSource.Play();
-            
-            PlayMusicServerRpc(true, musicClipIndex);
+            mls.LogError("harpAudioSource is null!");
+        }
+
+        if (harpAudioClips == null || harpAudioClips.Count == 0)
+        {
+            mls.LogError("harpAudioClips is null or empty!");
         }
         
-        else if (isPlayingMusic)
-        {
-            PlayMusicServerRpc(false, -1);
-            if (pitchDown) StartCoroutine(musicPitchDown());
-            else
-            {
-                harpAudioSource.Stop();
-            }
+        harpAudioSource.clip = harpAudioClips[musicRandomizer.Next(0, harpAudioClips.Count)];
+        harpAudioSource.pitch = 1f;
+        harpAudioSource.volume = 1f;
+        harpAudioSource.Play();
+        isPlayingMusic = true;
+    }
 
-            timesPlayedWithoutTurningOff = 0;
-        }
-
-        isBeingUsed = startMusic;
-        isPlayingMusic = startMusic;
+    private void StopMusic()
+    {
+        harpAudioSource.Stop();
+        timesPlayedWithoutTurningOff = 0;
+        isPlayingMusic = false;
     }
     
     private IEnumerator musicPitchDown()
@@ -122,33 +132,13 @@ public class HarpBehaviour : PhysicsProp
     public override void PocketItem()
     {
         base.PocketItem();
-        StartMusic(false);
+        StopMusic();
     }
 
     public override void OnHitGround()
     {
         base.OnHitGround();
-        StartMusic(false);
+        StopMusic();
     }
-
-    [ServerRpc(RequireOwnership = false)]
-    public void PlayMusicServerRpc(bool startMusic, int musicClipIndex)
-    {
-        PlayMusicClientRpc(startMusic, musicClipIndex);
-    }
-
-    [ClientRpc]
-    public void PlayMusicClientRpc(bool startMusic, int musicClipIndex)
-    {
-        if (startMusic)
-        {
-            harpAudioSource.clip = harpAudioClips[musicClipIndex];
-            harpAudioSource.Play();
-        }
-
-        else
-        {
-            harpAudioSource.Stop();
-        }
-    }
+    
 }

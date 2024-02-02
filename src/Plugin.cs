@@ -27,6 +27,8 @@ namespace LethalCompanyHarpGhost
 
         public static Item harpItem;
 
+        public static List<AudioClip> harpAudioClips;
+
         private void Awake()
         {
             mls = BepInEx.Logging.Logger.CreateLogSource(modGUID);
@@ -73,11 +75,11 @@ namespace LethalCompanyHarpGhost
 
         private static void SetupHarp()
         {
-            string[] assetNames = Assets.MainAssetBundle.GetAllAssetNames();
-            foreach (string assetName in assetNames)
-            {
-                mls.LogInfo("Asset in bundle: " + assetName);
-            }
+            // string[] assetNames = Assets.MainAssetBundle.GetAllAssetNames();
+            // foreach (string assetName in assetNames)
+            // {
+            //     mls.LogInfo("Asset in bundle: " + assetName);
+            // }
 
             // Load the HarpItemData from the AssetBundle
             harpItem = Assets.MainAssetBundle.LoadAsset<Item>("HarpItemData");
@@ -108,11 +110,12 @@ namespace LethalCompanyHarpGhost
 
             try
             {
-                AudioClip harpClip =
-                    Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/harpmusic1.mp3");
+                AudioClip harpClip = Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/harpmusic1.mp3");
+                harpAudioClips = new List<AudioClip>();
                 if (harpClip != null)
                 {
                     harpBehaviour.harpAudioClips.Add(harpClip);
+                    harpAudioClips.Add(harpClip);
                     mls.LogInfo("Successfully added HarpMusic1 AudioClip to the list.");
                 }
                 else
@@ -129,15 +132,10 @@ namespace LethalCompanyHarpGhost
             harpBehaviour.grabbable = true;
             harpBehaviour.grabbableToEnemies = true;
             harpBehaviour.itemProperties = harpItem;
-
-            // Register the harpItem's spawnPrefab as a network prefab
+            
             NetworkPrefabs.RegisterNetworkPrefab(harpItem.spawnPrefab);
-
-            // Ensure mixer groups are properly set by calling Utilities.FixMixerGroups, if needed
             Utilities.FixMixerGroups(harpItem.spawnPrefab);
-
-            // Register the item with the rest of the game systems
-            RegisterScrap(harpItem, 0, LevelTypes.All);
+            // RegisterScrap(harpItem, 0, LevelTypes.All);
             RegisterItem(harpItem);
         }
     }

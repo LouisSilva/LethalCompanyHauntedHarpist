@@ -1,4 +1,5 @@
-﻿using BepInEx.Logging;
+﻿using System;
+using BepInEx.Logging;
 using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine;
@@ -32,6 +33,13 @@ public class HarpGhostAI : EnemyAI
 
     private HarpBehaviour heldHarp;
 
+    private enum NoiseIDToIgnore
+    {
+        Harp = 540
+    }
+
+    private bool KNOBBER;
+
     public override void Start()
     {
         base.Start();
@@ -43,7 +51,10 @@ public class HarpGhostAI : EnemyAI
         enemyRandom = new System.Random(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
         agentMaxAcceleration = 200f;
         agentMaxSpeed = 3f;
+        KNOBBER = true;
+        
         SpawnHarpServerRpc();
+        GrabHarpIfNotHolding();
         
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) mls.LogError("NavMeshAgent component not found on " + name);
@@ -57,13 +68,19 @@ public class HarpGhostAI : EnemyAI
         timeSinceHittingLocalPlayer += Time.deltaTime;
         hearNoiseCooldown -= Time.deltaTime;
 
+        if (KNOBBER)
+        {
+            heldHarp.ItemActivate(true);
+            KNOBBER = false;
+        }
+
         switch (currentBehaviourStateIndex)
         {
             case 0: // harp ghost playing music and chilling
             {
                 if (previousBehaviourStateIndex != 0)
                 {
-                    agentMaxSpeed = 1f;
+                    agentMaxSpeed = 0.5f;
                     openDoorSpeedMultiplier = 0.6f;
                     previousBehaviourStateIndex = 0;
                     movingTowardsTargetPlayer = false;
@@ -155,20 +172,30 @@ public class HarpGhostAI : EnemyAI
         agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
     }
 
+    private void GrabHarpIfNotHolding()
+    {
+        if (heldHarp != null) return;
+        if (!harpObjectRef.TryGet(out NetworkObject networkObject)) return;
+        heldHarp = networkObject.gameObject.GetComponent<HarpBehaviour>();
+        GrabHarp(heldHarp.gameObject);
+    }
+
     private void GrabHarp(GameObject harpObject)
     {
         heldHarp = harpObject.GetComponent<HarpBehaviour>();
-        if (heldHarp == null) mls.LogError("Harp in GrabHarp function did not contain harpItem component");
-        else
+        if (heldHarp == null)
         {
-            RoundManager.Instance.totalScrapValueInLevel += heldHarp.scrapValue;
-            heldHarp.parentObject = grabTarget;
-            heldHarp.isHeldByEnemy = true;
-            heldHarp.grabbableToEnemies = false;
-            heldHarp.grabbable = false;
-            heldHarp.GrabItemFromEnemy(this);
-            heldHarp.ItemActivate(true);
+            mls.LogError("Harp in GrabHarp function did not contain harpItem component");
+            return;
         }
+        
+        heldHarp.SetScrapValue(harpScrapValue);
+        RoundManager.Instance.totalScrapValueInLevel += heldHarp.scrapValue;
+        heldHarp.parentObject = grabTarget;
+        heldHarp.isHeldByEnemy = true;
+        heldHarp.grabbableToEnemies = false;
+        heldHarp.grabbable = false;
+        heldHarp.GrabItemFromEnemy(this);
     }
 
     private void DropHarp(Vector3 dropPosition)
@@ -185,6 +212,7 @@ public class HarpGhostAI : EnemyAI
         heldHarp.grabbableToEnemies = true;
         heldHarp.isHeld = false;
         heldHarp.isHeldByEnemy = false;
+        heldHarp.ItemActivate(false);
         heldHarp.DiscardItemFromEnemy();
         heldHarp = null;
     }
@@ -198,6 +226,7 @@ public class HarpGhostAI : EnemyAI
         {
             if (enemyHP <= 0)
             {
+                DropHarp(transform.position);
                 KillEnemyOnOwnerClient();
             }
         }
@@ -224,7 +253,7 @@ public class HarpGhostAI : EnemyAI
         int noiseID = 0)
     {
         base.DetectNoise(noisePosition, noiseLoudness, timesNoisePlayedInOneSpot, noiseID);
-        if ((double)stunNormalizedTimer > 0 || (double)hearNoiseCooldown > 0 || currentBehaviourStateIndex == 1) return;
+        if ((double)stunNormalizedTimer > 0 || (double)hearNoiseCooldown > 0 || currentBehaviourStateIndex == 1 || Enum.IsDefined(typeof(NoiseIDToIgnore), noiseID)) return;
         hearNoiseCooldown = 0.03f;
 
         float distanceToNoise = Vector3.Distance(transform.position, noisePosition);
@@ -266,13 +295,38 @@ public class HarpGhostAI : EnemyAI
             Quaternion.identity,
             RoundManager.Instance.spawnedScrapContainer
             );
+
+        AudioSource harpAudioSource = harpObject.GetComponent<AudioSource>();
+        if (harpAudioSource == null)
+        {
+            harpAudioSource = harpObject.AddComponent<AudioSource>();
+            harpAudioSource.playOnAwake = false;
+            harpAudioSource.loop = false;
+            harpAudioSource.spatialBlend = 1;
+            harpAudioSource.rolloffMode = AudioRolloffMode.Logarithmic;
+        }
+        
+        ScanNodeProperties harpScanNodeProperties = harpObject.AddComponent<ScanNodeProperties>();
+        harpScanNodeProperties.scrapValue = harpScrapValue;
+        harpScanNodeProperties.subText = $"Value: {harpScrapValue}";
         
         harpObject.GetComponent<GrabbableObject>().fallTime = 0f;
-        harpObject.AddComponent<ScanNodeProperties>().scrapValue = harpScrapValue;
         harpObject.GetComponent<GrabbableObject>().SetScrapValue(harpScrapValue);
         harpObject.GetComponent<NetworkObject>().Spawn();
+
+        HarpBehaviour harpBehaviour = harpObject.GetComponent<HarpBehaviour>();
+        if (harpBehaviour != null)
+        {
+            harpBehaviour.harpAudioSource = harpAudioSource;
+            harpBehaviour.harpAudioClips = harpAudioClips;
+        }
+
+        else
+        {
+            mls.LogError("Spawned Harp object does not have HarpBehaviour component!");
+        }
+        
         SpawnHarpClientRpc(harpObject, harpScrapValue);
-        GrabHarp(harpObject.gameObject);
     }
 
     [ClientRpc]
