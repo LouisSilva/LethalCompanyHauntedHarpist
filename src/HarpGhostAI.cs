@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using BepInEx.Logging;
 using GameNetcodeStuff;
 using Unity.Netcode;
@@ -28,8 +29,7 @@ public class HarpGhostAI : EnemyAI
     private int harpScrapValue;
 
     [SerializeField] private bool harpGhostDebug = true;
-
-    private System.Random enemyRandom;
+    private bool inChase;
 
     private HarpBehaviour heldHarp;
 
@@ -37,8 +37,12 @@ public class HarpGhostAI : EnemyAI
     {
         Harp = 540
     }
-
-    private bool KNOBBER;
+    
+    private static readonly int Dead = Animator.StringToHash("Dead");
+    private static readonly int Stunned = Animator.StringToHash("stunned");
+    private static readonly int Recover = Animator.StringToHash("recover");
+    private static readonly int Attack = Animator.StringToHash("attack");
+    private static readonly int IsRunning = Animator.StringToHash("isRunning");
 
     public override void Start()
     {
@@ -47,17 +51,26 @@ public class HarpGhostAI : EnemyAI
         mls.LogInfo("Harp Ghost Spawned");
 
         if (!IsServer) return;
-        timeSinceHittingLocalPlayer = 0;
-        enemyRandom = new System.Random(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
-        agentMaxAcceleration = 200f;
-        agentMaxSpeed = 3f;
-        KNOBBER = true;
         
         SpawnHarpServerRpc();
         GrabHarpIfNotHolding();
         
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) mls.LogError("NavMeshAgent component not found on " + name);
+
+        creatureAnimator = GetComponent<Animator>();
+        if (creatureAnimator == null) mls.LogError("Animator component not found on " + name);
+        
+        timeSinceHittingLocalPlayer = 0;
+        agentMaxAcceleration = 200f;
+        agentMaxSpeed = 0.5f;
+        openDoorSpeedMultiplier = 0.6f;
+        movingTowardsTargetPlayer = false;
+        inChase = false;
+        
+        creatureAnimator.SetBool(Dead, false);
+        creatureAnimator.SetBool(IsRunning, false);
+        StartCoroutine(DelayedHarpMusicActivate()); // Needed otherwise the music won't play, maybe because multiple things are fighting for the heldHarp object
     }
     
     public override void Update()
@@ -67,12 +80,6 @@ public class HarpGhostAI : EnemyAI
 
         timeSinceHittingLocalPlayer += Time.deltaTime;
         hearNoiseCooldown -= Time.deltaTime;
-
-        if (KNOBBER)
-        {
-            heldHarp.ItemActivate(true);
-            KNOBBER = false;
-        }
 
         switch (currentBehaviourStateIndex)
         {
@@ -90,18 +97,19 @@ public class HarpGhostAI : EnemyAI
                 break;
             }
 
-            case 1: // harp ghost is angry and trying to find player/s to attack
+            case 1: // harp ghost is angry and trying to find players to attack
             {
                 if (previousBehaviourStateIndex != 1)
                 {   
-                    agentMaxSpeed = 5f;
+                    agentMaxSpeed = 3f;
                     openDoorSpeedMultiplier = 1f;
                     previousBehaviourStateIndex = 1;
                     movingTowardsTargetPlayer = false;
                     DropHarpServerRpc(transform.position);
                     LogDebug($"Harp Ghost '{gameObject.name}': Switched to behaviour state 1");
                 }
-                
+
+                creatureAnimator.SetBool(IsRunning, agent.speed != 0 && inChase);
                 break;
             }
         }
@@ -132,10 +140,14 @@ public class HarpGhostAI : EnemyAI
                 {
                     if (searchForPlayers.inProgress) StopSearch(searchForPlayers);
                     movingTowardsTargetPlayer = true;
+                    agentMaxSpeed = 5f;
+                    inChase = true;
                 }
                 else
                 {
                     movingTowardsTargetPlayer = false;
+                    inChase = false;
+                    agentMaxSpeed = 3f;
                     if (!searchForPlayers.inProgress) StartSearch(transform.position, searchForPlayers);
                 }
 
@@ -205,8 +217,9 @@ public class HarpGhostAI : EnemyAI
         heldHarp.transform.SetParent(StartOfRound.Instance.propsContainer, true);
         heldHarp.EnablePhysics(true);
         heldHarp.fallTime = 0.0f;
-        heldHarp.startFallingPosition = heldHarp.transform.parent.InverseTransformPoint(heldHarp.transform.position);
-        heldHarp.targetFloorPosition = heldHarp.transform.parent.InverseTransformPoint(dropPosition);
+        Transform parent;
+        heldHarp.startFallingPosition = (parent = heldHarp.transform.parent).InverseTransformPoint(heldHarp.transform.position);
+        heldHarp.targetFloorPosition = parent.InverseTransformPoint(dropPosition);
         heldHarp.floorYRot = -1;
         heldHarp.grabbable = true;
         heldHarp.grabbableToEnemies = true;
@@ -217,32 +230,51 @@ public class HarpGhostAI : EnemyAI
         heldHarp = null;
     }
 
+    private IEnumerator StunnedAnimation()
+    {
+        while (stunNormalizedTimer > 0) yield return new WaitForSeconds(0.02f);
+        creatureAnimator.SetTrigger(Recover);
+    }
+
+    private IEnumerator DelayedHarpMusicActivate()
+    {
+        yield return new WaitForSeconds(0.5f);
+        heldHarp.ItemActivate(true);
+    }
+
     public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false)
     {
         base.HitEnemy(force, playerWhoHit, playHitSFX);
         enemyHP -= force;
 
-        if (IsOwner)
-        {
-            if (enemyHP <= 0)
-            {
-                DropHarp(transform.position);
-                KillEnemyOnOwnerClient();
-            }
-        }
+        if (!IsOwner) return;
+        if (enemyHP > 0) return;
+        
+        DropHarp(transform.position);
+        creatureAnimator.SetBool(Dead, true);
+        KillEnemyOnOwnerClient();
+    }
+
+    public override void SetEnemyStunned(
+        bool setToStunned, 
+        float setToStunTime = 1f,
+        PlayerControllerB setStunnedByPlayer = null)
+    {
+        base.SetEnemyStunned(setToStunned, setToStunTime, setStunnedByPlayer);
+        creatureAnimator.SetTrigger(Stunned);
+        StartCoroutine(StunnedAnimation());
     }
 
     public override void OnCollideWithPlayer(Collider other)
     {
-        if (timeSinceHittingLocalPlayer < 1f) {
-            return;
-        }
+        if (timeSinceHittingLocalPlayer < 1f || currentBehaviourStateIndex == 0) return;
         
         PlayerControllerB playerControllerB = MeetsStandardPlayerCollisionConditions(other);
         if (playerControllerB == null) return;
         
         LogDebug($"Harp Ghost '{gameObject.name}': Collision with player '{playerControllerB.name}'");
         timeSinceHittingLocalPlayer = 0f;
+        creatureAnimator.SetTrigger(Attack);
         playerControllerB.DamagePlayer(10);
     }
     
@@ -301,14 +333,13 @@ public class HarpGhostAI : EnemyAI
         {
             harpAudioSource = harpObject.AddComponent<AudioSource>();
             harpAudioSource.playOnAwake = false;
-            harpAudioSource.loop = false;
+            harpAudioSource.loop = true;
             harpAudioSource.spatialBlend = 1;
             harpAudioSource.rolloffMode = AudioRolloffMode.Logarithmic;
         }
         
         ScanNodeProperties harpScanNodeProperties = harpObject.AddComponent<ScanNodeProperties>();
         harpScanNodeProperties.scrapValue = harpScrapValue;
-        harpScanNodeProperties.subText = $"Value: {harpScrapValue}";
         
         harpObject.GetComponent<GrabbableObject>().fallTime = 0f;
         harpObject.GetComponent<GrabbableObject>().SetScrapValue(harpScrapValue);
@@ -340,10 +371,8 @@ public class HarpGhostAI : EnemyAI
 /*
  TODO:
 
-1). Add animations
-2). Make harp play music
-3). Make ghost able to open doors
-4). Make ghost able to change elevation
-5). Add tooltip for harp
+1). Add better way of making ghost annoyed of noise
+2). Make ghost able to open doors
+3). Make ghost able to change elevation
  
  */

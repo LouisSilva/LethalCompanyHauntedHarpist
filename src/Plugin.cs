@@ -135,7 +135,7 @@ namespace LethalCompanyHarpGhost
             
             NetworkPrefabs.RegisterNetworkPrefab(harpItem.spawnPrefab);
             Utilities.FixMixerGroups(harpItem.spawnPrefab);
-            // RegisterScrap(harpItem, 0, LevelTypes.All);
+            RegisterScrap(harpItem, 0, LevelTypes.All);
             RegisterItem(harpItem);
         }
     }
