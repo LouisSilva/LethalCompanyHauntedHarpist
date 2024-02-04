@@ -2,8 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using BepInEx.Logging;
-using Unity.Netcode;
 using UnityEngine;
+using Unity.Netcode;
 
 namespace LethalCompanyHarpGhost;
 
@@ -18,6 +18,8 @@ public class HarpBehaviour : PhysicsProp
     private bool isPlayingMusic;
     private int timesPlayedWithoutTurningOff;
     private float noiseInterval;
+
+    [SerializeField] private bool harpDebug = true;
 
     [Serializable] private struct ItemOffset(
         Vector3 positionOffset = default,
@@ -42,7 +44,6 @@ public class HarpBehaviour : PhysicsProp
         playerHarpOffset = new ItemOffset(new Vector3(-0.8f, 0.22f, 0.07f), new Vector3(3, 12, -100));
         enemyHarpOffset = new ItemOffset(new Vector3(0, -0.6f, 0.6f));
         isPlayingMusic = false;
-        
     }
 
     public override void Update()
@@ -72,11 +73,16 @@ public class HarpBehaviour : PhysicsProp
 
         else noiseInterval -= Time.deltaTime;
     }
+    
+    private void LogDebug(string logMessage)
+    {
+        if (harpDebug) mls.LogInfo(logMessage);
+    }
 
     public override void ItemActivate(bool used, bool buttonDown = true)
     {
         base.ItemActivate(used, buttonDown);
-        mls.LogInfo("Harp ItemActivate() called");
+        LogDebug("Harp ItemActivate() called");
         switch (isPlayingMusic)
         {
             case false:
@@ -93,14 +99,17 @@ public class HarpBehaviour : PhysicsProp
 
     private void StartMusic()
     {
-        if (harpAudioSource == null)
+        if (harpDebug)
         {
-            mls.LogError("harpAudioSource is null!");
-        }
+            if (harpAudioSource == null)
+            {
+                mls.LogError("harpAudioSource is null!");
+            }
 
-        if (harpAudioClips == null || harpAudioClips.Count == 0)
-        {
-            mls.LogError("harpAudioClips is null or empty!");
+            if (harpAudioClips == null || harpAudioClips.Count == 0)
+            {
+                mls.LogError("harpAudioClips is null or empty!");
+            }
         }
         
         harpAudioSource.clip = harpAudioClips[musicRandomizer.Next(0, harpAudioClips.Count)];
@@ -112,19 +121,18 @@ public class HarpBehaviour : PhysicsProp
 
     private void StopMusic()
     {
-        harpAudioSource.Stop();
+        StartCoroutine(MusicPitchDown());
         timesPlayedWithoutTurningOff = 0;
         isPlayingMusic = false;
     }
     
-    private IEnumerator musicPitchDown()
+    private IEnumerator MusicPitchDown()
     {
         for (int i = 0; i < 30; ++i)
         {
             yield return null;
             harpAudioSource.pitch -= 0.033f;
-            if (harpAudioSource.pitch <= 0.0)
-                break;
+            if (harpAudioSource.pitch <= 0.0) break;
         }
         harpAudioSource.Stop();
     }
@@ -140,5 +148,4 @@ public class HarpBehaviour : PhysicsProp
         base.OnHitGround();
         StopMusic();
     }
-    
 }
