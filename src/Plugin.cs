@@ -16,12 +16,15 @@ namespace LethalCompanyHarpGhost
     [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
     public class HarpGhostPlugin : BaseUnityPlugin
     {
-        private const string modGUID = "Louis.LCM_HarpGhost";
-        private const string modName = "Louis Lethal Company Harp Ghost Mod";
-        private const string modVersion = "1.0.1";
+        private const string modGUID = "Bob123.LCM_HarpGhost";
+        private const string modName = "Bob123 Lethal Company Harp Ghost Mod";
+        private const string modVersion = "1.0.2";
 
         private readonly Harmony harmony = new Harmony(modGUID);
+        
         private static ManualLogSource mls;
+
+        private static HarpGhostPlugin Instance;
 
         private static EnemyType harpGhost;
 
@@ -29,8 +32,16 @@ namespace LethalCompanyHarpGhost
 
         public static List<AudioClip> harpAudioClips;
 
+        public static AudioClip[] damageSfx;
+        public static AudioClip[] laughSfx;
+        public static AudioClip[] stunSfx;
+        public static AudioClip[] upsetSfx;
+        public static AudioClip dieSfx;
+
         private void Awake()
         {
+            if (Instance == null) Instance = this;
+            
             mls = BepInEx.Logging.Logger.CreateLogSource(modGUID);
 
             Assets.PopulateAssets();
@@ -71,6 +82,34 @@ namespace LethalCompanyHarpGhost
             
             NetworkPrefabs.RegisterNetworkPrefab(harpGhost.enemyPrefab);
             RegisterEnemy(harpGhost, 100, LevelTypes.All, SpawnType.Daytime, harpGhostTerminalNode, harpGhostTerminalKeyword);
+            
+            // Setting these in the unity inspector doesn't work for some reason, so have to do it here
+            dieSfx = Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/die3.mp3");
+            
+            damageSfx = 
+            [
+                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/damage1.mp3"),
+                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/damage2.mp3")
+            ];
+            
+            laughSfx =
+            [
+                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/laugh1.mp3"),
+                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/laugh2.mp3"),
+                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/laugh3.mp3")
+            ];
+
+            upsetSfx =
+            [
+                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/random_upset1.mp3"),
+                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/random_upset2.mp3")
+            ];
+            
+            stunSfx = 
+            [
+                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/stun1.mp3"),
+                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/stun2.mp3")
+            ];
         }
 
         private static void SetupHarp()

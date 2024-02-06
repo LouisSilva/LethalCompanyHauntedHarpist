@@ -33,17 +33,21 @@ public class HarpBehaviour : PhysicsProp
 
     [SerializeField] private ItemOffset playerHarpOffset;
     [SerializeField] private ItemOffset enemyHarpOffset;
+
+    public void Awake()
+    {
+        mls = BepInEx.Logging.Logger.CreateLogSource("Harp Behaviour");
+        playerHarpOffset = new ItemOffset(new Vector3(-0.8f, 0.22f, 0.07f), new Vector3(3, 12, -100));
+        enemyHarpOffset = new ItemOffset(new Vector3(0, -0.6f, 0.6f));
+        isPlayingMusic = false;
+    }
     
     public override void Start()
     {
         base.Start();
-        mls = BepInEx.Logging.Logger.CreateLogSource("Harp Behaviour");
         
         roundManager = FindObjectOfType<RoundManager>();
         musicRandomizer = new System.Random(FindObjectOfType<StartOfRound>().randomMapSeed - 10);
-        playerHarpOffset = new ItemOffset(new Vector3(-0.8f, 0.22f, 0.07f), new Vector3(3, 12, -100));
-        enemyHarpOffset = new ItemOffset(new Vector3(0, -0.6f, 0.6f));
-        isPlayingMusic = false;
     }
 
     public override void Update()
@@ -116,6 +120,7 @@ public class HarpBehaviour : PhysicsProp
         harpAudioSource.pitch = 1f;
         harpAudioSource.volume = 1f;
         harpAudioSource.Play();
+        WalkieTalkie.TransmitOneShotAudio(harpAudioSource, harpAudioSource.clip, harpAudioSource.volume);
         isPlayingMusic = true;
     }
 
