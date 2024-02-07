@@ -19,7 +19,7 @@ public class HarpBehaviour : PhysicsProp
     private int timesPlayedWithoutTurningOff;
     private float noiseInterval;
 
-    [SerializeField] private bool harpDebug = true;
+    [SerializeField] private bool harpDebug = false;
 
     [Serializable] private struct ItemOffset(
         Vector3 positionOffset = default,
@@ -60,7 +60,7 @@ public class HarpBehaviour : PhysicsProp
             itemProperties.restingRotation = enemyHarpOffset.restingRotation;
         }
 
-        else
+        else if (heldByPlayerOnServer)
         {
             itemProperties.positionOffset = playerHarpOffset.positionOffset;
             itemProperties.rotationOffset = playerHarpOffset.rotationOffset;

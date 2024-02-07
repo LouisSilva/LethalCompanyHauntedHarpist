@@ -31,12 +31,8 @@ namespace LethalCompanyHarpGhost
         public static Item harpItem;
 
         public static List<AudioClip> harpAudioClips;
-
-        public static AudioClip[] damageSfx;
-        public static AudioClip[] laughSfx;
-        public static AudioClip[] stunSfx;
-        public static AudioClip[] upsetSfx;
-        public static AudioClip dieSfx;
+        
+        private static readonly bool debug = false;
 
         private void Awake()
         {
@@ -45,10 +41,13 @@ namespace LethalCompanyHarpGhost
             mls = BepInEx.Logging.Logger.CreateLogSource(modGUID);
 
             Assets.PopulateAssets();
-            if (Assets.MainAssetBundle == null)
+            if (debug)
             {
-                mls.LogError("MainAssetBundle is null");
-                return; 
+                if (Assets.MainAssetBundle == null)
+                {
+                    mls.LogError("MainAssetBundle is null");
+                    return;
+                }
             }
             
             SetupHarpGhost();
@@ -79,46 +78,81 @@ namespace LethalCompanyHarpGhost
             harpGhost = Assets.MainAssetBundle.LoadAsset<EnemyType>("HarpGhost");
             TerminalNode harpGhostTerminalNode = Assets.MainAssetBundle.LoadAsset<TerminalNode>("HarpGhostTN");
             TerminalKeyword harpGhostTerminalKeyword = Assets.MainAssetBundle.LoadAsset<TerminalKeyword>("HarpGhostTK");
-            
-            NetworkPrefabs.RegisterNetworkPrefab(harpGhost.enemyPrefab);
-            RegisterEnemy(harpGhost, 100, LevelTypes.All, SpawnType.Daytime, harpGhostTerminalNode, harpGhostTerminalKeyword);
+
+            HarpGhostAI harpGhostAI = harpGhost.enemyPrefab.GetComponent<HarpGhostAI>();
             
             // Setting these in the unity inspector doesn't work for some reason, so have to do it here
-            dieSfx = Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/die3.mp3");
             
-            damageSfx = 
-            [
-                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/damage1.mp3"),
-                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/damage2.mp3")
-            ];
-            
-            laughSfx =
-            [
-                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/laugh1.mp3"),
-                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/laugh2.mp3"),
-                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/laugh3.mp3")
-            ];
+            harpGhostAI.dieSfx = Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/die3.mp3");
+            AudioClip damageClip1 = Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/damage1.mp3");
+            AudioClip damageClip2 = Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/damage2.mp3");
 
-            upsetSfx =
-            [
-                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/random_upset1.mp3"),
-                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/random_upset2.mp3")
-            ];
+            AudioClip laughClip1 = Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/laugh1.mp3");
+            AudioClip laughClip2 = Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/laugh2.mp3");
+            AudioClip laughClip3 = Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/laugh3.mp3");
+
+            AudioClip upsetClip1 = Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/random_upset1.mp3");
+            AudioClip upsetClip2 = Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/random_upset2.mp3");
+
+            AudioClip stunClip1 = Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/stun1.mp3");
+            AudioClip stunClip2 = Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/stun2.mp3");
             
-            stunSfx = 
-            [
-                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/stun1.mp3"),
-                Assets.MainAssetBundle.LoadAsset<AudioClip>("assets/harpghostasset/audio/stun2.mp3")
-            ];
+            if (damageClip1 == null) mls.LogError("Failed to load damage1 AudioClip from AssetBundle - Asset is null");
+
+            if (damageClip2 == null) mls.LogError("Failed to load damage2 AudioClip from AssetBundle - Asset is null");
+
+            if (laughClip1 == null) mls.LogError("Failed to load laugh1 AudioClip from AssetBundle - Asset is null");
+
+            if (laughClip2 == null) mls.LogError("Failed to load laugh2 AudioClip from AssetBundle - Asset is null");
+
+            if (laughClip3 == null) mls.LogError("Failed to load laugh3 AudioClip from AssetBundle - Asset is null");
+
+            if (upsetClip1 == null) mls.LogError("Failed to load random_upset1 AudioClip from AssetBundle - Asset is null");
+
+            if (upsetClip2 == null) mls.LogError("Failed to load random_upset2 AudioClip from AssetBundle - Asset is null");
+
+            if (stunClip1 == null) mls.LogError("Failed to load stun1 AudioClip from AssetBundle - Asset is null");
+
+            if (stunClip2 == null) mls.LogError("Failed to load stun2 AudioClip from AssetBundle - Asset is null");
+            
+            harpGhostAI.damageSfx = new AudioClip[]
+            {
+                damageClip1,
+                damageClip2
+            };
+
+            harpGhostAI.laughSfx = new AudioClip[]
+            {
+                laughClip1,
+                laughClip2,
+                laughClip3
+            };
+
+            harpGhostAI.upsetSfx = new AudioClip[]
+            {
+                upsetClip1,
+                upsetClip2
+            };
+
+            harpGhostAI.stunSfx = new AudioClip[]
+            {
+                stunClip1,
+                stunClip2
+            };
+            
+            NetworkPrefabs.RegisterNetworkPrefab(harpGhost.enemyPrefab);
+            Utilities.FixMixerGroups(harpGhost.enemyPrefab);
+            RegisterEnemy(harpGhost, 40, LevelTypes.DineLevel, SpawnType.Daytime, harpGhostTerminalNode, harpGhostTerminalKeyword);
+            
         }
 
         private static void SetupHarp()
         {
-            // string[] assetNames = Assets.MainAssetBundle.GetAllAssetNames();
-            // foreach (string assetName in assetNames)
-            // {
-            //     mls.LogInfo("Asset in bundle: " + assetName);
-            // }
+            string[] assetNames = Assets.MainAssetBundle.GetAllAssetNames();
+            foreach (string assetName in assetNames)
+            {
+                mls.LogInfo("Asset in bundle: " + assetName);
+            }
 
             // Load the HarpItemData from the AssetBundle
             harpItem = Assets.MainAssetBundle.LoadAsset<Item>("HarpItemData");
