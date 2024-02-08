@@ -6,7 +6,6 @@ using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.Audio;
 using static LethalCompanyHarpGhost.HarpGhostPlugin;
 
 namespace LethalCompanyHarpGhost;
@@ -26,9 +25,6 @@ public class HarpGhostAI : EnemyAI
     [SerializeField] private float annoyanceThreshold;
     [SerializeField] private float maxSearchRadius;
     
-    [SerializeField] private int currentGhostBehaviourStateIndex = 0;
-    [SerializeField] private int previousGhostBehaviourStateIndex = -1;
-    
     private float timeSinceHittingLocalPlayer;
     private float hearNoiseCooldown;
     
@@ -41,12 +37,11 @@ public class HarpGhostAI : EnemyAI
     public AudioClip[] laughSfx;
     public AudioClip[] stunSfx;
     public AudioClip[] upsetSfx;
-    public AudioClip dieSfx;
 
     [Header("Transforms")]
     public Transform turnCompass;
     public Transform grabTarget;
-    public Transform attackArea;
+    public BoxCollider attackArea;
     
     private NetworkObjectReference harpObjectRef;
 
@@ -112,7 +107,7 @@ public class HarpGhostAI : EnemyAI
         if (creatureAnimator == null) mls.LogError("Animator component not found on " + name);
         
         timeSinceHittingLocalPlayer = 0;
-        agentMaxAcceleration = 200f;
+        agentMaxAcceleration = 100f;
         agentMaxSpeed = 0.5f;
         openDoorSpeedMultiplier = 0.6f;
         annoyanceLevel = 0.0f;
@@ -139,7 +134,7 @@ public class HarpGhostAI : EnemyAI
         timeSinceHittingLocalPlayer += Time.deltaTime;
         hearNoiseCooldown -= Time.deltaTime;
 
-        switch (currentGhostBehaviourStateIndex)
+        switch (currentBehaviourStateIndex)
         {
             case 0: // harp ghost playing music and chilling
             {
@@ -192,7 +187,7 @@ public class HarpGhostAI : EnemyAI
             return;
         }
 
-        switch (currentGhostBehaviourStateIndex)
+        switch (currentBehaviourStateIndex)
         {
             case 0: // playing music state
             {
@@ -283,7 +278,7 @@ public class HarpGhostAI : EnemyAI
                 PlayerChasedFearIncrease();
                 
                 // Check if a player is in attack area and attack
-                // AttackPlayerIfClose();
+                AttackPlayerIfClose();
                 break;
             }
 
@@ -382,9 +377,9 @@ public class HarpGhostAI : EnemyAI
                
         }
         
-        if (currentGhostBehaviourStateIndex == state) return;
-        previousGhostBehaviourStateIndex = currentGhostBehaviourStateIndex;
-        currentGhostBehaviourStateIndex = state;
+        if (currentBehaviourStateIndex == state) return;
+        previousBehaviourStateIndex = currentBehaviourStateIndex;
+        currentBehaviourStateIndex = state;
     }
 
     private void CalculateAgentSpeed()
@@ -396,7 +391,7 @@ public class HarpGhostAI : EnemyAI
             return;
         }
 
-        if (currentGhostBehaviourStateIndex >= 0)
+        if (currentBehaviourStateIndex >= 0)
         {
             MoveWithAcceleration();
         }
@@ -479,14 +474,14 @@ public class HarpGhostAI : EnemyAI
     private IEnumerator FixSpeedAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
-        agentMaxSpeed = currentGhostBehaviourStateIndex == 3 ? 5f : 3f;
+        agentMaxSpeed = currentBehaviourStateIndex == 3 ? 5f : 3f;
     }
 
     private void PlayerChasedFearIncrease()
     {
         if (GameNetworkManager.Instance.localPlayerController.isPlayerDead ||
             !GameNetworkManager.Instance.localPlayerController.isInsideFactory) return;
-        if (currentGhostBehaviourStateIndex == 3 && targetPlayer == GameNetworkManager.Instance.localPlayerController && GameNetworkManager.Instance.localPlayerController.HasLineOfSightToPosition(eye.position, 100f, 25, 2f))
+        if (currentBehaviourStateIndex == 3 && targetPlayer == GameNetworkManager.Instance.localPlayerController && GameNetworkManager.Instance.localPlayerController.HasLineOfSightToPosition(eye.position, 100f, 25, 2f))
         {
             GameNetworkManager.Instance.localPlayerController.IncreaseFearLevelOverTime(0.6f);
         }
@@ -528,9 +523,9 @@ public class HarpGhostAI : EnemyAI
 
     private void AttackPlayerIfClose()
     {
-        if (currentGhostBehaviourStateIndex != 3 || timeSinceHittingLocalPlayer < 1.5f) return;
+        if (currentBehaviourStateIndex != 3 || timeSinceHittingLocalPlayer < 1.5f) return;
         Collider[] hitColliders =
-            Physics.OverlapBox(attackArea.position, attackArea.localScale, Quaternion.identity, 1 << 3);
+            Physics.OverlapBox(attackArea.transform.position, attackArea.size * 0.5f, Quaternion.identity, 1 << 3);
 
         if (hitColliders.Length <= 0) return;
         foreach (Collider player in hitColliders)
@@ -548,15 +543,15 @@ public class HarpGhostAI : EnemyAI
     public override void OnCollideWithPlayer(Collider other)
     {
         base.OnCollideWithPlayer(other);
-        if (currentGhostBehaviourStateIndex != 3 || timeSinceHittingLocalPlayer < 1.2f) return;
+        if (currentBehaviourStateIndex != 3 || timeSinceHittingLocalPlayer < 1.2f) return;
         
-        PlayerControllerB playerControllerB = MeetsStandardPlayerCollisionConditions(other);
-        if (playerControllerB == null) return;
-        
-        LogDebug($"Harp Ghost '{gameObject.name}': Collision with player '{playerControllerB.name}'");
-        timeSinceHittingLocalPlayer = 0f;
-        agentMaxSpeed = 0f;
-        DoAnimationServerRpc(Attack);
+        // PlayerControllerB playerControllerB = MeetsStandardPlayerCollisionConditions(other);
+        // if (playerControllerB == null) return;
+        //
+        // LogDebug($"Harp Ghost '{gameObject.name}': Collision with player '{playerControllerB.name}'");
+        // timeSinceHittingLocalPlayer = 0f;
+        // agentMaxSpeed = 0f;
+        // DoAnimationServerRpc(Attack);
     }
 
     public void AttackShiftComplete() // Is called by an animation event
@@ -589,20 +584,9 @@ public class HarpGhostAI : EnemyAI
         creatureVoice.pitch = UnityEngine.Random.Range(0.8f, 1.1f);
         LogDebug($"Audio clip index: {index}, audio clip random number: {randomNum}");
         
-        if (dieSfx == null) mls.LogError("dieSfx is null");
-        if (laughSfx == null) mls.LogError("laughsfx is null");
-        if (stunSfx == null) mls.LogError("stunSfx is null");
-        if (damageSfx == null) mls.LogError("damageSfx is null");
-        if (upsetSfx == null) mls.LogError("upsetsfx is null");
-        
-        if (laughSfx.Length == 0) mls.LogError("laughsfx length is 0");
-        if (stunSfx.Length == 0) mls.LogError("stunsfx length is 0");
-        if (damageSfx.Length == 0) mls.LogError("damagesfx length is 0");
-        if (upsetSfx.Length == 0) mls.LogError("upsetsfx length is 0");
-        
         AudioClip audioClip = index switch
         {
-            (int)AudioClipTypes.Death => dieSfx,
+            (int)AudioClipTypes.Death => dieSFX,
             (int)AudioClipTypes.Damage => damageSfx[randomNum],
             (int)AudioClipTypes.Laugh => laughSfx[randomNum],
             (int)AudioClipTypes.Stun => stunSfx[randomNum],
@@ -629,7 +613,7 @@ public class HarpGhostAI : EnemyAI
         int noiseID = 0)
     {
         base.DetectNoise(noisePosition, noiseLoudness, timesNoisePlayedInOneSpot, noiseID);
-        if ((double)stunNormalizedTimer > 0 || (double)hearNoiseCooldown >= 0.0 || currentGhostBehaviourStateIndex != 0 || Enum.IsDefined(typeof(NoiseIDToIgnore), noiseID)) return;
+        if ((double)stunNormalizedTimer > 0 || (double)hearNoiseCooldown >= 0.0 || currentBehaviourStateIndex != 0 || Enum.IsDefined(typeof(NoiseIDToIgnore), noiseID)) return;
         hearNoiseCooldown = 0.03f;
 
         float distanceToNoise = Vector3.Distance(transform.position, noisePosition);
@@ -791,7 +775,7 @@ public class HarpGhostAI : EnemyAI
 1). Add fear thingy when ghost enteres chase with player
 2). Fix harp scan node value
 3). Fix issues with multiple harps on the same map
-4). Fix ghost voice not playing
+4). Make ghost voice louder
 5). Decrease base acceleration, and add mechanic that increases acceleration when doing run animation
  
  */
