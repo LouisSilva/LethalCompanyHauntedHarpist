@@ -14,7 +14,6 @@ public class HarpBehaviour : PhysicsProp
     public AudioSource harpAudioSource;
     public List<AudioClip> harpAudioClips;
     private RoundManager roundManager;
-    private System.Random musicRandomizer;
     private bool isPlayingMusic;
     private int timesPlayedWithoutTurningOff;
     private float noiseInterval;
@@ -47,7 +46,7 @@ public class HarpBehaviour : PhysicsProp
         base.Start();
         
         roundManager = FindObjectOfType<RoundManager>();
-        musicRandomizer = new System.Random(FindObjectOfType<StartOfRound>().randomMapSeed - 10);
+        UnityEngine.Random.InitState(FindObjectOfType<StartOfRound>().randomMapSeed - 10);
     }
 
     public override void Update()
@@ -103,20 +102,21 @@ public class HarpBehaviour : PhysicsProp
 
     private void StartMusic()
     {
-        if (harpDebug)
+        
+        if (harpAudioSource == null)
         {
-            if (harpAudioSource == null)
-            {
-                mls.LogError("harpAudioSource is null!");
-            }
+            mls.LogError("harpAudioSource is null!");
+            return;
+        }
 
-            if (harpAudioClips == null || harpAudioClips.Count == 0)
-            {
-                mls.LogError("harpAudioClips is null or empty!");
-            }
+        if (harpAudioClips == null || harpAudioClips.Count == 0)
+        {
+            mls.LogError("harpAudioClips is null or empty!");
+            return;
         }
         
-        harpAudioSource.clip = harpAudioClips[musicRandomizer.Next(0, harpAudioClips.Count)];
+        
+        harpAudioSource.clip = harpAudioClips[UnityEngine.Random.Range(0, harpAudioClips.Count)];
         harpAudioSource.pitch = 1f;
         harpAudioSource.volume = 1f;
         harpAudioSource.Play();

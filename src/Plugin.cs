@@ -87,11 +87,11 @@ namespace LethalCompanyHarpGhost
 
         private static void SetupHarp()
         {
-            string[] assetNames = Assets.MainAssetBundle.GetAllAssetNames();
-            foreach (string assetName in assetNames)
-            {
-                mls.LogInfo("Asset in bundle: " + assetName);
-            }
+            // string[] assetNames = Assets.MainAssetBundle.GetAllAssetNames();
+            // foreach (string assetName in assetNames)
+            // {
+            //     mls.LogInfo("Asset in bundle: " + assetName);
+            // }
 
             // Load the HarpItemData from the AssetBundle
             harpItem = Assets.MainAssetBundle.LoadAsset<Item>("HarpItemData");
@@ -147,7 +147,7 @@ namespace LethalCompanyHarpGhost
             
             NetworkPrefabs.RegisterNetworkPrefab(harpItem.spawnPrefab);
             Utilities.FixMixerGroups(harpItem.spawnPrefab);
-            RegisterItem(harpItem);
+            RegisterScrap(harpItem, 0, LevelTypes.All);
         }
     }
 
