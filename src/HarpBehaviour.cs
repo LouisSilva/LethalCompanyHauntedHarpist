@@ -13,21 +13,36 @@ public class HarpBehaviour : PhysicsProp
 
     public AudioSource harpAudioSource;
     public List<AudioClip> harpAudioClips;
+    
     private RoundManager roundManager;
-    private bool isPlayingMusic;
+    
     private int timesPlayedWithoutTurningOff;
+    
     private float noiseInterval;
 
     [SerializeField] private bool harpDebug = false;
-
-    [Serializable] private struct ItemOffset(
-        Vector3 positionOffset = default,
-        Vector3 rotationOffset = default,
-        Vector3 restingRotation = default)
+    private bool isPlayingMusic;
+    
+    [Serializable]
+    public struct ItemOffset : INetworkSerializable
     {
-        public Vector3 positionOffset = positionOffset;
-        public Vector3 rotationOffset = rotationOffset;
-        public Vector3 restingRotation = restingRotation;
+        public Vector3 positionOffset = default;
+        public Vector3 rotationOffset = default;
+        public Vector3 restingRotation = default;
+
+        public ItemOffset(Vector3 positionOffset = default, Vector3 rotationOffset = default, Vector3 restingRotation = default)
+        {
+            this.positionOffset = positionOffset;
+            this.rotationOffset = rotationOffset;
+            this.restingRotation = restingRotation;
+        }
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref positionOffset);
+            serializer.SerializeValue(ref rotationOffset);
+            serializer.SerializeValue(ref restingRotation);
+        }
     }
 
     [SerializeField] private ItemOffset playerHarpOffset;
@@ -36,8 +51,8 @@ public class HarpBehaviour : PhysicsProp
     public void Awake()
     {
         mls = BepInEx.Logging.Logger.CreateLogSource("Harp Behaviour");
-        playerHarpOffset = new ItemOffset(new Vector3(-0.8f, 0.22f, 0.07f), new Vector3(3, 12, -100));
-        enemyHarpOffset = new ItemOffset(new Vector3(0, -0.6f, 0.6f));
+        playerHarpOffset = new ItemOffset(positionOffset:new Vector3(-0.8f, 0.22f, 0.07f), rotationOffset:new Vector3(3, 12, -100));
+        enemyHarpOffset = new ItemOffset(positionOffset:new Vector3(0, -0.6f, 0.6f));
         isPlayingMusic = false;
     }
     
@@ -47,24 +62,26 @@ public class HarpBehaviour : PhysicsProp
         
         roundManager = FindObjectOfType<RoundManager>();
         UnityEngine.Random.InitState(FindObjectOfType<StartOfRound>().randomMapSeed - 10);
+        
+        if (harpAudioSource == null)
+        {
+            mls.LogError("harpAudioSource is null!");
+            return;
+        }
+
+        // ReSharper disable once InvertIf
+        if (harpAudioClips == null || harpAudioClips.Count == 0)
+        {
+            mls.LogError("harpAudioClips is null or empty!");
+            return;
+        }
     }
 
     public override void Update()
     {
         base.Update();
-        if (isHeldByEnemy)
-        {
-            itemProperties.positionOffset = enemyHarpOffset.positionOffset;
-            itemProperties.rotationOffset = enemyHarpOffset.rotationOffset;
-            itemProperties.restingRotation = enemyHarpOffset.restingRotation;
-        }
-
-        else if (heldByPlayerOnServer)
-        {
-            itemProperties.positionOffset = playerHarpOffset.positionOffset;
-            itemProperties.rotationOffset = playerHarpOffset.rotationOffset;
-            itemProperties.restingRotation = playerHarpOffset.restingRotation;
-        }
+        if (isHeldByEnemy) UpdateItemOffsetsServerRpc(enemyHarpOffset);
+        else if (heldByPlayerOnServer) UpdateItemOffsetsServerRpc(playerHarpOffset);
         
         if (!isPlayingMusic) return;
         if (noiseInterval <= 0.0)
@@ -89,11 +106,11 @@ public class HarpBehaviour : PhysicsProp
         switch (isPlayingMusic)
         {
             case false:
-                StartMusic();
+                StartMusicServerRpc();
                 break;
             
             case true:
-                StopMusic();
+                StopMusicServerRpc();
                 break;
         }
 
@@ -102,20 +119,6 @@ public class HarpBehaviour : PhysicsProp
 
     private void StartMusic()
     {
-        
-        if (harpAudioSource == null)
-        {
-            mls.LogError("harpAudioSource is null!");
-            return;
-        }
-
-        if (harpAudioClips == null || harpAudioClips.Count == 0)
-        {
-            mls.LogError("harpAudioClips is null or empty!");
-            return;
-        }
-        
-        
         harpAudioSource.clip = harpAudioClips[UnityEngine.Random.Range(0, harpAudioClips.Count)];
         harpAudioSource.pitch = 1f;
         harpAudioSource.volume = 1f;
@@ -145,12 +148,55 @@ public class HarpBehaviour : PhysicsProp
     public override void PocketItem()
     {
         base.PocketItem();
-        StopMusic();
+        StopMusicServerRpc();
     }
 
     public override void OnHitGround()
     {
         base.OnHitGround();
+        StopMusicServerRpc();
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void UpdateItemOffsetsServerRpc(ItemOffset itemOffset)
+    {
+        if (itemProperties.positionOffset == itemOffset.positionOffset &&
+            itemProperties.rotationOffset == itemOffset.rotationOffset &&
+            itemProperties.restingRotation == itemOffset.restingRotation) return;
+        UpdateItemOffsetsClientRpc(itemOffset);
+    }
+
+    [ClientRpc]
+    public void UpdateItemOffsetsClientRpc(ItemOffset itemOffset)
+    {
+        itemProperties.positionOffset = itemOffset.positionOffset;
+        itemProperties.rotationOffset = itemOffset.rotationOffset;
+        itemProperties.restingRotation = itemOffset.restingRotation;
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void StopMusicServerRpc()
+    {
+        if (!isPlayingMusic) return;
+        StopMusicClientRpc();
+    }
+    
+    [ClientRpc]
+    public void StopMusicClientRpc()
+    {
         StopMusic();
+    }
+    
+    [ServerRpc(RequireOwnership = false)]
+    public void StartMusicServerRpc()
+    {
+        if (isPlayingMusic) return;
+        StartMusicClientRpc();
+    }
+
+    [ClientRpc]
+    public void StartMusicClientRpc()
+    {
+        StartMusic();
     }
 }

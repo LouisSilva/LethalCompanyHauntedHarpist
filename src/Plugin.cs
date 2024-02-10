@@ -18,7 +18,7 @@ namespace LethalCompanyHarpGhost
     {
         private const string modGUID = "Bob123.LCM_HarpGhost";
         private const string modName = "Bob123 Lethal Company Harp Ghost Mod";
-        private const string modVersion = "1.0.3";
+        private const string modVersion = "1.0.4";
 
         private readonly Harmony harmony = new Harmony(modGUID);
         
@@ -82,7 +82,6 @@ namespace LethalCompanyHarpGhost
             NetworkPrefabs.RegisterNetworkPrefab(harpGhost.enemyPrefab);
             Utilities.FixMixerGroups(harpGhost.enemyPrefab);
             RegisterEnemy(harpGhost, 40, LevelTypes.DineLevel, SpawnType.Daytime, harpGhostTerminalNode, harpGhostTerminalKeyword);
-            
         }
 
         private static void SetupHarp()
