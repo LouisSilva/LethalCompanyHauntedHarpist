@@ -80,6 +80,8 @@ public class HarpBehaviour : PhysicsProp
     public override void Update()
     {
         base.Update();
+        if (!IsOwner) return;
+        
         if (isHeldByEnemy) UpdateItemOffsetsServerRpc(enemyHarpOffset);
         else if (heldByPlayerOnServer) UpdateItemOffsetsServerRpc(playerHarpOffset);
         
@@ -157,12 +159,25 @@ public class HarpBehaviour : PhysicsProp
         StopMusicServerRpc();
     }
 
+    public override void GrabItemFromEnemy(EnemyAI enemy)
+    {
+        base.GrabItemFromEnemy(enemy);
+        isHeldByEnemy = true;
+    }
+
+    public override void DiscardItemFromEnemy()
+    {
+        base.DiscardItemFromEnemy();
+        isHeldByEnemy = false;
+    }
+
     [ServerRpc(RequireOwnership = false)]
     public void UpdateItemOffsetsServerRpc(ItemOffset itemOffset)
     {
         if (itemProperties.positionOffset == itemOffset.positionOffset &&
             itemProperties.rotationOffset == itemOffset.rotationOffset &&
             itemProperties.restingRotation == itemOffset.restingRotation) return;
+        LogDebug($"Owner: {this.OwnerClientId}");
         UpdateItemOffsetsClientRpc(itemOffset);
     }
 
