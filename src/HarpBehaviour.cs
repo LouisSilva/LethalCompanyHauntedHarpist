@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using BepInEx.Logging;
 using UnityEngine;
 using Unity.Netcode;
@@ -11,17 +10,17 @@ public class HarpBehaviour : PhysicsProp
 {
     private ManualLogSource mls;
 
-    public AudioSource harpAudioSource;
-    public List<AudioClip> harpAudioClips;
+    [SerializeField] public AudioSource harpAudioSource;
+    public AudioClip[] harpAudioClips;
     
-    private RoundManager roundManager;
+    private RoundManager _roundManager;
     
-    private int timesPlayedWithoutTurningOff;
+    private int _timesPlayedWithoutTurningOff;
     
-    private float noiseInterval;
+    private float _noiseInterval;
 
     [SerializeField] private bool harpDebug = false;
-    private bool isPlayingMusic;
+    private bool _isPlayingMusic = false;
     
     [Serializable]
     public struct ItemOffset : INetworkSerializable
@@ -53,14 +52,13 @@ public class HarpBehaviour : PhysicsProp
         mls = BepInEx.Logging.Logger.CreateLogSource("Harp Behaviour");
         playerHarpOffset = new ItemOffset(positionOffset:new Vector3(-0.8f, 0.22f, 0.07f), rotationOffset:new Vector3(3, 12, -100));
         enemyHarpOffset = new ItemOffset(positionOffset:new Vector3(0, -0.6f, 0.6f));
-        isPlayingMusic = false;
     }
     
     public override void Start()
     {
         base.Start();
         
-        roundManager = FindObjectOfType<RoundManager>();
+        _roundManager = FindObjectOfType<RoundManager>();
         UnityEngine.Random.InitState(FindObjectOfType<StartOfRound>().randomMapSeed - 10);
         
         if (harpAudioSource == null)
@@ -70,7 +68,7 @@ public class HarpBehaviour : PhysicsProp
         }
 
         // ReSharper disable once InvertIf
-        if (harpAudioClips == null || harpAudioClips.Count == 0)
+        if (harpAudioClips == null || harpAudioClips.Length == 0)
         {
             mls.LogError("harpAudioClips is null or empty!");
             return;
@@ -85,15 +83,15 @@ public class HarpBehaviour : PhysicsProp
         if (isHeldByEnemy) UpdateItemOffsetsServerRpc(enemyHarpOffset);
         else if (heldByPlayerOnServer) UpdateItemOffsetsServerRpc(playerHarpOffset);
         
-        if (!isPlayingMusic) return;
-        if (noiseInterval <= 0.0)
+        if (!_isPlayingMusic) return;
+        if (_noiseInterval <= 0.0)
         {
-            noiseInterval = 1f;
-            ++timesPlayedWithoutTurningOff;
-            roundManager.PlayAudibleNoise(transform.position, 16f, 3f, timesPlayedWithoutTurningOff, noiseID: 540);
+            _noiseInterval = 1f;
+            ++_timesPlayedWithoutTurningOff;
+            _roundManager.PlayAudibleNoise(transform.position, 16f, 3f, _timesPlayedWithoutTurningOff, noiseID: 540);
         }
 
-        else noiseInterval -= Time.deltaTime;
+        else _noiseInterval -= Time.deltaTime;
     }
     
     private void LogDebug(string logMessage)
@@ -105,7 +103,7 @@ public class HarpBehaviour : PhysicsProp
     {
         base.ItemActivate(used, buttonDown);
         LogDebug("Harp ItemActivate() called");
-        switch (isPlayingMusic)
+        switch (_isPlayingMusic)
         {
             case false:
                 StartMusicServerRpc();
@@ -121,19 +119,19 @@ public class HarpBehaviour : PhysicsProp
 
     private void StartMusic()
     {
-        harpAudioSource.clip = harpAudioClips[UnityEngine.Random.Range(0, harpAudioClips.Count)];
+        harpAudioSource.clip = harpAudioClips[UnityEngine.Random.Range(0, harpAudioClips.Length)];
         harpAudioSource.pitch = 1f;
         harpAudioSource.volume = 1f;
         harpAudioSource.Play();
         WalkieTalkie.TransmitOneShotAudio(harpAudioSource, harpAudioSource.clip, harpAudioSource.volume);
-        isPlayingMusic = true;
+        _isPlayingMusic = true;
     }
 
     private void StopMusic()
     {
-        StartCoroutine(MusicPitchDown());
-        timesPlayedWithoutTurningOff = 0;
-        isPlayingMusic = false;
+        if (IsServer) StartCoroutine(MusicPitchDown());
+        _timesPlayedWithoutTurningOff = 0;
+        _isPlayingMusic = false;
     }
     
     private IEnumerator MusicPitchDown()
@@ -177,12 +175,11 @@ public class HarpBehaviour : PhysicsProp
         if (itemProperties.positionOffset == itemOffset.positionOffset &&
             itemProperties.rotationOffset == itemOffset.rotationOffset &&
             itemProperties.restingRotation == itemOffset.restingRotation) return;
-        LogDebug($"Owner: {this.OwnerClientId}");
         UpdateItemOffsetsClientRpc(itemOffset);
     }
 
     [ClientRpc]
-    public void UpdateItemOffsetsClientRpc(ItemOffset itemOffset)
+    private void UpdateItemOffsetsClientRpc(ItemOffset itemOffset)
     {
         itemProperties.positionOffset = itemOffset.positionOffset;
         itemProperties.rotationOffset = itemOffset.rotationOffset;
@@ -192,12 +189,12 @@ public class HarpBehaviour : PhysicsProp
     [ServerRpc(RequireOwnership = false)]
     public void StopMusicServerRpc()
     {
-        if (!isPlayingMusic) return;
+        if (!_isPlayingMusic) return;
         StopMusicClientRpc();
     }
     
     [ClientRpc]
-    public void StopMusicClientRpc()
+    private void StopMusicClientRpc()
     {
         StopMusic();
     }
@@ -205,12 +202,12 @@ public class HarpBehaviour : PhysicsProp
     [ServerRpc(RequireOwnership = false)]
     public void StartMusicServerRpc()
     {
-        if (isPlayingMusic) return;
+        if (_isPlayingMusic) return;
         StartMusicClientRpc();
     }
 
     [ClientRpc]
-    public void StartMusicClientRpc()
+    private void StartMusicClientRpc()
     {
         StartMusic();
     }
