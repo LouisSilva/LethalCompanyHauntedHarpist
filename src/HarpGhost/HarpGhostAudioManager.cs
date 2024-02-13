@@ -1,19 +1,19 @@
-﻿using BepInEx.Logging;
+﻿using System;
+using BepInEx.Logging;
 using UnityEngine;
-using UnityEngine.Serialization;
+using Random = UnityEngine.Random;
 
 namespace LethalCompanyHarpGhost.HarpGhost;
 
 public class HarpGhostAudioManager : MonoBehaviour
 {
-    private ManualLogSource _mls;
+    private readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource("Harp Ghost Audio Manager");
     
     [SerializeField] private bool harpGhostAudioManagerDebug = true;
     
     #pragma warning disable 0649
     [SerializeField] private AudioSource creatureVoiceSource;
     [SerializeField] private AudioSource creatureSfxSource;
-    [SerializeField] private HarpGhostNetcodeController netcodeController;
     #pragma warning restore 0649
     
     [Header("Audio")]
@@ -61,19 +61,10 @@ public class HarpGhostAudioManager : MonoBehaviour
         BaboonHawkCaw = 1105
     }
 
-    private void Awake()
-    {
-        _mls = new ManualLogSource("HarpGhostAudioManager");
-        _mls.LogInfo("Audio Manager loaded");
-    }
-
     private void Start()
     {
         if (creatureSfxSource == null) _mls.LogError("creatureSfxSource is null");
         if (creatureVoiceSource == null) _mls.LogError("creatureVoiceSource is null");
-
-        netcodeController = GetComponent<HarpGhostNetcodeController>();
-        if (netcodeController == null) _mls.LogError("netcodeController is null");
         
         if (damageSfx == null || damageSfx.Length == 0) _mls.LogError("DamageSfx is null or empty");
         if (laughSfx == null || laughSfx.Length == 0) _mls.LogError("LaughSfx is null or empty");
@@ -91,10 +82,25 @@ public class HarpGhostAudioManager : MonoBehaviour
 
     private void SubscribeToEvents()
     {
-        netcodeController.OnPlayCreatureVoice += PlayVoice;
+        HarpGhostNetcodeController.OnPlayCreatureVoice += PlayVoice;
+        HarpGhostNetcodeController.OnEnterDeathState += HandleOnEnterDeathState;
     }
 
-    private void PlayVoice(int typeIndex, int randomNum, float volume = 1f)
+    private void OnDestroy()
+    {
+        HarpGhostNetcodeController.OnPlayCreatureVoice -= PlayVoice;
+        HarpGhostNetcodeController.OnEnterDeathState -= HandleOnEnterDeathState;
+    }
+
+    private void HandleOnEnterDeathState()
+    {
+        creatureVoiceSource.Stop(true);
+        creatureSfxSource.Stop(true);
+        PlayVoice((int)AudioClipTypes.Death, 1);
+        Destroy(this);
+    }
+
+    private void PlayVoice(int typeIndex, int randomNum, float volume = 1f, bool interrupt = true)
     {
         creatureVoiceSource.pitch = Random.Range(0.8f, 1.1f);
         LogDebug($"Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
@@ -116,6 +122,7 @@ public class HarpGhostAudioManager : MonoBehaviour
         }
         
         LogDebug($"Playing audio clip: {audioClip.name}");
+        if (interrupt) creatureVoiceSource.Stop(true);
         creatureVoiceSource.volume = 1f;
         creatureVoiceSource.PlayOneShot(audioClip);
         WalkieTalkie.TransmitOneShotAudio(creatureVoiceSource, audioClip, volume);
@@ -126,10 +133,5 @@ public class HarpGhostAudioManager : MonoBehaviour
         creatureSfxSource.volume = volume;
         creatureSfxSource.PlayOneShot(clip);
         WalkieTalkie.TransmitOneShotAudio(creatureSfxSource, clip, volume);
-    }
-
-    public void PlayCreatureVoice(int typeIndex, int clipArrayLength, float volume = 1f)
-    {
-        netcodeController.PlayCreatureVoiceServerRpc(typeIndex, clipArrayLength, volume);
     }
 }

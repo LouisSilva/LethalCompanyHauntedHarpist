@@ -8,7 +8,7 @@ namespace LethalCompanyHarpGhost;
 
 public class HarpBehaviour : PhysicsProp
 {
-    private ManualLogSource mls;
+    private readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource("Harp Behaviour");
 
     [SerializeField] public AudioSource harpAudioSource;
     public AudioClip[] harpAudioClips;
@@ -49,7 +49,6 @@ public class HarpBehaviour : PhysicsProp
 
     public void Awake()
     {
-        mls = BepInEx.Logging.Logger.CreateLogSource("Harp Behaviour");
         playerHarpOffset = new ItemOffset(positionOffset:new Vector3(-0.8f, 0.22f, 0.07f), rotationOffset:new Vector3(3, 12, -100));
         enemyHarpOffset = new ItemOffset(positionOffset:new Vector3(0, -0.6f, 0.6f));
     }
@@ -63,14 +62,14 @@ public class HarpBehaviour : PhysicsProp
         
         if (harpAudioSource == null)
         {
-            mls.LogError("harpAudioSource is null!");
+            _mls.LogError("harpAudioSource is null!");
             return;
         }
 
         // ReSharper disable once InvertIf
         if (harpAudioClips == null || harpAudioClips.Length == 0)
         {
-            mls.LogError("harpAudioClips is null or empty!");
+            _mls.LogError("harpAudioClips is null or empty!");
             return;
         }
     }
@@ -81,7 +80,7 @@ public class HarpBehaviour : PhysicsProp
         if (!IsOwner) return;
         
         if (isHeldByEnemy) UpdateItemOffsetsServerRpc(enemyHarpOffset);
-        else if (heldByPlayerOnServer) UpdateItemOffsetsServerRpc(playerHarpOffset);
+        else if (playerHeldBy != null) UpdateItemOffsetsServerRpc(playerHarpOffset);
         
         if (!_isPlayingMusic) return;
         if (_noiseInterval <= 0.0)
@@ -96,7 +95,7 @@ public class HarpBehaviour : PhysicsProp
     
     private void LogDebug(string logMessage)
     {
-        if (harpDebug) mls.LogInfo(logMessage);
+        if (harpDebug) _mls.LogInfo(logMessage);
     }
 
     public override void ItemActivate(bool used, bool buttonDown = true)
@@ -129,7 +128,7 @@ public class HarpBehaviour : PhysicsProp
 
     private void StopMusic()
     {
-        if (IsServer) StartCoroutine(MusicPitchDown());
+        StartCoroutine(MusicPitchDown());
         _timesPlayedWithoutTurningOff = 0;
         _isPlayingMusic = false;
     }

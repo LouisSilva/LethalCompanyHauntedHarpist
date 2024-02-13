@@ -1,42 +1,38 @@
 ﻿using System;
+using System.Collections;
 using BepInEx.Logging;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace LethalCompanyHarpGhost.HarpGhost;
+
+// For things involving more than just changing 1 variable, they are done with rpcs instead of network vars
 
 public class HarpGhostNetcodeController : NetworkBehaviour
 {
     #pragma warning disable 0649
-    [SerializeField] private HarpGhostAI harpGhostAI;
+    [FormerlySerializedAs("harpGhostAI")] [SerializeField] private HarpGhostAIServer harpGhostAIServer;
     #pragma warning restore 0649
 
-    private ManualLogSource _mls;
+    private readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource("Harp Ghost Netcode Controller");
 
     [SerializeField] private bool harpGhostNetcodeControllerDebug = true;
     
-    public event Action<Vector3> OnTargetPlayerLastSeenPosUpdated;
-    public event Action<int> OnSwitchBehaviourState;
-    public event Action<int, int, float> OnPlayCreatureVoice;
-    public event Action<int> OnBeginChasingPlayer;
-    public event Action<Vector3> OnDropHarp;
-    public event Action<NetworkObjectReference, int> OnSpawnHarp;
-    public event Action OnGrapHarp;
     public event Action<int> OnDoAnimation;
     public event Action<int, bool> OnChangeAnimationParameterBool;
-    public event Action<float> OnChangeAgentMaxAcceleration;
-    public event Action<float, float> OnChangeAgentMaxSpeed;
-    public event Action OnEnterDeathState;
-
-    private void Awake()
-    {
-        _mls = new ManualLogSource("HarpGhostNetcodeController");
-    }
+    public static event Action<int, int, float, bool> OnPlayCreatureVoice;
+    public static event Action OnEnterDeathState;
+    public static event Action OnGrabHarp;
+    public static event Action<NetworkObjectReference, int> OnSpawnHarp;
+    public static event Action<Vector3> OnDropHarp;
+    public static event Action OnPlayHarpMusic;
+    public static event Action OnStopHarpMusic;
 
     private void Start()
     {
-        harpGhostAI = GetComponent<HarpGhostAI>();
-        if (harpGhostAI == null) _mls.LogError("harpGhostAI is null");
+        harpGhostAIServer = GetComponent<HarpGhostAIServer>();
+        if (harpGhostAIServer == null) _mls.LogError("harpGhostAI is null");
     }
 
     private void LogDebug(string msg)
@@ -45,85 +41,102 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void EnterDeathStateServerRpc()
+    public void ChangeMaxAccelerationServerRpc(float multiplier)
     {
-        EnterDeathStateClientRpc();
+        harpGhostAIServer.AgentMaxAcceleration *= multiplier;
     }
 
-    [ClientRpc]
-    private void EnterDeathStateClientRpc()
+    [ServerRpc(RequireOwnership = false)]
+    public void FixAgentSpeedAfterAttackServerRpc()
     {
-        OnEnterDeathState?.Invoke();
+        LogDebug("FixAgentSpeedAfterAttackServerRpc called");
+        float newMaxSpeed, newMaxSpeed2;
+        switch (harpGhostAIServer.CurrentBehaviourStateIndex)
+        {
+            case 0:
+                newMaxSpeed = 0.3f;
+                newMaxSpeed2 = 0.3f;
+                break;
+            case 1:
+                newMaxSpeed = 3f;
+                newMaxSpeed2 = 1f;
+                break;
+            case 2:
+                newMaxSpeed = 6f;
+                newMaxSpeed2 = 1f;
+                break;
+            case 3:
+                newMaxSpeed = 8f;
+                newMaxSpeed2 = 1f;
+                break;
+            default:
+                newMaxSpeed = 3f;
+                newMaxSpeed2 = 1f;
+                break;
+        }
+
+        harpGhostAIServer.agent.speed = newMaxSpeed;
+        harpGhostAIServer.AgentMaxSpeed = newMaxSpeed2;
     }
-    
+
     [ServerRpc(RequireOwnership = false)]
     public void ChangeAgentMaxSpeedServerRpc(float newMaxSpeed, float newMaxSpeed2)
     {
-        ChangeAgentMaxSpeedClientRpc(newMaxSpeed, newMaxSpeed2);
+        harpGhostAIServer.agent.speed = newMaxSpeed;
+        harpGhostAIServer.AgentMaxSpeed = newMaxSpeed2;
     }
 
-    [ClientRpc]
-    private void ChangeAgentMaxSpeedClientRpc(float newMaxSpeed, float newMaxSpeed2)
-    {
-        OnChangeAgentMaxSpeed?.Invoke(newMaxSpeed, newMaxSpeed2);
-    }
-    
     [ServerRpc(RequireOwnership = false)]
-    public void ChangeAgentMaxAccelerationServerRpc(float newAcceleration)
+    public void DamageTargetPlayerServerRpc(int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
     {
-        OnChangeAgentMaxAccelerationClientRpc(newAcceleration);
+        LogDebug("DamageTargetPlayerServerRpc called");
+        harpGhostAIServer.DamageTargetPlayer(damage, causeOfDeath: causeOfDeath);
     }
 
     [ClientRpc]
-    private void OnChangeAgentMaxAccelerationClientRpc(float newAcceleration)
+    public void EnterDeathStateClientRpc()
     {
-        OnChangeAgentMaxAcceleration?.Invoke(newAcceleration);
-    }
-    
-    [ServerRpc(RequireOwnership = false)]
-    public void ChangeAnimationParameterBoolServerRpc(int animationId, bool value)
-    {
-        ChangeAnimationParameterBoolClientRpc(animationId, value);
+        OnEnterDeathState?.Invoke();
     }
 
     [ClientRpc]
-    private void ChangeAnimationParameterBoolClientRpc(int animationId, bool value)
+    public void ChangeAnimationParameterBoolClientRpc(int animationId, bool value)
     {
         OnChangeAnimationParameterBool?.Invoke(animationId, value);
     }
-    
-    [ServerRpc(RequireOwnership = false)]
-    public void DoAnimationServerRpc(int animationId)
-    {
-        DoAnimationClientRpc(animationId);
-    }
 
     [ClientRpc]
-    private void DoAnimationClientRpc(int animationId)
+    public void DoAnimationClientRpc(int animationId)
     {
         OnDoAnimation?.Invoke(animationId);
     }
-    
-    [ServerRpc(RequireOwnership = false)]
-    public void GrabHarpServerRpc()
+
+    [ClientRpc]
+    public void GrabHarpClientRpc()
     {
-        GrabHarpClientRpc();
+        OnGrabHarp?.Invoke();
     }
 
     [ClientRpc]
-    private void GrabHarpClientRpc()
+    public void PlayHarpMusicClientRpc()
     {
-        OnGrapHarp?.Invoke();
+        OnPlayHarpMusic?.Invoke();
     }
     
-    [ServerRpc(RequireOwnership = false)]
+    [ClientRpc]
+    public void StopHarpMusicClientRpc()
+    {
+        OnStopHarpMusic?.Invoke();
+    }
+    
+    [ServerRpc]
     public void SpawnHarpServerRpc()
     {
         GameObject harpObject = Instantiate(
             HarpGhostPlugin.HarpItem.spawnPrefab,
-            harpGhostAI.TransformPosition,
+            harpGhostAIServer.TransformPosition,
             Quaternion.identity,
-            harpGhostAI.RoundManagerInstance.spawnedScrapContainer);
+            harpGhostAIServer.RoundManagerInstance.spawnedScrapContainer);
         
         AudioSource harpAudioSource = harpObject.GetComponent<AudioSource>();
         if (harpAudioSource == null) _mls.LogError("harpAudioSource is null");
@@ -134,7 +147,7 @@ public class HarpGhostNetcodeController : NetworkBehaviour
         int harpScrapValue = UnityEngine.Random.Range(150, 301);
         harpObject.GetComponent<GrabbableObject>().fallTime = 0f;
         harpObject.GetComponent<GrabbableObject>().SetScrapValue(harpScrapValue);
-        harpGhostAI.RoundManagerInstance.totalScrapValueInLevel += harpScrapValue;
+        harpGhostAIServer.RoundManagerInstance.totalScrapValueInLevel += harpScrapValue;
 
         harpObject.GetComponent<NetworkObject>().Spawn();
         SpawnHarpClientRpc(harpObject, harpScrapValue);
@@ -145,68 +158,18 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     {
         OnSpawnHarp?.Invoke(harpObject, harpScrapValue);
     }
-    
-    [ServerRpc(RequireOwnership = false)]
-    public void DropHarpServerRpc(Vector3 targetPosition)
-    {
-        if (harpGhostAI.HeldHarp == null) return;
-        DropHarpClientRpc(targetPosition);
-    }
 
     [ClientRpc]
-    private void DropHarpClientRpc(Vector3 targetPosition)
+    public void DropHarpClientRpc(Vector3 targetPosition)
     {
         OnDropHarp?.Invoke(targetPosition);
     }
     
-    [ServerRpc(RequireOwnership = false)]
-    public void BeginChasingPlayerServerRpc(int targetPlayerObjectId)
-    {
-        BeginChasingPlayerClientRpc(targetPlayerObjectId);
-    }
-
     [ClientRpc]
-    private void BeginChasingPlayerClientRpc(int targetPlayerObjectId)
-    {
-        OnBeginChasingPlayer?.Invoke(targetPlayerObjectId);
-    }
-    
-    [ServerRpc(RequireOwnership = false)]
-    public void PlayCreatureVoiceServerRpc(int typeIndex, int clipArrayLength, float volume)
+    public void PlayCreatureVoiceClientRpc(int typeIndex, int clipArrayLength, float volume = 1f, bool interrupt = true)
     {
         int randomNum = UnityEngine.Random.Range(0, clipArrayLength);
-        LogDebug($"Audio clip index: {typeIndex}, audio clip array length: {clipArrayLength}, audio clip random number: {randomNum}");
-        PlayCreatureVoiceClientRpc(typeIndex, randomNum, volume);
-    }
-
-    [ClientRpc]
-    private void PlayCreatureVoiceClientRpc(int typeIndex, int randomNum, float volume)
-    {
-        LogDebug($"Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
-        OnPlayCreatureVoice?.Invoke(typeIndex, randomNum, volume);
-    }
-
-    [ServerRpc(RequireOwnership = false)]
-    public void SwitchBehaviourStateServerRpc(int state)
-    {
-        SwitchBehaviourStateClientRpc(state);
-    }
-
-    [ClientRpc]
-    private void SwitchBehaviourStateClientRpc(int state)
-    {
-        OnSwitchBehaviourState?.Invoke(state);
-    }
-    
-    [ServerRpc(RequireOwnership = false)]
-    public void UpdateTargetPlayerLastSeenPosServerRpc(Vector3 targetPlayerPos)
-    {
-        UpdateTargetPlayerLastSeenPosClientRpc(targetPlayerPos);
-    }
-
-    [ClientRpc]
-    private void UpdateTargetPlayerLastSeenPosClientRpc(Vector3 targetPlayerPos)
-    {
-        OnTargetPlayerLastSeenPosUpdated?.Invoke(targetPlayerPos);
+        LogDebug($"Invoking OnPlayCreatureVoice | Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
+        OnPlayCreatureVoice?.Invoke(typeIndex, randomNum, volume, interrupt);
     }
 }
