@@ -75,7 +75,7 @@ public class HarpGhostAnimationController : MonoBehaviour
         animator.SetBool(parameter, value);
     }
 
-    private bool GetBool(int parameter)
+    public bool GetBool(int parameter)
     {
         return animator.GetBool(parameter);
     }
@@ -84,22 +84,6 @@ public class HarpGhostAnimationController : MonoBehaviour
     {
         LogDebug($"SetTriggerCalled: {parameter}");
         animator.SetTrigger(parameter);
-    }
-    
-    public void OnAnimationEventIncreaseAccelerationGallop() // Is called by an animation event
-    {
-        if (NetworkManager.Singleton.IsClient && netcodeController.IsOwner)
-        {
-            netcodeController.ChangeMaxAccelerationServerRpc(2);
-        }
-    }
-
-    public void OnAnimationEventDecreaseAccelerationGallop() // Is called by an animation event
-    {
-        if (NetworkManager.Singleton.IsClient && netcodeController.IsOwner)
-        {
-            netcodeController.ChangeMaxAccelerationServerRpc(0.5f);
-        }
     }
     
     public void OnAnimationEventFixAgentSpeedAfterAttack() // Is called by an animation event

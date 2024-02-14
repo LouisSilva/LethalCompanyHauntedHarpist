@@ -1,18 +1,14 @@
 ﻿using System;
-using System.Collections;
 using BepInEx.Logging;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace LethalCompanyHarpGhost.HarpGhost;
-
-// For things involving more than just changing 1 variable, they are done with rpcs instead of network vars
 
 public class HarpGhostNetcodeController : NetworkBehaviour
 {
     #pragma warning disable 0649
-    [FormerlySerializedAs("harpGhostAI")] [SerializeField] private HarpGhostAIServer harpGhostAIServer;
+    [SerializeField] private HarpGhostAIServer harpGhostAIServer;
     #pragma warning restore 0649
 
     private readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource("Harp Ghost Netcode Controller");
@@ -38,12 +34,6 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     private void LogDebug(string msg)
     {
         if (harpGhostNetcodeControllerDebug) _mls.LogInfo(msg);
-    }
-
-    [ServerRpc(RequireOwnership = false)]
-    public void ChangeMaxAccelerationServerRpc(float multiplier)
-    {
-        harpGhostAIServer.AgentMaxAcceleration *= multiplier;
     }
 
     [ServerRpc(RequireOwnership = false)]
