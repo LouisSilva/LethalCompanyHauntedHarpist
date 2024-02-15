@@ -1,22 +1,29 @@
-﻿using System;
-using System.Collections;
+﻿using System.Diagnostics.CodeAnalysis;
 using BepInEx.Logging;
+using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine;
 
 namespace LethalCompanyHarpGhost.HarpGhost;
 
+[SuppressMessage("ReSharper", "RedundantDefaultMemberInitializer")]
 public class HarpGhostAIClient : MonoBehaviour
 {
     private readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource("Harp Ghost AI | Client");
 
+    [SerializeField] private bool harpGhostAIClientDebug = false;
+    
     private NetworkObjectReference _harpObjectRef;
 
     private int _harpScrapValue;
 
     private HarpBehaviour _heldHarp;
+
+    private PlayerControllerB _targetPlayer;
     
     public Transform grabTarget;
+
+    public Transform eye;
     
 
     private void OnEnable()
@@ -26,6 +33,10 @@ public class HarpGhostAIClient : MonoBehaviour
         HarpGhostNetcodeController.OnGrabHarp += HandleGrabHarp;
         HarpGhostNetcodeController.OnPlayHarpMusic += HandleOnPlayHarpMusic;
         HarpGhostNetcodeController.OnStopHarpMusic += HandleOnStopHarpMusic;
+        HarpGhostNetcodeController.OnChangeTargetPlayer += HandleChangeTargetPlayer;
+        HarpGhostNetcodeController.OnDamageTargetPlayer += HandleDamageTargetPlayer;
+        HarpGhostNetcodeController.OnTargetPlayerJumpToFearLevel += HandleTargetPlayerJumpToFearLevel;
+        HarpGhostNetcodeController.OnTargetPlayerIncreaseFearLevelOverTime += HandleTargetPlayerIncreaseFearLevelOverTime;
     }
 
     private void OnDestroy()
@@ -35,6 +46,35 @@ public class HarpGhostAIClient : MonoBehaviour
         HarpGhostNetcodeController.OnGrabHarp -= HandleGrabHarp;
         HarpGhostNetcodeController.OnPlayHarpMusic -= HandleOnPlayHarpMusic;
         HarpGhostNetcodeController.OnStopHarpMusic -= HandleOnStopHarpMusic;
+        HarpGhostNetcodeController.OnChangeTargetPlayer -= HandleChangeTargetPlayer;
+        HarpGhostNetcodeController.OnDamageTargetPlayer -= HandleDamageTargetPlayer;
+        HarpGhostNetcodeController.OnTargetPlayerJumpToFearLevel -= HandleTargetPlayerJumpToFearLevel;
+        HarpGhostNetcodeController.OnTargetPlayerIncreaseFearLevelOverTime -= HandleTargetPlayerIncreaseFearLevelOverTime;
+    }
+
+    private void LogDebug(string msg)
+    {
+        if (harpGhostAIClientDebug) _mls.LogInfo(msg);
+    }
+
+    private void HandleTargetPlayerJumpToFearLevel(float level)
+    {
+        if (_targetPlayer == null)
+        {
+            _mls.LogError("Target player is null");
+            return;
+        }
+        _targetPlayer.JumpToFearLevel(level);
+    }
+
+    private void HandleTargetPlayerIncreaseFearLevelOverTime(float multiplier)
+    {
+        if (_targetPlayer == null)
+        {
+            _mls.LogError("Target player is null");
+            return;
+        }
+        _targetPlayer.IncreaseFearLevelOverTime(multiplier);
     }
 
     private void HandleOnPlayHarpMusic()
@@ -87,5 +127,23 @@ public class HarpGhostAIClient : MonoBehaviour
     {
         _harpObjectRef = harpObject;
         _harpScrapValue = harpScrapValue;
+    }
+
+    private void HandleChangeTargetPlayer(int targetPlayerObjectId)
+    {
+        if (targetPlayerObjectId == -69420)
+        {
+            _targetPlayer = null;
+            return;
+        }
+        
+        PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[targetPlayerObjectId];
+        _targetPlayer = player;
+        LogDebug($"Target player is now: {player.name}");
+    }
+
+    private void HandleDamageTargetPlayer(int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
+    {
+        _targetPlayer.DamagePlayer(damage, causeOfDeath: causeOfDeath);
     }
 }

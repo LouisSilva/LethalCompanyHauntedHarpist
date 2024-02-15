@@ -13,7 +13,7 @@ public class HarpGhostNetcodeController : NetworkBehaviour
 
     private readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource("Harp Ghost Netcode Controller");
 
-    [SerializeField] private bool harpGhostNetcodeControllerDebug = true;
+    [SerializeField] private bool harpGhostNetcodeControllerDebug = false;
     
     public event Action<int> OnDoAnimation;
     public event Action<int, bool> OnChangeAnimationParameterBool;
@@ -24,6 +24,12 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     public static event Action<Vector3> OnDropHarp;
     public static event Action OnPlayHarpMusic;
     public static event Action OnStopHarpMusic;
+    public static event Action<int> OnChangeTargetPlayer;
+    public static event Action<int, CauseOfDeath> OnDamageTargetPlayer;
+    public static event Action<float, float> OnChangeAgentMaxSpeed;
+    public static event Action OnFixAgentSpeedAfterAttack;
+    public static event Action<float> OnTargetPlayerJumpToFearLevel;
+    public static event Action<float> OnTargetPlayerIncreaseFearLevelOverTime;
 
     private void Start()
     {
@@ -39,48 +45,45 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     public void FixAgentSpeedAfterAttackServerRpc()
     {
-        LogDebug("FixAgentSpeedAfterAttackServerRpc called");
-        float newMaxSpeed, newMaxSpeed2;
-        switch (harpGhostAIServer.CurrentBehaviourStateIndex)
-        {
-            case 0:
-                newMaxSpeed = 0.3f;
-                newMaxSpeed2 = 0.3f;
-                break;
-            case 1:
-                newMaxSpeed = 3f;
-                newMaxSpeed2 = 1f;
-                break;
-            case 2:
-                newMaxSpeed = 6f;
-                newMaxSpeed2 = 1f;
-                break;
-            case 3:
-                newMaxSpeed = 8f;
-                newMaxSpeed2 = 1f;
-                break;
-            default:
-                newMaxSpeed = 3f;
-                newMaxSpeed2 = 1f;
-                break;
-        }
-
-        harpGhostAIServer.agent.speed = newMaxSpeed;
-        harpGhostAIServer.AgentMaxSpeed = newMaxSpeed2;
+        OnFixAgentSpeedAfterAttack?.Invoke();
     }
 
     [ServerRpc(RequireOwnership = false)]
     public void ChangeAgentMaxSpeedServerRpc(float newMaxSpeed, float newMaxSpeed2)
     {
-        harpGhostAIServer.agent.speed = newMaxSpeed;
-        harpGhostAIServer.AgentMaxSpeed = newMaxSpeed2;
+        OnChangeAgentMaxSpeed?.Invoke(newMaxSpeed, newMaxSpeed2);
     }
 
     [ServerRpc(RequireOwnership = false)]
     public void DamageTargetPlayerServerRpc(int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
     {
         LogDebug("DamageTargetPlayerServerRpc called");
-        harpGhostAIServer.DamageTargetPlayer(damage, causeOfDeath: causeOfDeath);
+        DamageTargetPlayerClientRpc(damage, causeOfDeath);
+    }
+
+    [ClientRpc]
+    public void DamageTargetPlayerClientRpc(int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
+    {
+        LogDebug("DamageTargetPlayerClientRpc called");
+        OnDamageTargetPlayer?.Invoke(damage, causeOfDeath);
+    }
+
+    [ClientRpc]
+    public void ChangeTargetPlayerClientRpc(int playerClientId)
+    {
+        OnChangeTargetPlayer?.Invoke(playerClientId);
+    }
+
+    [ClientRpc]
+    public void TargetPlayerJumpToFearLevelClientRpc(float level)
+    {
+        OnTargetPlayerJumpToFearLevel?.Invoke(level);
+    }
+
+    [ClientRpc]
+    public void TargetPlayerIncreaseFearLevelOverTimeClientRpc(float multiplier)
+    {
+        OnTargetPlayerIncreaseFearLevelOverTime?.Invoke(multiplier);
     }
 
     [ClientRpc]

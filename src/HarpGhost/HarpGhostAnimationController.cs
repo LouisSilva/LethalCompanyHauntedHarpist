@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using BepInEx.Logging;
 using Unity.Netcode;
 using UnityEngine;
@@ -24,7 +23,7 @@ public class HarpGhostAnimationController : MonoBehaviour
     public static readonly int Recover = Animator.StringToHash("recover");
     public static readonly int Attack = Animator.StringToHash("attack");
 
-    [SerializeField] private bool harpGhostAnimationControllerDebug = true;
+    [SerializeField] private bool harpGhostAnimationControllerDebug = false;
 
     private void Start()
     {

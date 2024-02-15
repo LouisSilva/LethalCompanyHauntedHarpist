@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using BepInEx.Logging;
 using GameNetcodeStuff;
-using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -40,7 +39,7 @@ public class HarpGhostAIServer : EnemyAI
     [Space(3f)]
     public BoxCollider attackArea;
 
-    [SerializeField] private bool harpGhostDebug = true;
+    [SerializeField] private bool harpGhostDebug = false;
 
     [Header("Controllers and Managers")]
     [Space(5f)]
@@ -72,11 +71,23 @@ public class HarpGhostAIServer : EnemyAI
         netcodeController.ChangeAnimationParameterBoolClientRpc(HarpGhostAnimationController.IsDead, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(HarpGhostAnimationController.IsStunned, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(HarpGhostAnimationController.IsRunning, false);
+
+        HarpGhostNetcodeController.OnChangeTargetPlayer += HandleChangeTargetPlayer;
+        HarpGhostNetcodeController.OnChangeAgentMaxSpeed += HandleChangeAgentMaxSpeed;
+        HarpGhostNetcodeController.OnFixAgentSpeedAfterAttack += HandleFixAgentSpeedAfterAttack;
         
         netcodeController.SpawnHarpServerRpc();
         netcodeController.GrabHarpClientRpc();
         StartCoroutine(DelayedHarpMusicActivate());
         _mls.LogInfo("Harp Ghost Spawned");
+    }
+
+    public override void OnDestroy()
+    {
+        base.OnDestroy();
+        HarpGhostNetcodeController.OnChangeTargetPlayer -= HandleChangeTargetPlayer;
+        HarpGhostNetcodeController.OnChangeAgentMaxSpeed -= HandleChangeAgentMaxSpeed;
+        HarpGhostNetcodeController.OnFixAgentSpeedAfterAttack -= HandleFixAgentSpeedAfterAttack;
     }
     
     private IEnumerator DelayedHarpMusicActivate() // Needed to mitigate race conditions
@@ -116,7 +127,7 @@ public class HarpGhostAIServer : EnemyAI
         
         _timeSinceHittingLocalPlayer += Time.deltaTime;
         _hearNoiseCooldown -= Time.deltaTime;
-
+        
         switch (currentBehaviourStateIndex)
         {
             case 0: // harp ghost playing music and chilling
@@ -129,6 +140,7 @@ public class HarpGhostAIServer : EnemyAI
 
                 if (annoyanceLevel >= annoyanceThreshold)
                 {
+                    netcodeController.PlayCreatureVoiceClientRpc((int)HarpGhostAudioManager.AudioClipTypes.Upset, audioManager.upsetSfx.Length);
                     SwitchBehaviourStateLocally(1);
                 }
 
@@ -170,7 +182,7 @@ public class HarpGhostAIServer : EnemyAI
     {
         base.DoAIInterval();
         if (!IsServer) return;
-
+        
         switch (currentBehaviourStateIndex)
         {
             case 0: // playing music state
@@ -179,7 +191,7 @@ public class HarpGhostAIServer : EnemyAI
                 if (!roamMap.inProgress) StartSearch(transform.position, roamMap);
                 break;
             }
-
+            
             case 1: // searching for player state
             {
                 if (roamMap.inProgress) StopSearch(roamMap);
@@ -213,7 +225,7 @@ public class HarpGhostAIServer : EnemyAI
                 
                 break;
             }
-
+            
             case 2: // investigating last seen player position state
             {
                 if (roamMap.inProgress) StopSearch(roamMap);
@@ -297,7 +309,13 @@ public class HarpGhostAIServer : EnemyAI
                 }
                 
                 _targetPlayerLastSeenPos = targetPlayer.transform.position;
-                PlayerChasingFearIncrease();
+                if (targetPlayer == null)
+                {
+                    LogDebug("Target player is null");
+                    netcodeController.ChangeTargetPlayerClientRpc((int)targetPlayer.playerClientId);
+                }
+                
+                // IncreasePlayerChasingFear();
                 
                 // Check if a player is in attack area and attack
                 if (Vector3.Distance(transform.position, targetPlayer.transform.position) < 8) AttackPlayerIfClose();
@@ -313,9 +331,25 @@ public class HarpGhostAIServer : EnemyAI
         }
     }
 
-    private void LogDebug(string logMessage)
+    private void IncreasePlayerChasingFear()
     {
-        if (harpGhostDebug && IsServer) _mls.LogInfo(logMessage);
+        if (!IsServer) return;
+        if (targetPlayer == null) return;
+        
+        LogDebug($"Increasing fear level for {targetPlayer.name}");
+        if (targetPlayer.HasLineOfSightToPosition(eye.position, 115f, 50, 3f))
+        {
+            LogDebug("Player to add fear to is looking at the ghost");
+            netcodeController.TargetPlayerJumpToFearLevelClientRpc(1);
+            netcodeController.TargetPlayerIncreaseFearLevelOverTimeClientRpc(0.8f);
+        }
+        
+        else if (Vector3.Distance(transform.position, targetPlayer.transform.position) < 3)
+        {
+            LogDebug("Player to add fear to is not looking at the ghost, but is near");
+            netcodeController.TargetPlayerJumpToFearLevelClientRpc(0.6f);
+            netcodeController.TargetPlayerIncreaseFearLevelOverTimeClientRpc(0.4f);
+        }
     }
 
     private void SwitchBehaviourStateLocally(int state)
@@ -327,7 +361,6 @@ public class HarpGhostAIServer : EnemyAI
             {
                 LogDebug("Switched to behaviour state 0!");
                 
-                targetPlayer = null;
                 agentMaxSpeed = 0.3f;
                 agentMaxAcceleration = 50f;
                 movingTowardsTargetPlayer = false;
@@ -335,6 +368,7 @@ public class HarpGhostAIServer : EnemyAI
                 _hasBegunInvestigating = false;
                 openDoorSpeedMultiplier = 6;
                 
+                netcodeController.ChangeTargetPlayerClientRpc(-69420);
                 break; 
             }
 
@@ -392,13 +426,13 @@ public class HarpGhostAIServer : EnemyAI
                 agentMaxSpeed = 0;
                 agentMaxAcceleration = 0;
                 movingTowardsTargetPlayer = false;
-                targetPlayer = null;
                 agent.speed = 0;
                 agent.enabled = false;
                 isEnemyDead = true;
                 _hasBegunInvestigating = false;
                 _targetPlayerLastSeenPos = default;
                 
+                netcodeController.ChangeTargetPlayerClientRpc(-69420);
                 netcodeController.DropHarpClientRpc(transform.position);
                 netcodeController.ChangeAnimationParameterBoolClientRpc(HarpGhostAnimationController.IsDead, true);
                 
@@ -416,6 +450,7 @@ public class HarpGhostAIServer : EnemyAI
     {
         position = RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, 1.75f);
         path1 = new NavMeshPath();
+        
         // ReSharper disable once UseIndexFromEndExpression
         return agent.CalculatePath(position, path1) && !((double) Vector3.Distance(path1.corners[path1.corners.Length - 1], RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, 2.7f)) > 1.5499999523162842);
     }
@@ -446,29 +481,6 @@ public class HarpGhostAIServer : EnemyAI
         agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
     }
 
-    private void PlayerChasingFearIncrease()
-    {
-        if (!IsServer) return;
-        if (targetPlayer.isPlayerDead ||
-            !targetPlayer.isInsideFactory ||
-            currentBehaviourStateIndex != 3) return;
-        
-        LogDebug($"Increasing fear level for {targetPlayer.name}");
-        if (targetPlayer.HasLineOfSightToPosition(eye.position, 115f, 50, 3f))
-        {
-            LogDebug("Player to add fear to is looking at the ghost");
-            targetPlayer.JumpToFearLevel(1);
-            targetPlayer.IncreaseFearLevelOverTime(0.8f);
-        }
-        
-        else if (Vector3.Distance(transform.position, targetPlayer.transform.position) < 3)
-        {
-            LogDebug("Player to add fear to is not looking at the ghost, but is near");
-            targetPlayer.JumpToFearLevel(0.6f);
-            targetPlayer.IncreaseFearLevelOverTime(0.4f);
-        }
-    }
-
     public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false)
     {
         base.HitEnemy(force, playerWhoHit, playHitSFX);
@@ -482,7 +494,7 @@ public class HarpGhostAIServer : EnemyAI
             if (playerWhoHit != null)
             {
                 LogDebug($"Player {playerWhoHit.name} hit ghost");
-                SwitchTargetPlayer((int)playerWhoHit.playerClientId);
+                netcodeController.ChangeTargetPlayerClientRpc((int)playerWhoHit.playerClientId);
                 SwitchBehaviourStateLocally(3);
             }
 
@@ -520,7 +532,7 @@ public class HarpGhostAIServer : EnemyAI
         if (setStunnedByPlayer != null)
         {
             LogDebug($"Player {setStunnedByPlayer.name} stunned ghost");
-            SwitchTargetPlayer((int)setStunnedByPlayer.playerClientId);
+            netcodeController.ChangeTargetPlayerClientRpc((int)setStunnedByPlayer.playerClientId);
             SwitchBehaviourStateLocally(3);
         }
 
@@ -529,11 +541,6 @@ public class HarpGhostAIServer : EnemyAI
             LogDebug("Unknown player stunned ghost");
             if (currentBehaviourStateIndex == 0) SwitchBehaviourStateLocally(1);
         }
-    }
-
-    public void DamageTargetPlayer(int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
-    {
-        targetPlayer.DamagePlayer(damage, causeOfDeath: causeOfDeath);
     }
 
     private void AttackPlayerIfClose() // Checks if the player is in the ghost's attack area and if so, attacks
@@ -552,19 +559,63 @@ public class HarpGhostAIServer : EnemyAI
             if (playerControllerB == null) continue;
             
             LogDebug($"Attacking player {playerControllerB.name}");
-            SwitchTargetPlayer((int)playerControllerB.playerClientId);
+            netcodeController.ChangeTargetPlayerClientRpc((int)playerControllerB.playerClientId);
             _timeSinceHittingLocalPlayer = 0f;
             netcodeController.DoAnimationClientRpc(HarpGhostAnimationController.Attack);
             break;
         }
     }
 
-    private void SwitchTargetPlayer(int targetPlayerObjectId)
+    private void HandleChangeTargetPlayer(int targetPlayerObjectId)
     {
         if (!IsServer) return;
+        if (targetPlayerObjectId == -69420)
+        {
+            targetPlayer = null;
+            return;
+        }
+        
         PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[targetPlayerObjectId];
         targetPlayer = player;
         LogDebug($"Target player is now: {player.name}");
+    }
+
+    private void HandleChangeAgentMaxSpeed(float newMaxSpeed, float newMaxSpeed2)
+    {
+        agent.speed = newMaxSpeed;
+        agentMaxSpeed = newMaxSpeed2;
+    }
+
+    private void HandleFixAgentSpeedAfterAttack()
+    {
+        LogDebug("FixAgentSpeedAfterAttackServerRpc called");
+        float newMaxSpeed, newMaxSpeed2;
+        switch (currentBehaviourStateIndex)
+        {
+            case 0:
+                newMaxSpeed = 0.3f;
+                newMaxSpeed2 = 0.3f;
+                break;
+            case 1:
+                newMaxSpeed = 3f;
+                newMaxSpeed2 = 1f;
+                break;
+            case 2:
+                newMaxSpeed = 6f;
+                newMaxSpeed2 = 1f;
+                break;
+            case 3:
+                newMaxSpeed = 8f;
+                newMaxSpeed2 = 1f;
+                break;
+            default:
+                newMaxSpeed = 3f;
+                newMaxSpeed2 = 1f;
+                break;
+        }
+
+        agent.speed = newMaxSpeed;
+        agentMaxSpeed = newMaxSpeed2;
     }
     
     private void BeginChasingPlayer(int targetPlayerObjectId)
@@ -590,8 +641,7 @@ public class HarpGhostAIServer : EnemyAI
             playerControllerB.sinkingValue < 0.7300000190734863) return playerControllerB;
         return null;
     }
-
-    // Using custom damage player function for same reason as above
+    
     public override void OnCollideWithPlayer(Collider other)
     {
         base.OnCollideWithPlayer(other);
@@ -605,7 +655,7 @@ public class HarpGhostAIServer : EnemyAI
         _timeSinceHittingLocalPlayer = 0f;
         if (currentBehaviourStateIndex != 3) SwitchBehaviourStateLocally(3);
         
-        SwitchTargetPlayer((int)playerControllerB.playerClientId);
+        netcodeController.ChangeTargetPlayerClientRpc((int)playerControllerB.playerClientId);
         netcodeController.DoAnimationClientRpc(HarpGhostAnimationController.Attack);
         LogDebug($"Attacking player {playerControllerB.name}");
     }
@@ -644,22 +694,25 @@ public class HarpGhostAIServer : EnemyAI
         if (noiseID is (int)HarpGhostAudioManager.NoiseIds.Boombox or (int)HarpGhostAudioManager.NoiseIds.PlayersTalking or (int)HarpGhostAudioManager.NoiseIds.RadarBoosterPing)
             noiseLoudness *= 2;
         annoyanceLevel += noiseLoudness;
-
-        if (annoyanceLevel > annoyanceThreshold) SwitchBehaviourStateLocally(1);
+        
         LogDebug($"Harp Ghost annoyance level: {annoyanceLevel}");
+    }
+    
+    private void LogDebug(string logMessage)
+    {
+        if (harpGhostDebug && IsServer) _mls.LogInfo(logMessage);
     }
 
     // Using getters for encapsulation
-    public float AgentMaxAcceleration { get; set; }
-    public float AgentMaxSpeed { get; set; }
-    public int CurrentBehaviourStateIndex => currentBehaviourStateIndex;
     public Vector3 TransformPosition => transform.position;
     public RoundManager RoundManagerInstance => RoundManager.Instance;
     public HarpBehaviour HeldHarp { get; set; }
 }
 
+
+
 /*
 
-Fix bug that doesnt properly change the target player
+
 
 */
