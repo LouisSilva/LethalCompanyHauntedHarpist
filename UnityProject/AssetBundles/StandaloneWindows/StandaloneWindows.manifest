@@ -1,0 +1,10 @@
+ManifestFileVersion: 0
+CRC: 2113383040
+AssetBundleManifest:
+  AssetBundleInfos:
+    Info_0:
+      Name: harpghostbundle
+      Dependencies: {}
+    Info_1:
+      Name: modassets
+      Dependencies: {}
