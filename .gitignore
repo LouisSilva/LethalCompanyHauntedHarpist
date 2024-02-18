@@ -1,3 +1,8 @@
 ﻿obj/
+Assets/
+bin/
+dll/
+UnityProject/
 
+.gitignore
 NuGet.Config
