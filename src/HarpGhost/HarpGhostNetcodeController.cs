@@ -12,8 +12,6 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     #pragma warning restore 0649
 
     private readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource("Harp Ghost Netcode Controller");
-
-    [SerializeField] private bool harpGhostNetcodeControllerDebug = false;
     
     public event Action<int> OnDoAnimation;
     public event Action<int, bool> OnChangeAnimationParameterBool;
@@ -28,8 +26,7 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     public static event Action<int, CauseOfDeath> OnDamageTargetPlayer;
     public static event Action<float, float> OnChangeAgentMaxSpeed;
     public static event Action OnFixAgentSpeedAfterAttack;
-    public static event Action<float> OnTargetPlayerJumpToFearLevel;
-    public static event Action<float> OnTargetPlayerIncreaseFearLevelOverTime;
+    public static event Action OnIncreaseTargetPlayerFearLevel;
 
     private void Start()
     {
@@ -39,7 +36,9 @@ public class HarpGhostNetcodeController : NetworkBehaviour
 
     private void LogDebug(string msg)
     {
-        if (harpGhostNetcodeControllerDebug) _mls.LogInfo(msg);
+        #if DEBUG
+        _mls.LogInfo(msg);
+        #endif
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -75,15 +74,10 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void TargetPlayerJumpToFearLevelClientRpc(float level)
+    public void IncreaseTargetPlayerFearLevelClientRpc()
     {
-        OnTargetPlayerJumpToFearLevel?.Invoke(level);
-    }
-
-    [ClientRpc]
-    public void TargetPlayerIncreaseFearLevelOverTimeClientRpc(float multiplier)
-    {
-        OnTargetPlayerIncreaseFearLevelOverTime?.Invoke(multiplier);
+        LogDebug("IncreaseTargetPlayerFearLevelClientRpc called");
+        OnIncreaseTargetPlayerFearLevel?.Invoke();
     }
 
     [ClientRpc]

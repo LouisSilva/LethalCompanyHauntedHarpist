@@ -18,8 +18,7 @@ public class HarpBehaviour : PhysicsProp
     private int _timesPlayedWithoutTurningOff;
     
     private float _noiseInterval;
-
-    [SerializeField] private bool harpDebug = false;
+    
     private bool _isPlayingMusic = false;
     
     [Serializable]
@@ -93,9 +92,11 @@ public class HarpBehaviour : PhysicsProp
         else _noiseInterval -= Time.deltaTime;
     }
     
-    private void LogDebug(string logMessage)
+    private void LogDebug(string msg)
     {
-        if (harpDebug) _mls.LogInfo(logMessage);
+        #if DEBUG
+        _mls.LogInfo(msg);
+        #endif
     }
 
     public override void ItemActivate(bool used, bool buttonDown = true)

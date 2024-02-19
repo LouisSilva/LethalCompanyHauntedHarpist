@@ -17,7 +17,7 @@ namespace LethalCompanyHarpGhost
     {
         private const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
         private const string ModName = "Lethal Company Harp Ghost Mod";
-        private const string ModVersion = "1.1.0";
+        private const string ModVersion = "1.1.2";
 
         private readonly Harmony _harmony = new Harmony(ModGuid);
         
@@ -29,8 +29,6 @@ namespace LethalCompanyHarpGhost
 
         public static Item HarpItem;
 
-        private bool Debug = false;
-
         private void Awake()
         {
             if (_instance == null) _instance = this;
@@ -38,14 +36,12 @@ namespace LethalCompanyHarpGhost
             _mls = BepInEx.Logging.Logger.CreateLogSource(ModGuid);
 
             Assets.PopulateAssets();
-            if (Debug)
+            if (Assets.MainAssetBundle == null)
             {
-                if (Assets.MainAssetBundle == null)
-                {
-                    _mls.LogError("MainAssetBundle is null");
-                    return;
-                }
+                _mls.LogError("MainAssetBundle is null");
+                return;
             }
+            
             
             SetupHarpGhost();
             SetupHarp();
@@ -104,14 +100,14 @@ namespace LethalCompanyHarpGhost
 
     public static class Assets
     {
-        private const string mainAssetBundleName = "Assets.harpghostbundle";
+        private const string MainAssetBundleName = "Assets.harpghostbundle";
         public static AssetBundle MainAssetBundle = null;
 
         private static string GetAssemblyName() => Assembly.GetExecutingAssembly().FullName.Split(',')[0];
         public static void PopulateAssets()
         {
             if (MainAssetBundle != null) return;
-            using Stream assetStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(GetAssemblyName() + "." + mainAssetBundleName);
+            using Stream assetStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(GetAssemblyName() + "." + MainAssetBundleName);
             MainAssetBundle = AssetBundle.LoadFromStream(assetStream);
         }
     }

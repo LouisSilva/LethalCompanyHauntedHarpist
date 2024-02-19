@@ -23,8 +23,6 @@ public class HarpGhostAnimationController : MonoBehaviour
     public static readonly int Recover = Animator.StringToHash("recover");
     public static readonly int Attack = Animator.StringToHash("attack");
 
-    [SerializeField] private bool harpGhostAnimationControllerDebug = false;
-
     private void Start()
     {
         SubscribeToEvents();
@@ -41,7 +39,9 @@ public class HarpGhostAnimationController : MonoBehaviour
 
     private void LogDebug(string msg)
     {
-        if (harpGhostAnimationControllerDebug) _mls.LogInfo(msg);
+        #if DEBUG
+        _mls.LogInfo(msg);
+        #endif
     }
 
     private void SubscribeToEvents()

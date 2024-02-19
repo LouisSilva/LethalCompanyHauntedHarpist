@@ -10,8 +10,6 @@ namespace LethalCompanyHarpGhost.HarpGhost;
 public class HarpGhostAIClient : MonoBehaviour
 {
     private readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource("Harp Ghost AI | Client");
-
-    [SerializeField] private bool harpGhostAIClientDebug = false;
     
     private NetworkObjectReference _harpObjectRef;
 
@@ -35,8 +33,7 @@ public class HarpGhostAIClient : MonoBehaviour
         HarpGhostNetcodeController.OnStopHarpMusic += HandleOnStopHarpMusic;
         HarpGhostNetcodeController.OnChangeTargetPlayer += HandleChangeTargetPlayer;
         HarpGhostNetcodeController.OnDamageTargetPlayer += HandleDamageTargetPlayer;
-        HarpGhostNetcodeController.OnTargetPlayerJumpToFearLevel += HandleTargetPlayerJumpToFearLevel;
-        HarpGhostNetcodeController.OnTargetPlayerIncreaseFearLevelOverTime += HandleTargetPlayerIncreaseFearLevelOverTime;
+        HarpGhostNetcodeController.OnIncreaseTargetPlayerFearLevel += HandleIncreaseTargetPlayerFearLevel;
     }
 
     private void OnDestroy()
@@ -48,33 +45,41 @@ public class HarpGhostAIClient : MonoBehaviour
         HarpGhostNetcodeController.OnStopHarpMusic -= HandleOnStopHarpMusic;
         HarpGhostNetcodeController.OnChangeTargetPlayer -= HandleChangeTargetPlayer;
         HarpGhostNetcodeController.OnDamageTargetPlayer -= HandleDamageTargetPlayer;
-        HarpGhostNetcodeController.OnTargetPlayerJumpToFearLevel -= HandleTargetPlayerJumpToFearLevel;
-        HarpGhostNetcodeController.OnTargetPlayerIncreaseFearLevelOverTime -= HandleTargetPlayerIncreaseFearLevelOverTime;
+        HarpGhostNetcodeController.OnIncreaseTargetPlayerFearLevel -= HandleIncreaseTargetPlayerFearLevel;
     }
 
     private void LogDebug(string msg)
     {
-        if (harpGhostAIClientDebug) _mls.LogInfo(msg);
+        #if DEBUG
+        _mls.LogInfo(msg);
+        #endif
     }
 
-    private void HandleTargetPlayerJumpToFearLevel(float level)
+    private void HandleIncreaseTargetPlayerFearLevel()
     {
+        LogDebug("HandleIncreaseTargetPlayerFearLevel called");
+        if (GameNetworkManager.Instance.localPlayerController != _targetPlayer) return; LogDebug("localplayercontroller is not target player");
+        
         if (_targetPlayer == null)
         {
             _mls.LogError("Target player is null");
             return;
         }
-        _targetPlayer.JumpToFearLevel(level);
-    }
-
-    private void HandleTargetPlayerIncreaseFearLevelOverTime(float multiplier)
-    {
-        if (_targetPlayer == null)
+        
+        LogDebug($"Increasing fear level for {_targetPlayer.name}");
+        if (_targetPlayer.HasLineOfSightToPosition(eye.position, 115f, 50, 3f))
         {
-            _mls.LogError("Target player is null");
-            return;
+            LogDebug("Player to add fear to is looking at the ghost");
+            _targetPlayer.JumpToFearLevel(1);
+            _targetPlayer.IncreaseFearLevelOverTime(0.8f);;
         }
-        _targetPlayer.IncreaseFearLevelOverTime(multiplier);
+        
+        else if (Vector3.Distance(eye.transform.position, _targetPlayer.transform.position) < 3)
+        {
+            LogDebug("Player to add fear to is not looking at the ghost, but is near");
+            _targetPlayer.JumpToFearLevel(0.6f);
+            _targetPlayer.IncreaseFearLevelOverTime(0.4f);;
+        }
     }
 
     private void HandleOnPlayHarpMusic()

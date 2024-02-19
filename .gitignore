@@ -3,6 +3,7 @@ Assets/
 bin/
 dll/
 UnityProject/
+Thunderstore/
 
 .gitignore
 NuGet.Config

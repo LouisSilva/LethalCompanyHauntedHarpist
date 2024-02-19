@@ -8,8 +8,6 @@ public class HarpGhostAudioManager : MonoBehaviour
 {
     private readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource("Harp Ghost Audio Manager");
     
-    [SerializeField] private bool harpGhostAudioManagerDebug = false;
-    
     #pragma warning disable 0649
     [SerializeField] private AudioSource creatureVoiceSource;
     [SerializeField] private AudioSource creatureSfxSource;
@@ -76,7 +74,9 @@ public class HarpGhostAudioManager : MonoBehaviour
     
     private void LogDebug(string msg)
     {
-        if (harpGhostAudioManagerDebug) _mls.LogInfo(msg);
+        #if DEBUG
+        _mls.LogInfo(msg);
+        #endif
     }
 
     private void SubscribeToEvents()
