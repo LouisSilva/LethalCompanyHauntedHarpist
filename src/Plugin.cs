@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using BepInEx;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using UnityEngine;
@@ -17,13 +19,15 @@ namespace LethalCompanyHarpGhost
     {
         private const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
         private const string ModName = "Lethal Company Harp Ghost Mod";
-        private const string ModVersion = "1.1.2";
+        private const string ModVersion = "1.1.3";
 
         private readonly Harmony _harmony = new Harmony(ModGuid);
         
         private static ManualLogSource _mls;
 
         private static HarpGhostPlugin _instance;
+        
+        public static HarpGhostConfig HarpGhostConfig { get; internal set; }
 
         private static EnemyType _harpGhost;
 
@@ -41,7 +45,8 @@ namespace LethalCompanyHarpGhost
                 _mls.LogError("MainAssetBundle is null");
                 return;
             }
-            
+
+            // HarpGhostConfig = new HarpGhostConfig(Config);
             
             SetupHarpGhost();
             SetupHarp();
@@ -74,7 +79,7 @@ namespace LethalCompanyHarpGhost
             
             NetworkPrefabs.RegisterNetworkPrefab(_harpGhost.enemyPrefab);
             Utilities.FixMixerGroups(_harpGhost.enemyPrefab);
-            RegisterEnemy(_harpGhost, 40, LevelTypes.DineLevel, SpawnType.Daytime, harpGhostTerminalNode, harpGhostTerminalKeyword);
+            RegisterEnemy(_harpGhost, SpawnType.Default, new Dictionary<LevelTypes, int>{[LevelTypes.DineLevel] = 40, [LevelTypes.RendLevel] = 40}, infoNode: harpGhostTerminalNode, infoKeyword:harpGhostTerminalKeyword);
         }
 
         private static void SetupHarp()
@@ -95,6 +100,63 @@ namespace LethalCompanyHarpGhost
             NetworkPrefabs.RegisterNetworkPrefab(HarpItem.spawnPrefab);
             Utilities.FixMixerGroups(HarpItem.spawnPrefab);
             RegisterScrap(HarpItem, 0, LevelTypes.All);
+        }
+    }
+
+    public class HarpGhostConfig
+    {
+        public static ConfigEntry<int> ConfigInitialHealth;
+        public static ConfigEntry<int> ConfigAttackDamage;
+        
+        public static ConfigEntry<float> ConfigAnnoyanceLevelDecayRate;
+        public static ConfigEntry<float> ConfigAnnoyanceThreshold;
+        public static ConfigEntry<float> ConfigMaxSearchRadius;
+
+        public static ConfigEntry<float> ConfigVoiceSfxVolume;
+
+        public HarpGhostConfig(ConfigFile cfg)
+        {
+            ConfigInitialHealth = cfg.Bind(
+                "General",
+                "Health",
+                3,
+                "The health when spawned"
+                );
+            
+            ConfigAttackDamage = cfg.Bind(
+                "General",
+                "Attack Damage",
+                35,
+                "The attack damage of the ghost"
+            );
+            
+            ConfigAnnoyanceLevelDecayRate = cfg.Bind(
+                "General",
+                "Annoyance Level Decay Rate",
+                0.3f,
+                "The decay rate of the ghost's annoyance level (due to noises) over time"
+            );
+            
+            ConfigAnnoyanceThreshold = cfg.Bind(
+                "General",
+                "Annoyance Level Threshold",
+                8f,
+                "The threshold of how annoyed the ghost has to be (from noise) to get angry"
+            );
+            
+            ConfigMaxSearchRadius = cfg.Bind(
+                "General",
+                "Max Search Radius",
+                100f,
+                "The maximum distance the ghost will go to search for a player"
+            );
+            
+            ConfigVoiceSfxVolume= cfg.Bind(
+                "General",
+                "Voice Sound Effects Volume",
+                1f,
+                "The volume of the ghost's voice. Values are from 0-1"
+            );
         }
     }
 

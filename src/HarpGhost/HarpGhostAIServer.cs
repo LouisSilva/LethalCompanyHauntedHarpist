@@ -91,6 +91,7 @@ public class HarpGhostAIServer : EnemyAI
 
     public void OnEnable()
     {
+        if (!IsServer) return;
         HarpGhostNetcodeController.OnChangeTargetPlayer += HandleChangeTargetPlayer;
         HarpGhostNetcodeController.OnChangeAgentMaxSpeed += HandleChangeAgentMaxSpeed;
         HarpGhostNetcodeController.OnFixAgentSpeedAfterAttack += HandleFixAgentSpeedAfterAttack;
@@ -99,6 +100,8 @@ public class HarpGhostAIServer : EnemyAI
     public override void OnDestroy()
     {
         base.OnDestroy();
+        if (!IsServer) return;
+        
         HarpGhostNetcodeController.OnChangeTargetPlayer -= HandleChangeTargetPlayer;
         HarpGhostNetcodeController.OnChangeAgentMaxSpeed -= HandleChangeAgentMaxSpeed;
         HarpGhostNetcodeController.OnFixAgentSpeedAfterAttack -= HandleFixAgentSpeedAfterAttack;
@@ -125,7 +128,7 @@ public class HarpGhostAIServer : EnemyAI
         if (!IsServer) return;
         CalculateAgentSpeed();
 
-        if ((double) stunNormalizedTimer <= 0.0 && _inStunAnimation && !isEnemyDead)
+        if (stunNormalizedTimer <= 0.0 && _inStunAnimation && !isEnemyDead)
         {
             LogDebug("Doing stun recover animation");
             netcodeController.DoAnimationClientRpc(HarpGhostAnimationController.Recover);
@@ -495,7 +498,7 @@ public class HarpGhostAIServer : EnemyAI
             else
             {
                 LogDebug("Unknown player hit ghost");
-                if (currentBehaviourStateIndex == 0) SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
+                if (currentBehaviourStateIndex == (int)States.PlayingMusic) SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
             }
             
             return;

@@ -10,8 +10,8 @@ This mod is in beta, expect there to be occasional bugs (non game breaking ones)
 
 Stuff to be done before the mod is taken out of beta:
  - [X] Make the increase fear mechanic work with clients
- - [ ] Fix shotgun invincibility
- - [ ] Add a couple more harp songs
+ - [X] Fix shotgun invincibility
+ - [X] Add a couple more harp songs
  - [ ] Change scrap icon
  - [X] Give the ghost the ability to hear players if they are near them (when the ghost is in its aggressive state)
  - [ ] Add configs to change the ghost's health, annoyance threshold, spawn rates, etc
