@@ -3,7 +3,8 @@ Assets/
 bin/
 dll/
 UnityProject/
-Thunderstore/
+Thunderstore/harp.zip
+Thunderstore/LethalCompanyHarpGhost.dll
 
 .gitignore
 NuGet.Config
