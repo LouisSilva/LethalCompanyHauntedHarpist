@@ -71,6 +71,8 @@ public class HarpBehaviour : PhysicsProp
             _mls.LogError("harpAudioClips is null or empty!");
             return;
         }
+
+        harpAudioSource.volume = HarpGhostConfig.Default.HarpMusicVolume.Value;
     }
 
     public override void Update()

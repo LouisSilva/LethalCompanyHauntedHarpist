@@ -23,10 +23,10 @@ public class HarpGhostAnimationController : MonoBehaviour
     public static readonly int Recover = Animator.StringToHash("recover");
     public static readonly int Attack = Animator.StringToHash("attack");
 
+    private int attackDamage = 35;
+
     private void Start()
     {
-        SubscribeToEvents();
-
         animator = GetComponent<Animator>();
         if (animator == null) _mls.LogError("Animator is null");
 
@@ -44,11 +44,12 @@ public class HarpGhostAnimationController : MonoBehaviour
         #endif
     }
 
-    private void SubscribeToEvents()
+    private void OnEnable()
     {
         netcodeController.OnDoAnimation += SetTrigger;
         netcodeController.OnChangeAnimationParameterBool += SetBool;
         HarpGhostNetcodeController.OnEnterDeathState += HandleOnEnterDeathState;
+        HarpGhostNetcodeController.OnInitializeConfigValues += HandleInitializeConfigValues;
     }
 
     private void OnDestroy()
@@ -57,6 +58,7 @@ public class HarpGhostAnimationController : MonoBehaviour
         netcodeController.OnDoAnimation -= SetTrigger;
         netcodeController.OnChangeAnimationParameterBool -= SetBool;
         HarpGhostNetcodeController.OnEnterDeathState -= HandleOnEnterDeathState;
+        HarpGhostNetcodeController.OnInitializeConfigValues -= HandleInitializeConfigValues;
     }
 
     private void HandleOnEnterDeathState()
@@ -66,6 +68,11 @@ public class HarpGhostAnimationController : MonoBehaviour
         SetBool(IsRunning, false);
         SetBool(IsStunned, false);
         Destroy(this);
+    }
+
+    private void HandleInitializeConfigValues()
+    {
+        attackDamage = HarpGhostConfig.Instance.GhostAttackDamage.Value;
     }
 
     private void SetBool(int parameter, bool value)
@@ -95,13 +102,12 @@ public class HarpGhostAnimationController : MonoBehaviour
     
     public void OnAnimationEventAttackShiftComplete() // Is called by an animation event
     {
-        if (NetworkManager.Singleton.IsClient && netcodeController.IsOwner)
-        {
-            netcodeController.ChangeAgentMaxSpeedServerRpc(0f, 0f); // Ghost is frozen while doing the second attack anim
-            netcodeController.PlayCreatureVoiceClientRpc((int)HarpGhostAudioManager.AudioClipTypes.Laugh, audioManager.laughSfx.Length);
-            LogDebug("OnAnimationEventAttackShiftComplete() called");
-            StartCoroutine(DamageTargetPlayerAfterDelay(0.05f, 35, CauseOfDeath.Strangulation));
-        }
+        if (!NetworkManager.Singleton.IsClient || !netcodeController.IsOwner) return;
+        
+        netcodeController.ChangeAgentMaxSpeedServerRpc(0f, 0f); // Ghost is frozen while doing the second attack anim
+        netcodeController.PlayCreatureVoiceClientRpc((int)HarpGhostAudioManager.AudioClipTypes.Laugh, audioManager.laughSfx.Length);
+        LogDebug("OnAnimationEventAttackShiftComplete() called");
+        StartCoroutine(DamageTargetPlayerAfterDelay(0.05f, attackDamage, CauseOfDeath.Strangulation));
     }
     
     private IEnumerator DamageTargetPlayerAfterDelay(float delay, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown) // Damages the player in time with the correct point in the animation

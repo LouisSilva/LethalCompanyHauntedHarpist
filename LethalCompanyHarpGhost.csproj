@@ -34,6 +34,9 @@
       <Reference Include="LethalLib">
         <HintPath>dll\LethalLib.dll</HintPath>
       </Reference>
+      <Reference Include="Unity.Collections">
+        <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Unity.Collections.dll</HintPath>
+      </Reference>
       <Reference Include="Unity.Netcode.Runtime">
         <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Lethal Company\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll</HintPath>
       </Reference>

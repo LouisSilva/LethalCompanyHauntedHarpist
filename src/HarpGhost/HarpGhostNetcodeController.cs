@@ -15,7 +15,7 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     
     public event Action<int> OnDoAnimation;
     public event Action<int, bool> OnChangeAnimationParameterBool;
-    public static event Action<int, int, float, bool> OnPlayCreatureVoice;
+    public static event Action<int, int, bool> OnPlayCreatureVoice;
     public static event Action OnEnterDeathState;
     public static event Action OnGrabHarp;
     public static event Action<NetworkObjectReference, int> OnSpawnHarp;
@@ -27,6 +27,7 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     public static event Action<float, float> OnChangeAgentMaxSpeed;
     public static event Action OnFixAgentSpeedAfterAttack;
     public static event Action OnIncreaseTargetPlayerFearLevel;
+    public static event Action OnInitializeConfigValues;
 
     private void Start()
     {
@@ -58,6 +59,12 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     {
         LogDebug("DamageTargetPlayerServerRpc called");
         DamageTargetPlayerClientRpc(damage, causeOfDeath);
+    }
+
+    [ClientRpc]
+    public void InitializeConfigValuesClientRpc()
+    {
+        OnInitializeConfigValues?.Invoke();
     }
 
     [ClientRpc]
@@ -131,7 +138,7 @@ public class HarpGhostNetcodeController : NetworkBehaviour
         HarpBehaviour harpBehaviour = harpObject.GetComponent<HarpBehaviour>();
         if (harpBehaviour == null) _mls.LogError("harpBehaviour is null");
 
-        int harpScrapValue = UnityEngine.Random.Range(150, 301);
+        int harpScrapValue = UnityEngine.Random.Range(HarpGhostConfig.Instance.HarpMinValue.Value, HarpGhostConfig.Instance.HarpMaxValue.Value + 1);
         harpObject.GetComponent<GrabbableObject>().fallTime = 0f;
         harpObject.GetComponent<GrabbableObject>().SetScrapValue(harpScrapValue);
         harpGhostAIServer.RoundManagerInstance.totalScrapValueInLevel += harpScrapValue;
@@ -153,10 +160,10 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     }
     
     [ClientRpc]
-    public void PlayCreatureVoiceClientRpc(int typeIndex, int clipArrayLength, float volume = 1f, bool interrupt = true)
+    public void PlayCreatureVoiceClientRpc(int typeIndex, int clipArrayLength, bool interrupt = true)
     {
         int randomNum = UnityEngine.Random.Range(0, clipArrayLength);
         LogDebug($"Invoking OnPlayCreatureVoice | Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
-        OnPlayCreatureVoice?.Invoke(typeIndex, randomNum, volume, interrupt);
+        OnPlayCreatureVoice?.Invoke(typeIndex, randomNum, interrupt);
     }
 }

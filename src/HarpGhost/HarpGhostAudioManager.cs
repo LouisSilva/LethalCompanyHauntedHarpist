@@ -68,8 +68,6 @@ public class HarpGhostAudioManager : MonoBehaviour
         if (stunSfx == null || stunSfx.Length == 0) _mls.LogError("StunSfx is null or empty");
         if (upsetSfx == null || upsetSfx.Length == 0) _mls.LogError("UpsetSfx is null or empty");
         if (dieSfx == null) _mls.LogError("DieSfx is null");
-        
-        SubscribeToEvents();
     }
     
     private void LogDebug(string msg)
@@ -79,16 +77,23 @@ public class HarpGhostAudioManager : MonoBehaviour
         #endif
     }
 
-    private void SubscribeToEvents()
+    private void OnEnable()
     {
+        HarpGhostNetcodeController.OnInitializeConfigValues += HandleOnInitializeConfigValues;
         HarpGhostNetcodeController.OnPlayCreatureVoice += PlayVoice;
         HarpGhostNetcodeController.OnEnterDeathState += HandleOnEnterDeathState;
     }
 
     private void OnDestroy()
     {
+        HarpGhostNetcodeController.OnInitializeConfigValues -= HandleOnInitializeConfigValues;
         HarpGhostNetcodeController.OnPlayCreatureVoice -= PlayVoice;
         HarpGhostNetcodeController.OnEnterDeathState -= HandleOnEnterDeathState;
+    }
+
+    private void HandleOnInitializeConfigValues()
+    {
+        creatureVoiceSource.volume = HarpGhostConfig.Default.GhostVoiceSfxVolume.Value;
     }
 
     private void HandleOnEnterDeathState()
@@ -99,7 +104,7 @@ public class HarpGhostAudioManager : MonoBehaviour
         Destroy(this);
     }
 
-    private void PlayVoice(int typeIndex, int randomNum, float volume = 1f, bool interrupt = true)
+    private void PlayVoice(int typeIndex, int randomNum, bool interrupt = true)
     {
         creatureVoiceSource.pitch = Random.Range(0.8f, 1.1f);
         LogDebug($"Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
@@ -122,9 +127,8 @@ public class HarpGhostAudioManager : MonoBehaviour
         
         LogDebug($"Playing audio clip: {audioClip.name}");
         if (interrupt) creatureVoiceSource.Stop(true);
-        creatureVoiceSource.volume = 1f;
         creatureVoiceSource.PlayOneShot(audioClip);
-        WalkieTalkie.TransmitOneShotAudio(creatureVoiceSource, audioClip, volume);
+        WalkieTalkie.TransmitOneShotAudio(creatureVoiceSource, audioClip, creatureVoiceSource.volume);
     }
     
     private void PlaySfx(AudioClip clip, float volume = 1f)

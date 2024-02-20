@@ -76,12 +76,14 @@ public class HarpGhostAIServer : EnemyAI
         animationController = GetComponent<HarpGhostAnimationController>();
         if (animationController == null) _mls.LogError("Animation Controller is null");
         
+        _roundManager = FindObjectOfType<RoundManager>();
+        
         UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
         netcodeController.ChangeAnimationParameterBoolClientRpc(HarpGhostAnimationController.IsDead, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(HarpGhostAnimationController.IsStunned, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(HarpGhostAnimationController.IsRunning, false);
-
-        _roundManager = FindObjectOfType<RoundManager>();
+        
+        InitializeConfigValues();
         
         netcodeController.SpawnHarpServerRpc();
         netcodeController.GrabHarpClientRpc();
@@ -105,6 +107,17 @@ public class HarpGhostAIServer : EnemyAI
         HarpGhostNetcodeController.OnChangeTargetPlayer -= HandleChangeTargetPlayer;
         HarpGhostNetcodeController.OnChangeAgentMaxSpeed -= HandleChangeAgentMaxSpeed;
         HarpGhostNetcodeController.OnFixAgentSpeedAfterAttack -= HandleFixAgentSpeedAfterAttack;
+    }
+
+    private void InitializeConfigValues()
+    {
+        if (!IsServer) return;
+        netcodeController.InitializeConfigValuesClientRpc();
+
+        enemyHP = HarpGhostConfig.Instance.GhostInitialHealth.Value;
+        annoyanceDecayRate = HarpGhostConfig.Instance.GhostAnnoyanceLevelDecayRate.Value;
+        annoyanceThreshold = HarpGhostConfig.Instance.GhostAnnoyanceThreshold.Value;
+        maxSearchRadius = HarpGhostConfig.Instance.GhostMaxSearchRadius.Value;
     }
     
     private IEnumerator DelayedHarpMusicActivate() // Needed to mitigate race conditions
