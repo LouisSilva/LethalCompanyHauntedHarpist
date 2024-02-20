@@ -376,7 +376,7 @@ public class HarpGhostAIServer : EnemyAI
                 movingTowardsTargetPlayer = false;
                 _targetPosition = default;
                 _hasBegunInvestigating = false;
-                openDoorSpeedMultiplier = 6;
+                openDoorSpeedMultiplier = Mathf.Clamp(6f, 0, HarpGhostConfig.Instance.GhostMaxDoorSpeedMultiplier.Value);
                 
                 netcodeController.ChangeTargetPlayerClientRpc(-69420);
                 break; 
@@ -390,7 +390,7 @@ public class HarpGhostAIServer : EnemyAI
                 agentMaxAcceleration = 100f;
                 movingTowardsTargetPlayer = false;
                 _hasBegunInvestigating = false;
-                openDoorSpeedMultiplier = 2;
+                openDoorSpeedMultiplier = Mathf.Clamp(2f, 0, HarpGhostConfig.Instance.GhostMaxDoorSpeedMultiplier.Value);
                 _targetPosition = default;
                 
                 netcodeController.DropHarpClientRpc(transform.position);
@@ -406,7 +406,7 @@ public class HarpGhostAIServer : EnemyAI
                 agentMaxAcceleration = 100f;
                 movingTowardsTargetPlayer = false;
                 _hasBegunInvestigating = false;
-                openDoorSpeedMultiplier = 1;
+                openDoorSpeedMultiplier = Mathf.Clamp(1f, 0, HarpGhostConfig.Instance.GhostMaxDoorSpeedMultiplier.Value);
                 
                 netcodeController.DropHarpClientRpc(transform.position);
                 
@@ -422,7 +422,7 @@ public class HarpGhostAIServer : EnemyAI
                 movingTowardsTargetPlayer = true;
                 _hasBegunInvestigating = false;
                 _targetPosition = default;
-                openDoorSpeedMultiplier = 0.6f;
+                openDoorSpeedMultiplier = Mathf.Clamp(0.6f, 0, HarpGhostConfig.Instance.GhostMaxDoorSpeedMultiplier.Value);
                 
                 netcodeController.DropHarpClientRpc(transform.position);
                 

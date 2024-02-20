@@ -1,3 +1,6 @@
+## 1.2.1
+* Added more configs
+
 ## 1.2.0 Out of Beta
 * Configs added, more will be added upon request 
 * Better scrap icon (one that isn't a white square)
