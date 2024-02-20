@@ -25,7 +25,7 @@ namespace LethalCompanyHarpGhost
     {
         private const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
         private const string ModName = "Lethal Company Harp Ghost Mod";
-        private const string ModVersion = "1.1.3";
+        private const string ModVersion = "1.2.0";
 
         private readonly Harmony _harmony = new Harmony(ModGuid);
         
