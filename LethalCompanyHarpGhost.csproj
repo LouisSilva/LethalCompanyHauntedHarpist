@@ -4,11 +4,15 @@
         <TargetFramework>netstandard2.1</TargetFramework>
         <AssemblyName>LethalCompanyHarpGhost</AssemblyName>
         <Description>Lethal Company Harp Ghost</Description>
-        <Version>1.2.1</Version>
+        <Version>1.2.2</Version>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
         <Configurations>Debug;Release</Configurations>
         <DebugType>embedded</DebugType>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <DefineConstants>TRACE;DEBUG</DefineConstants>
     </PropertyGroup>
 
     <ItemGroup>

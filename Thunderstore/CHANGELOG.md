@@ -1,3 +1,8 @@
+## 1.2.2
+* Added LevelTypes config
+* Fixed bug where ghost won't spawn, but for now he only spawns on Dine
+* Removed delay at the beginning of one of the harp songs
+
 ## 1.2.1
 * Added more configs
 

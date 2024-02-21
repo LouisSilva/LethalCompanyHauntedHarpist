@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -24,17 +23,17 @@ namespace LethalCompanyHarpGhost
     {
         private const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
         private const string ModName = "Lethal Company Harp Ghost Mod";
-        private const string ModVersion = "1.2.1";
+        private const string ModVersion = "1.2.2";
 
         private readonly Harmony _harmony = new Harmony(ModGuid);
         
-        private static readonly ManualLogSource Mls = BepInEx.Logging.Logger.CreateLogSource(ModGuid);
+        private static readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource(ModGuid);
 
         private static HarpGhostPlugin _instance;
         
         public static HarpGhostConfig HarpGhostConfig { get; internal set; }
 
-        private static EnemyType _harpGhost;
+        private static EnemyType _harpGhostEnemyType;
 
         public static Item HarpItem;
 
@@ -45,18 +44,15 @@ namespace LethalCompanyHarpGhost
             Assets.PopulateAssets();
             if (Assets.MainAssetBundle == null)
             {
-                Mls.LogError("MainAssetBundle is null");
+                _mls.LogError("MainAssetBundle is null");
                 return;
             }
-
+            
+            _harmony.PatchAll();
             HarpGhostConfig = new HarpGhostConfig(Config);
-            _harmony.PatchAll(typeof(HarpGhostConfig));
             
             SetupHarpGhost();
             SetupHarp();
-            
-            _harmony.PatchAll(typeof(Patches));
-            _harmony.PatchAll(typeof(HarpGhostPlugin));
             
             var types = Assembly.GetExecutingAssembly().GetTypes();
             foreach (Type type in types)
@@ -72,29 +68,31 @@ namespace LethalCompanyHarpGhost
                 }
             }
             
-            Mls.LogInfo($"Plugin {ModName} is loaded!");
+            _mls.LogInfo($"Plugin {ModName} is loaded!");
         }
 
-        private void SetupHarpGhost()
+        private static void SetupHarpGhost()
         {
-            _harpGhost = Assets.MainAssetBundle.LoadAsset<EnemyType>("HarpGhost");
-            _harpGhost.canDie = HarpGhostConfig.Instance.GhostIsKillable.Value;
-            _harpGhost.PowerLevel = HarpGhostConfig.Instance.GhostPowerLevel.Value;
-            _harpGhost.canBeStunned = HarpGhostConfig.Instance.GhostIsStunnable.Value;
-            _harpGhost.MaxCount = HarpGhostConfig.Instance.MaxAmountOfGhosts.Value;
-            _harpGhost.stunTimeMultiplier = HarpGhostConfig.Instance.GhostStunTimeMultiplier.Value;
-            _harpGhost.stunGameDifficultyMultiplier = HarpGhostConfig.Instance.GhostStunGameDifficultyMultiplier.Value;
-            _harpGhost.canSeeThroughFog = HarpGhostConfig.Instance.GhostCanSeeThroughFog.Value;
+            _harpGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("HarpGhost");
+            _harpGhostEnemyType.canDie = HarpGhostConfig.Instance.GhostIsKillable.Value;
+            _harpGhostEnemyType.PowerLevel = HarpGhostConfig.Instance.GhostPowerLevel.Value;
+            _harpGhostEnemyType.canBeStunned = HarpGhostConfig.Instance.GhostIsStunnable.Value;
+            _harpGhostEnemyType.MaxCount = HarpGhostConfig.Instance.MaxAmountOfGhosts.Value;
+            _harpGhostEnemyType.stunTimeMultiplier = HarpGhostConfig.Instance.GhostStunTimeMultiplier.Value;
+            _harpGhostEnemyType.stunGameDifficultyMultiplier = HarpGhostConfig.Instance.GhostStunGameDifficultyMultiplier.Value;
+            _harpGhostEnemyType.canSeeThroughFog = HarpGhostConfig.Instance.GhostCanSeeThroughFog.Value;
             
             TerminalNode harpGhostTerminalNode = Assets.MainAssetBundle.LoadAsset<TerminalNode>("HarpGhostTN");
             TerminalKeyword harpGhostTerminalKeyword = Assets.MainAssetBundle.LoadAsset<TerminalKeyword>("HarpGhostTK");
             
-            NetworkPrefabs.RegisterNetworkPrefab(_harpGhost.enemyPrefab);
-            Utilities.FixMixerGroups(_harpGhost.enemyPrefab);
-            RegisterEnemy(_harpGhost, SpawnType.Default, new Dictionary<LevelTypes, int>{
-                [LevelTypes.DineLevel] = HarpGhostConfig.Instance.GhostSpawnRate.Value, 
-                [LevelTypes.RendLevel] = HarpGhostConfig.Instance.GhostSpawnRate.Value}, 
-                infoNode: harpGhostTerminalNode, infoKeyword:harpGhostTerminalKeyword);
+            NetworkPrefabs.RegisterNetworkPrefab(_harpGhostEnemyType.enemyPrefab);
+            Utilities.FixMixerGroups(_harpGhostEnemyType.enemyPrefab);
+            RegisterEnemy(_harpGhostEnemyType, Mathf.Clamp(HarpGhostConfig.Instance.GhostSpawnRate.Value, 0, 100), HarpGhostConfig.Instance.GhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
+            
+            // RegisterEnemy(HarpGhostEnemyType, SpawnType.Default, new Dictionary<LevelTypes, int>{
+            //     [LevelTypes.DineLevel] = Mathf.Clamp(HarpGhostConfig.Instance.GhostSpawnRate.Value, 0, 100), 
+            //     [LevelTypes.RendLevel] = Mathf.Clamp(HarpGhostConfig.Instance.GhostSpawnRate.Value, 0, 100)}, 
+            //     infoNode: harpGhostTerminalNode, infoKeyword:harpGhostTerminalKeyword);
         }
 
         private static void SetupHarp()
@@ -108,7 +106,7 @@ namespace LethalCompanyHarpGhost
             HarpItem = Assets.MainAssetBundle.LoadAsset<Item>("HarpItemData");
             if (HarpItem == null)
             {
-                Mls.LogError("Failed to load HarpItemData from AssetBundle.");
+                _mls.LogError("Failed to load HarpItemData from AssetBundle.");
                 return;
             }
             
@@ -116,6 +114,7 @@ namespace LethalCompanyHarpGhost
             Utilities.FixMixerGroups(HarpItem.spawnPrefab);
             RegisterScrap(HarpItem, 0, LevelTypes.All);
         }
+        
     }
 
     public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
@@ -139,6 +138,7 @@ namespace LethalCompanyHarpGhost
         public readonly ConfigEntry<int> GhostSpawnRate;
         public readonly ConfigEntry<int> MaxAmountOfGhosts;
         public readonly ConfigEntry<int> GhostPowerLevel;
+        public readonly ConfigEntry<LevelTypes> GhostSpawnLevel;
         
         public readonly ConfigEntry<int> HarpMinValue;
         public readonly ConfigEntry<int> HarpMaxValue;
@@ -260,10 +260,17 @@ namespace LethalCompanyHarpGhost
             );
             
             GhostPowerLevel = cfg.Bind(
-                "General",
+                "Spawn Values",
                 "Ghost Power Level",
                 1,
                 "The power level of a Harp Ghost"
+            );
+            
+            GhostSpawnLevel = cfg.Bind(
+                "Spawn Values",
+                "Ghost Spawn Level",
+                LevelTypes.DineLevel,
+                "The LevelTypes that the ghost spawns in. Only single values are accepted."
             );
             
             HarpMinValue = cfg.Bind(
@@ -409,7 +416,7 @@ namespace LethalCompanyHarpGhost
             }
         }
     }
-
+    
     public static class Assets
     {
         private const string MainAssetBundleName = "Assets.harpghostbundle";
