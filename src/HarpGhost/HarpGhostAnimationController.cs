@@ -23,7 +23,7 @@ public class HarpGhostAnimationController : MonoBehaviour
     public static readonly int Recover = Animator.StringToHash("recover");
     public static readonly int Attack = Animator.StringToHash("attack");
 
-    private int attackDamage = 35;
+    private int _attackDamage = 35;
 
     private void Start()
     {
@@ -74,7 +74,7 @@ public class HarpGhostAnimationController : MonoBehaviour
 
     private void HandleInitializeConfigValues()
     {
-        attackDamage = HarpGhostConfig.Instance.GhostAttackDamage.Value;
+        _attackDamage = HarpGhostConfig.Instance.GhostAttackDamage.Value;
     }
 
     private void SetBool(int parameter, bool value)
@@ -109,7 +109,7 @@ public class HarpGhostAnimationController : MonoBehaviour
         netcodeController.ChangeAgentMaxSpeedServerRpc(0f, 0f); // Ghost is frozen while doing the second attack anim
         netcodeController.PlayCreatureVoiceClientRpc((int)HarpGhostAudioManager.AudioClipTypes.Laugh, audioManager.laughSfx.Length);
         LogDebug("OnAnimationEventAttackShiftComplete() called");
-        StartCoroutine(DamageTargetPlayerAfterDelay(0.05f, attackDamage, CauseOfDeath.Strangulation));
+        StartCoroutine(DamageTargetPlayerAfterDelay(0.05f, _attackDamage, CauseOfDeath.Strangulation));
     }
     
     private IEnumerator DamageTargetPlayerAfterDelay(float delay, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown) // Damages the player in time with the correct point in the animation

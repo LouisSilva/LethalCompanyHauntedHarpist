@@ -133,7 +133,7 @@ namespace LethalCompanyHarpGhost
         public readonly ConfigEntry<float> GhostMaxSearchRadius;
 
         public readonly ConfigEntry<float> GhostVoiceSfxVolume;
-        public readonly ConfigEntry<float> HarpMusicVolume;
+        public readonly ConfigEntry<float> InstrumentVolume;
 
         public readonly ConfigEntry<int> GhostSpawnRate;
         public readonly ConfigEntry<int> MaxAmountOfGhosts;
@@ -238,11 +238,11 @@ namespace LethalCompanyHarpGhost
                 "The volume of the ghost's voice. Values are from 0-1"
             );
 
-            HarpMusicVolume = cfg.Bind(
+            InstrumentVolume = cfg.Bind(
                 "Audio",
-                "Harp Music Volume",
+                "Instrument Volume",
                 1f,
-                "The volume of the music played from the harp. Values are from 0-1"
+                "The volume of the music played from any instrument. Values are from 0-1"
             );
             
             GhostSpawnRate = cfg.Bind(

@@ -750,7 +750,7 @@ public class HarpGhostAIServer : EnemyAI
     // Using getters for encapsulation
     public Vector3 TransformPosition => transform.position;
     public RoundManager RoundManagerInstance => RoundManager.Instance;
-    public HarpBehaviour HeldHarp { get; set; }
+    public InstrumentBehaviour HeldHarp { get; set; }
 }
 
 

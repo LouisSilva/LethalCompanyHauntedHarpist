@@ -16,7 +16,7 @@ public class HarpGhostAIClient : MonoBehaviour
 
     private int _harpScrapValue;
 
-    private HarpBehaviour _heldHarp;
+    private InstrumentBehaviour _heldHarp;
 
     private PlayerControllerB _targetPlayer;
     
@@ -125,7 +125,7 @@ public class HarpGhostAIClient : MonoBehaviour
     {
         if (_heldHarp != null) return;
         if (!_harpObjectRef.TryGet(out NetworkObject networkObject)) return;
-        _heldHarp = networkObject.gameObject.GetComponent<HarpBehaviour>();
+        _heldHarp = networkObject.gameObject.GetComponent<InstrumentBehaviour>();
 
         _heldHarp.SetScrapValue(_harpScrapValue);
         _heldHarp.parentObject = grabTarget;
