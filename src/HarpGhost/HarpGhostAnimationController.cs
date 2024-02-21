@@ -7,7 +7,7 @@ namespace LethalCompanyHarpGhost.HarpGhost;
 
 public class HarpGhostAnimationController : MonoBehaviour
 {
-    private readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource("Harp Ghost Animation Controller");
+    private ManualLogSource _mls;
     
     #pragma warning disable 0649
     [SerializeField] private Animator animator;
@@ -27,6 +27,8 @@ public class HarpGhostAnimationController : MonoBehaviour
 
     private void Start()
     {
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Animation Controller");
+        
         animator = GetComponent<Animator>();
         if (animator == null) _mls.LogError("Animator is null");
 

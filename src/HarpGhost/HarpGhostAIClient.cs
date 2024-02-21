@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using BepInEx.Logging;
 using GameNetcodeStuff;
 using Unity.Netcode;
@@ -9,7 +10,7 @@ namespace LethalCompanyHarpGhost.HarpGhost;
 [SuppressMessage("ReSharper", "RedundantDefaultMemberInitializer")]
 public class HarpGhostAIClient : MonoBehaviour
 {
-    private readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource("Harp Ghost AI | Client");
+    private ManualLogSource _mls;
     
     private NetworkObjectReference _harpObjectRef;
 
@@ -46,6 +47,11 @@ public class HarpGhostAIClient : MonoBehaviour
         HarpGhostNetcodeController.OnChangeTargetPlayer -= HandleChangeTargetPlayer;
         HarpGhostNetcodeController.OnDamageTargetPlayer -= HandleDamageTargetPlayer;
         HarpGhostNetcodeController.OnIncreaseTargetPlayerFearLevel -= HandleIncreaseTargetPlayerFearLevel;
+    }
+
+    private void Start()
+    {
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost AI | Client");
     }
 
     private void LogDebug(string msg)

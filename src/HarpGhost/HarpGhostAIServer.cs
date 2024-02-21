@@ -12,7 +12,7 @@ namespace LethalCompanyHarpGhost.HarpGhost;
 [SuppressMessage("ReSharper", "RedundantDefaultMemberInitializer")]
 public class HarpGhostAIServer : EnemyAI
 {
-    private readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource("Harp Ghost AI | Server");
+    private ManualLogSource _mls;
 
     [Header("AI and Pathfinding")]
     [Space(5f)]
@@ -62,6 +62,8 @@ public class HarpGhostAIServer : EnemyAI
     {
         base.Start();
         if (!IsServer) return;
+        
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost AI | Server");
         
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) _mls.LogError("NavMeshAgent component not found on " + name);

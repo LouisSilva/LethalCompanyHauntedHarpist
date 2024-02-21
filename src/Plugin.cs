@@ -21,7 +21,7 @@ namespace LethalCompanyHarpGhost
     [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
     public class HarpGhostPlugin : BaseUnityPlugin
     {
-        private const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
+        public const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
         private const string ModName = "Lethal Company Harp Ghost Mod";
         private const string ModVersion = "1.2.2";
 

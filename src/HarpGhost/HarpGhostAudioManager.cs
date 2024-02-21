@@ -6,7 +6,7 @@ namespace LethalCompanyHarpGhost.HarpGhost;
 
 public class HarpGhostAudioManager : MonoBehaviour
 {
-    private readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource("Harp Ghost Audio Manager");
+    private ManualLogSource _mls;
     
     #pragma warning disable 0649
     [SerializeField] private AudioSource creatureVoiceSource;
@@ -60,6 +60,8 @@ public class HarpGhostAudioManager : MonoBehaviour
 
     private void Start()
     {
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Audio Controller");
+        
         if (creatureSfxSource == null) _mls.LogError("creatureSfxSource is null");
         if (creatureVoiceSource == null) _mls.LogError("creatureVoiceSource is null");
         

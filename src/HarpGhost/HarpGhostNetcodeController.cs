@@ -11,7 +11,7 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     [SerializeField] private HarpGhostAIServer harpGhostAIServer;
     #pragma warning restore 0649
 
-    private readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource("Harp Ghost Netcode Controller");
+    private ManualLogSource _mls;
     
     public event Action<int> OnDoAnimation;
     public event Action<int, bool> OnChangeAnimationParameterBool;
@@ -31,6 +31,8 @@ public class HarpGhostNetcodeController : NetworkBehaviour
 
     private void Start()
     {
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Netcode Controller");
+        
         harpGhostAIServer = GetComponent<HarpGhostAIServer>();
         if (harpGhostAIServer == null) _mls.LogError("harpGhostAI is null");
     }

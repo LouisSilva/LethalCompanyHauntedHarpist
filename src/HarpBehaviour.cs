@@ -9,18 +9,18 @@ namespace LethalCompanyHarpGhost;
 
 public class HarpBehaviour : PhysicsProp
 {
-    private ManualLogSource mls;
+    private ManualLogSource _mls;
 
     public AudioSource harpAudioSource;
     public List<AudioClip> harpAudioClips;
     
-    private RoundManager roundManager;
+    private RoundManager _roundManager;
     
-    private int timesPlayedWithoutTurningOff;
+    private int _timesPlayedWithoutTurningOff;
     
-    private float noiseInterval;
+    private float _noiseInterval;
     
-    private bool isPlayingMusic;
+    private bool _isPlayingMusic;
     
     [Serializable]
     public struct ItemOffset : INetworkSerializable
@@ -49,29 +49,29 @@ public class HarpBehaviour : PhysicsProp
 
     public void Awake()
     {
-        mls = BepInEx.Logging.Logger.CreateLogSource("Harp Behaviour");
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Behaviour");
         playerHarpOffset = new ItemOffset(positionOffset:new Vector3(-0.8f, 0.22f, 0.07f), rotationOffset:new Vector3(3, 12, -100));
         enemyHarpOffset = new ItemOffset(positionOffset:new Vector3(0, -0.6f, 0.6f));
-        isPlayingMusic = false;
+        _isPlayingMusic = false;
     }
     
     public override void Start()
     {
         base.Start();
         
-        roundManager = FindObjectOfType<RoundManager>();
+        _roundManager = FindObjectOfType<RoundManager>();
         UnityEngine.Random.InitState(FindObjectOfType<StartOfRound>().randomMapSeed - 10);
         
         if (harpAudioSource == null)
         {
-            mls.LogError("harpAudioSource is null!");
+            _mls.LogError("harpAudioSource is null!");
             return;
         }
 
         // ReSharper disable once InvertIf
         if (harpAudioClips == null || harpAudioClips.Count == 0)
         {
-            mls.LogError("harpAudioClips is null or empty!");
+            _mls.LogError("harpAudioClips is null or empty!");
             return;
         }
     }
@@ -92,21 +92,21 @@ public class HarpBehaviour : PhysicsProp
             UpdateItemOffsetsServerRpc(playerHarpOffset);
         }
         
-        if (!isPlayingMusic) return;
-        if (noiseInterval <= 0.0)
+        if (!_isPlayingMusic) return;
+        if (_noiseInterval <= 0.0)
         {
-            noiseInterval = 1f;
-            ++timesPlayedWithoutTurningOff;
-            roundManager.PlayAudibleNoise(transform.position, 16f, 3f, timesPlayedWithoutTurningOff, noiseID: 540);
+            _noiseInterval = 1f;
+            ++_timesPlayedWithoutTurningOff;
+            _roundManager.PlayAudibleNoise(transform.position, 16f, 3f, _timesPlayedWithoutTurningOff, noiseID: 540);
         }
 
-        else noiseInterval -= Time.deltaTime;
+        else _noiseInterval -= Time.deltaTime;
     }
     
     private void LogDebug(string logMessage)
     {
         #if DEBUG
-        mls.LogInfo(logMessage);
+        _mls.LogInfo(logMessage);
         #endif
     }
 
@@ -114,7 +114,7 @@ public class HarpBehaviour : PhysicsProp
     {
         base.ItemActivate(used, buttonDown);
         LogDebug("Harp ItemActivate() called");
-        switch (isPlayingMusic)
+        switch (_isPlayingMusic)
         {
             case false:
                 StartMusicServerRpc();
@@ -135,14 +135,14 @@ public class HarpBehaviour : PhysicsProp
         harpAudioSource.volume = Mathf.Clamp(HarpGhostConfig.Default.HarpMusicVolume.Value, 0f, 1f);
         harpAudioSource.Play();
         WalkieTalkie.TransmitOneShotAudio(harpAudioSource, harpAudioSource.clip, harpAudioSource.volume);
-        isPlayingMusic = true;
+        _isPlayingMusic = true;
     }
 
     private void StopMusic()
     {
         StartCoroutine(MusicPitchDown());
-        timesPlayedWithoutTurningOff = 0;
-        isPlayingMusic = false;
+        _timesPlayedWithoutTurningOff = 0;
+        _isPlayingMusic = false;
     }
     
     private IEnumerator MusicPitchDown()
@@ -201,7 +201,7 @@ public class HarpBehaviour : PhysicsProp
     [ServerRpc(RequireOwnership = false)]
     public void StopMusicServerRpc()
     {
-        if (!isPlayingMusic) return;
+        if (!_isPlayingMusic) return;
         StopMusicClientRpc();
     }
     
@@ -214,7 +214,7 @@ public class HarpBehaviour : PhysicsProp
     [ServerRpc(RequireOwnership = false)]
     public void StartMusicServerRpc()
     {
-        if (isPlayingMusic) return;
+        if (_isPlayingMusic) return;
         StartMusicClientRpc();
     }
 
