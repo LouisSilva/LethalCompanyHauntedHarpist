@@ -1,7 +1,13 @@
+## 1.2.3
+* Fixed disappearing harps bug
+* Fixed double harps appearing when ghost gets annoyed
+* Changed network events to not static (which caused a plethora of other bugs)
+* Fixed harp item offset bug
+
 ## 1.2.2
 * Added LevelTypes config
 * Fixed bug where ghost won't spawn, but for now he only spawns on Dine
-* Removed delay at the beginning of one of the harp songs
+* Removed delay at the beginning of one of the harp songs 
 
 ## 1.2.1
 * Added more configs
@@ -12,7 +18,7 @@
 
 ## 1.1.3
 * Two more harp songs added
-* Shotgun now does damage
+* Shotgun now does damage 
 * Now spawns on Rend as well as Dine
 
 ## 1.1.2

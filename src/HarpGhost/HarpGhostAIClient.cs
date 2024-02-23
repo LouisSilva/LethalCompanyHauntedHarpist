@@ -11,6 +11,7 @@ namespace LethalCompanyHarpGhost.HarpGhost;
 public class HarpGhostAIClient : MonoBehaviour
 {
     private ManualLogSource _mls;
+    private string _ghostId;
     
     private NetworkObjectReference _harpObjectRef;
 
@@ -24,29 +25,35 @@ public class HarpGhostAIClient : MonoBehaviour
 
     public Transform eye;
     
+    #pragma warning disable 0649
+    [SerializeField] private HarpGhostNetcodeController netcodeController;
+    #pragma warning restore 0649
+    
 
     private void OnEnable()
     {
-        HarpGhostNetcodeController.OnDropHarp += HandleDropHarp;
-        HarpGhostNetcodeController.OnSpawnHarp += HandleSpawnHarp;
-        HarpGhostNetcodeController.OnGrabHarp += HandleGrabHarp;
-        HarpGhostNetcodeController.OnPlayHarpMusic += HandleOnPlayHarpMusic;
-        HarpGhostNetcodeController.OnStopHarpMusic += HandleOnStopHarpMusic;
-        HarpGhostNetcodeController.OnChangeTargetPlayer += HandleChangeTargetPlayer;
-        HarpGhostNetcodeController.OnDamageTargetPlayer += HandleDamageTargetPlayer;
-        HarpGhostNetcodeController.OnIncreaseTargetPlayerFearLevel += HandleIncreaseTargetPlayerFearLevel;
+        netcodeController.OnDropHarp += HandleDropHarp;
+        netcodeController.OnSpawnHarp += HandleSpawnHarp;
+        netcodeController.OnGrabHarp += HandleGrabHarp;
+        netcodeController.OnPlayHarpMusic += HandleOnPlayHarpMusic;
+        netcodeController.OnStopHarpMusic += HandleOnStopHarpMusic;
+        netcodeController.OnChangeTargetPlayer += HandleChangeTargetPlayer;
+        netcodeController.OnDamageTargetPlayer += HandleDamageTargetPlayer;
+        netcodeController.OnIncreaseTargetPlayerFearLevel += HandleIncreaseTargetPlayerFearLevel;
+        netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
     }
 
     private void OnDestroy()
     {
-        HarpGhostNetcodeController.OnDropHarp -= HandleDropHarp;
-        HarpGhostNetcodeController.OnSpawnHarp -= HandleSpawnHarp;
-        HarpGhostNetcodeController.OnGrabHarp -= HandleGrabHarp;
-        HarpGhostNetcodeController.OnPlayHarpMusic -= HandleOnPlayHarpMusic;
-        HarpGhostNetcodeController.OnStopHarpMusic -= HandleOnStopHarpMusic;
-        HarpGhostNetcodeController.OnChangeTargetPlayer -= HandleChangeTargetPlayer;
-        HarpGhostNetcodeController.OnDamageTargetPlayer -= HandleDamageTargetPlayer;
-        HarpGhostNetcodeController.OnIncreaseTargetPlayerFearLevel -= HandleIncreaseTargetPlayerFearLevel;
+        netcodeController.OnDropHarp -= HandleDropHarp;
+        netcodeController.OnSpawnHarp -= HandleSpawnHarp;
+        netcodeController.OnGrabHarp -= HandleGrabHarp;
+        netcodeController.OnPlayHarpMusic -= HandleOnPlayHarpMusic;
+        netcodeController.OnStopHarpMusic -= HandleOnStopHarpMusic;
+        netcodeController.OnChangeTargetPlayer -= HandleChangeTargetPlayer;
+        netcodeController.OnDamageTargetPlayer -= HandleDamageTargetPlayer;
+        netcodeController.OnIncreaseTargetPlayerFearLevel -= HandleIncreaseTargetPlayerFearLevel;
+        netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
     }
 
     private void Start()
@@ -61,47 +68,52 @@ public class HarpGhostAIClient : MonoBehaviour
         #endif
     }
 
-    private void HandleIncreaseTargetPlayerFearLevel()
+    private void HandleUpdateGhostIdentifier(string recievedGhostId)
     {
-        LogDebug("HandleIncreaseTargetPlayerFearLevel called");
+        _ghostId = recievedGhostId;
+    }
+
+    private void HandleIncreaseTargetPlayerFearLevel(string recievedGhostId)
+    {
+        if (_ghostId != recievedGhostId) return;
         if (GameNetworkManager.Instance.localPlayerController != _targetPlayer) return; LogDebug("localplayercontroller is not target player");
         
         if (_targetPlayer == null)
         {
-            _mls.LogError("Target player is null");
             return;
         }
         
         LogDebug($"Increasing fear level for {_targetPlayer.name}");
         if (_targetPlayer.HasLineOfSightToPosition(eye.position, 115f, 50, 3f))
         {
-            LogDebug("Player to add fear to is looking at the ghost");
             _targetPlayer.JumpToFearLevel(1);
             _targetPlayer.IncreaseFearLevelOverTime(0.8f);;
         }
         
         else if (Vector3.Distance(eye.transform.position, _targetPlayer.transform.position) < 3)
         {
-            LogDebug("Player to add fear to is not looking at the ghost, but is near");
             _targetPlayer.JumpToFearLevel(0.6f);
             _targetPlayer.IncreaseFearLevelOverTime(0.4f);;
         }
     }
 
-    private void HandleOnPlayHarpMusic()
+    private void HandleOnPlayHarpMusic(string recievedGhostId)
     {
+        if (_ghostId != recievedGhostId) return;
         if (_heldHarp == null) return;
         _heldHarp.StartMusicServerRpc();
     }
     
-    private void HandleOnStopHarpMusic()
+    private void HandleOnStopHarpMusic(string recievedGhostId)
     {
+        if (_ghostId != recievedGhostId) return;
         if (_heldHarp == null) return;
         _heldHarp.StopMusicServerRpc();
     }
 
-    private void HandleDropHarp(Vector3 dropPosition)
+    private void HandleDropHarp(string recievedGhostId, Vector3 dropPosition)
     {
+        if (_ghostId != recievedGhostId) return;
         if (_heldHarp == null) return;
         _heldHarp.parentObject = null;
         _heldHarp.transform.SetParent(StartOfRound.Instance.propsContainer, true);
@@ -121,8 +133,9 @@ public class HarpGhostAIClient : MonoBehaviour
         _heldHarp = null;
     }
 
-    private void HandleGrabHarp()
+    private void HandleGrabHarp(string recievedGhostId)
     {
+        if (_ghostId != recievedGhostId) return;
         if (_heldHarp != null) return;
         if (!_harpObjectRef.TryGet(out NetworkObject networkObject)) return;
         _heldHarp = networkObject.gameObject.GetComponent<InstrumentBehaviour>();
@@ -134,14 +147,16 @@ public class HarpGhostAIClient : MonoBehaviour
         _heldHarp.grabbable = false;
     }
     
-    private void HandleSpawnHarp(NetworkObjectReference harpObject, int harpScrapValue)
+    private void HandleSpawnHarp(string recievedGhostId, NetworkObjectReference harpObject, int harpScrapValue)
     {
+        if (_ghostId != recievedGhostId) return;
         _harpObjectRef = harpObject;
         _harpScrapValue = harpScrapValue;
     }
 
-    private void HandleChangeTargetPlayer(int targetPlayerObjectId)
+    private void HandleChangeTargetPlayer(string recievedGhostId, int targetPlayerObjectId)
     {
+        if (_ghostId != recievedGhostId) return;
         if (targetPlayerObjectId == -69420)
         {
             _targetPlayer = null;
@@ -153,8 +168,9 @@ public class HarpGhostAIClient : MonoBehaviour
         LogDebug($"Target player is now: {player.name}");
     }
 
-    private void HandleDamageTargetPlayer(int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
+    private void HandleDamageTargetPlayer(string recievedGhostId, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
     {
+        if (_ghostId != recievedGhostId) return;
         _targetPlayer.DamagePlayer(damage, causeOfDeath: causeOfDeath);
     }
 }

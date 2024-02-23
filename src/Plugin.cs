@@ -23,7 +23,7 @@ namespace LethalCompanyHarpGhost
     {
         public const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
         private const string ModName = "Lethal Company Harp Ghost Mod";
-        private const string ModVersion = "1.2.2";
+        private const string ModVersion = "1.2.3";
 
         private readonly Harmony _harmony = new Harmony(ModGuid);
         
@@ -36,6 +36,7 @@ namespace LethalCompanyHarpGhost
         private static EnemyType _harpGhostEnemyType;
 
         public static Item HarpItem;
+        public static Item BagpipesItem;
 
         private void Awake()
         {
@@ -53,6 +54,7 @@ namespace LethalCompanyHarpGhost
             
             SetupHarpGhost();
             SetupHarp();
+            SetupBagpipes();
             
             var types = Assembly.GetExecutingAssembly().GetTypes();
             foreach (Type type in types)
@@ -87,7 +89,7 @@ namespace LethalCompanyHarpGhost
             
             NetworkPrefabs.RegisterNetworkPrefab(_harpGhostEnemyType.enemyPrefab);
             Utilities.FixMixerGroups(_harpGhostEnemyType.enemyPrefab);
-            RegisterEnemy(_harpGhostEnemyType, Mathf.Clamp(HarpGhostConfig.Instance.GhostSpawnRate.Value, 0, 100), HarpGhostConfig.Instance.GhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
+            RegisterEnemy(_harpGhostEnemyType, Mathf.Clamp(HarpGhostConfig.Instance.GhostSpawnRate.Value, 0, 999), HarpGhostConfig.Instance.GhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
             
             // RegisterEnemy(HarpGhostEnemyType, SpawnType.Default, new Dictionary<LevelTypes, int>{
             //     [LevelTypes.DineLevel] = Mathf.Clamp(HarpGhostConfig.Instance.GhostSpawnRate.Value, 0, 100), 
@@ -113,6 +115,20 @@ namespace LethalCompanyHarpGhost
             NetworkPrefabs.RegisterNetworkPrefab(HarpItem.spawnPrefab);
             Utilities.FixMixerGroups(HarpItem.spawnPrefab);
             RegisterScrap(HarpItem, 0, LevelTypes.All);
+        }
+
+        private static void SetupBagpipes()
+        {
+            return;
+            BagpipesItem = Assets.MainAssetBundle.LoadAsset<Item>("BagpipesItemData");
+            if (BagpipesItem == null)
+            {
+                _mls.LogError("Failed to load BagpipesItemData from AssetBundle");
+            }
+            
+            NetworkPrefabs.RegisterNetworkPrefab(BagpipesItem.spawnPrefab);
+            Utilities.FixMixerGroups(BagpipesItem.spawnPrefab);
+            RegisterScrap(BagpipesItem, 0, LevelTypes.All);
         }
         
     }
@@ -247,7 +263,7 @@ namespace LethalCompanyHarpGhost
             
             GhostSpawnRate = cfg.Bind(
                 "Spawn Values",
-                "Harp Ghost Spawn Rates",
+                "Harp Ghost Spawn Value",
                 40,
                 "The weighted spawn rarity of the harp ghost"
             );

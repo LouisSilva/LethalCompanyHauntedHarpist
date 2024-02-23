@@ -7,19 +7,26 @@ namespace LethalCompanyHarpGhost.HarpGhost;
 public class HarpGhostAudioManager : MonoBehaviour
 {
     private ManualLogSource _mls;
+    private string _ghostId;
     
+    [Header("Audio")]
+    [Space(5f)]
     #pragma warning disable 0649
     [SerializeField] private AudioSource creatureVoiceSource;
     [SerializeField] private AudioSource creatureSfxSource;
     #pragma warning restore 0649
     
-    [Header("Audio")]
-    [Space(5f)]
     public AudioClip[] damageSfx;
     public AudioClip[] laughSfx;
     public AudioClip[] stunSfx;
     public AudioClip[] upsetSfx;
     public AudioClip dieSfx;
+
+    [Space(5f)]
+    [Header("Controllers")]
+    #pragma warning disable 0649
+    [SerializeField] private HarpGhostNetcodeController netcodeController;
+    #pragma warning restore 0649
     
     public enum AudioClipTypes
     {
@@ -81,33 +88,43 @@ public class HarpGhostAudioManager : MonoBehaviour
 
     private void OnEnable()
     {
-        HarpGhostNetcodeController.OnInitializeConfigValues += HandleOnInitializeConfigValues;
-        HarpGhostNetcodeController.OnPlayCreatureVoice += PlayVoice;
-        HarpGhostNetcodeController.OnEnterDeathState += HandleOnEnterDeathState;
+        netcodeController.OnInitializeConfigValues += HandleOnInitializeConfigValues;
+        netcodeController.OnPlayCreatureVoice += PlayVoice;
+        netcodeController.OnEnterDeathState += HandleOnEnterDeathState;
+        netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
     }
 
     private void OnDestroy()
     {
-        HarpGhostNetcodeController.OnInitializeConfigValues -= HandleOnInitializeConfigValues;
-        HarpGhostNetcodeController.OnPlayCreatureVoice -= PlayVoice;
-        HarpGhostNetcodeController.OnEnterDeathState -= HandleOnEnterDeathState;
+        netcodeController.OnInitializeConfigValues -= HandleOnInitializeConfigValues;
+        netcodeController.OnPlayCreatureVoice -= PlayVoice;
+        netcodeController.OnEnterDeathState -= HandleOnEnterDeathState;
+        netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
     }
 
-    private void HandleOnInitializeConfigValues()
+    private void HandleUpdateGhostIdentifier(string recievedGhostId)
     {
+        _ghostId = recievedGhostId;
+    }
+
+    private void HandleOnInitializeConfigValues(string recievedGhostId)
+    {
+        if (_ghostId != recievedGhostId) return;
         creatureVoiceSource.volume = HarpGhostConfig.Default.GhostVoiceSfxVolume.Value;
     }
 
-    private void HandleOnEnterDeathState()
+    private void HandleOnEnterDeathState(string recievedGhostId)
     {
+        if (_ghostId != recievedGhostId) return;
         creatureVoiceSource.Stop(true);
         creatureSfxSource.Stop(true);
-        PlayVoice((int)AudioClipTypes.Death, 1);
+        PlayVoice(_ghostId, (int)AudioClipTypes.Death, 1);
         Destroy(this);
     }
 
-    private void PlayVoice(int typeIndex, int randomNum, bool interrupt = true)
+    private void PlayVoice(string recievedGhostId, int typeIndex, int randomNum, bool interrupt = true)
     {
+        if (_ghostId != recievedGhostId) return;
         creatureVoiceSource.pitch = Random.Range(0.8f, 1.1f);
         LogDebug($"Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
         

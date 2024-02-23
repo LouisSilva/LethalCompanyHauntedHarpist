@@ -18,9 +18,8 @@
 ## Future (possible) Updates
 
 - More configs upon request
-- Throw harp ability
-- Spawn "enforcer bugs" which are aggressive hoarder bugs that solely want to get the harp back
 - Mariachi band, when angered they all have shotguns (the reward for provoking them would be getting all their expensive instruments if you managed to kill them all)
+- Parades (I'm not going to say more)
 - Punk rocker who can shoot lightning
 - Piano, violin, bagpipes, saxophone etc
   

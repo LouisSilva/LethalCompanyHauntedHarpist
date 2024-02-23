@@ -3,12 +3,16 @@ using System.Collections;
 using BepInEx.Logging;
 using Unity.Netcode;
 using UnityEngine;
+using Logger = BepInEx.Logging.Logger;
+using Random = UnityEngine.Random;
 
 namespace LethalCompanyHarpGhost;
 
 public class InstrumentBehaviour : PhysicsProp
 {
     private ManualLogSource _mls;
+
+    private string _instrumentId;
 
     public AudioSource instrumentAudioSource;
     public AudioClip[] instrumentAudioClips;
@@ -20,6 +24,7 @@ public class InstrumentBehaviour : PhysicsProp
     private float _noiseInterval;
     
     private bool _isPlayingMusic;
+
     
     [Serializable]
     public struct ItemOffset : INetworkSerializable
@@ -46,9 +51,9 @@ public class InstrumentBehaviour : PhysicsProp
     [SerializeField] private ItemOffset playerInstrumentOffset;
     [SerializeField] private ItemOffset enemyInstrumentOffset;
 
-    public void Awake()
+    private void Awake()
     {
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Instrument Behaviour");
+        
         playerInstrumentOffset = new ItemOffset(positionOffset:new Vector3(-0.8f, 0.22f, 0.07f), rotationOffset:new Vector3(3, 12, -100));
         enemyInstrumentOffset = new ItemOffset(positionOffset:new Vector3(0, -0.6f, 0.6f));
         _isPlayingMusic = false;
@@ -57,9 +62,13 @@ public class InstrumentBehaviour : PhysicsProp
     public override void Start()
     {
         base.Start();
+        if (!IsOwner) return;
+
+        _instrumentId = Guid.NewGuid().ToString();
+        _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Instrument {_instrumentId}");
         
         _roundManager = FindObjectOfType<RoundManager>();
-        UnityEngine.Random.InitState(FindObjectOfType<StartOfRound>().randomMapSeed - 10);
+        Random.InitState(FindObjectOfType<StartOfRound>().randomMapSeed - 10);
         
         if (instrumentAudioSource == null)
         {
@@ -71,7 +80,6 @@ public class InstrumentBehaviour : PhysicsProp
         if (instrumentAudioClips == null || instrumentAudioClips.Length == 0)
         {
             _mls.LogError("instrumentAudioClips is null or empty!");
-            return;
         }
     }
 
@@ -80,17 +88,6 @@ public class InstrumentBehaviour : PhysicsProp
         base.Update();
         if (!IsOwner) return;
 
-        if (isHeldByEnemy)
-        {
-            // LogDebug("isHeldByEnemy");
-            UpdateItemOffsetsServerRpc(enemyInstrumentOffset);
-        }
-        else if (heldByPlayerOnServer)
-        {
-            // LogDebug("heldByPlayerOnServer");
-            UpdateItemOffsetsServerRpc(playerInstrumentOffset);
-        }
-        
         if (!_isPlayingMusic) return;
         if (_noiseInterval <= 0.0)
         {
@@ -102,16 +99,44 @@ public class InstrumentBehaviour : PhysicsProp
         else _noiseInterval -= Time.deltaTime;
     }
     
+    public override void LateUpdate()
+    {
+        if (parentObject != null)
+        {
+            Vector3 rotationOffset;
+            Vector3 positionOffset;
+            if (isHeldByEnemy)
+            {
+                rotationOffset = enemyInstrumentOffset.rotationOffset;
+                positionOffset = enemyInstrumentOffset.positionOffset;
+            }
+            else
+            {
+                rotationOffset = playerInstrumentOffset.rotationOffset;
+                positionOffset = playerInstrumentOffset.positionOffset;
+            }
+            
+            transform.rotation = parentObject.rotation;
+            transform.Rotate(rotationOffset);
+            transform.position = parentObject.position;
+            transform.position += parentObject.rotation * positionOffset;
+            
+        }
+        if (!(radarIcon != null)) return;
+        radarIcon.position = transform.position;
+    }
+    
     private void LogDebug(string logMessage)
     {
         #if DEBUG
         _mls.LogInfo(logMessage);
         #endif
     }
-
+    
     public override void ItemActivate(bool used, bool buttonDown = true)
     {
         base.ItemActivate(used, buttonDown);
+        if (!IsOwner) return;
         LogDebug("Instrument ItemActivate() called");
         switch (_isPlayingMusic)
         {
@@ -129,7 +154,7 @@ public class InstrumentBehaviour : PhysicsProp
 
     private void StartMusic()
     {
-        instrumentAudioSource.clip = instrumentAudioClips[UnityEngine.Random.Range(0, instrumentAudioClips.Length)];
+        instrumentAudioSource.clip = instrumentAudioClips[Random.Range(0, instrumentAudioClips.Length)];
         instrumentAudioSource.pitch = 1f;
         instrumentAudioSource.volume = Mathf.Clamp(HarpGhostConfig.Default.InstrumentVolume.Value, 0f, 1f);
         instrumentAudioSource.Play();
@@ -161,9 +186,24 @@ public class InstrumentBehaviour : PhysicsProp
         StopMusicServerRpc();
     }
 
+    public override void EquipItem()
+    {
+        base.EquipItem();
+        isHeld = true;
+    }
+
+    public override void FallWithCurve()
+    {
+        base.FallWithCurve();
+        isHeld = false;
+        isHeldByEnemy = false;
+    }
+
     public override void OnHitGround()
     {
         base.OnHitGround();
+        isHeld = false;
+        isHeldByEnemy = false;
         StopMusicServerRpc();
     }
 
@@ -171,17 +211,20 @@ public class InstrumentBehaviour : PhysicsProp
     {
         base.GrabItemFromEnemy(enemy);
         isHeldByEnemy = true;
+        isHeld = true;
     }
 
     public override void DiscardItemFromEnemy()
     {
         base.DiscardItemFromEnemy();
         isHeldByEnemy = false;
+        isHeld = false;
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void UpdateItemOffsetsServerRpc(ItemOffset itemOffset)
+    private void UpdateItemOffsetsServerRpc(string recievedInstrumentId, ItemOffset itemOffset)
     {
+        if (_instrumentId != recievedInstrumentId) return;
         if (itemProperties.positionOffset == itemOffset.positionOffset &&
             itemProperties.rotationOffset == itemOffset.rotationOffset &&
             itemProperties.restingRotation == itemOffset.restingRotation) return;
@@ -189,7 +232,12 @@ public class InstrumentBehaviour : PhysicsProp
     }
 
     [ClientRpc]
-    public void UpdateItemOffsetsClientRpc(ItemOffset itemOffset)
+    private void UpdateItemOffsetsClientRpc(ItemOffset itemOffset)
+    {
+        ApplyItemOffset(itemOffset);
+    }
+
+    private void ApplyItemOffset(ItemOffset itemOffset)
     {
         itemProperties.positionOffset = itemOffset.positionOffset;
         itemProperties.rotationOffset = itemOffset.rotationOffset;
@@ -197,27 +245,27 @@ public class InstrumentBehaviour : PhysicsProp
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void StopMusicServerRpc()
+    internal void StopMusicServerRpc()
     {
         if (!_isPlayingMusic) return;
         StopMusicClientRpc();
     }
     
     [ClientRpc]
-    public void StopMusicClientRpc()
+    private void StopMusicClientRpc()
     {
         StopMusic();
     }
     
     [ServerRpc(RequireOwnership = false)]
-    public void StartMusicServerRpc()
+    internal void StartMusicServerRpc()
     {
         if (_isPlayingMusic) return;
         StartMusicClientRpc();
     }
 
     [ClientRpc]
-    public void StartMusicClientRpc()
+    private void StartMusicClientRpc()
     {
         StartMusic();
     }
