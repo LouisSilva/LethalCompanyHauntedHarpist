@@ -24,40 +24,30 @@ public class InstrumentBehaviour : PhysicsProp
     private float _noiseInterval;
     
     private bool _isPlayingMusic;
-
     
     [Serializable]
-    public struct ItemOffset : INetworkSerializable
+    public struct ItemOffset
     {
         public Vector3 positionOffset = default;
         public Vector3 rotationOffset = default;
-        public Vector3 restingRotation = default;
 
-        public ItemOffset(Vector3 positionOffset = default, Vector3 rotationOffset = default, Vector3 restingRotation = default)
+        public ItemOffset(Vector3 positionOffset = default, Vector3 rotationOffset = default)
         {
             this.positionOffset = positionOffset;
             this.rotationOffset = rotationOffset;
-            this.restingRotation = restingRotation;
         }
 
-        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
-        {
-            serializer.SerializeValue(ref positionOffset);
-            serializer.SerializeValue(ref rotationOffset);
-            serializer.SerializeValue(ref restingRotation);
-        }
+        // public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        // {
+        //     serializer.SerializeValue(ref positionOffset);
+        //     serializer.SerializeValue(ref rotationOffset);
+        // }
     }
 
+    #pragma warning disable 0649
     [SerializeField] private ItemOffset playerInstrumentOffset;
     [SerializeField] private ItemOffset enemyInstrumentOffset;
-
-    private void Awake()
-    {
-        
-        playerInstrumentOffset = new ItemOffset(positionOffset:new Vector3(-0.8f, 0.22f, 0.07f), rotationOffset:new Vector3(3, 12, -100));
-        enemyInstrumentOffset = new ItemOffset(positionOffset:new Vector3(0, -0.6f, 0.6f));
-        _isPlayingMusic = false;
-    }
+    #pragma warning restore 0649
     
     public override void Start()
     {
@@ -81,6 +71,8 @@ public class InstrumentBehaviour : PhysicsProp
         {
             _mls.LogError("instrumentAudioClips is null or empty!");
         }
+        
+        _isPlayingMusic = false;
     }
 
     public override void Update()
@@ -219,29 +211,6 @@ public class InstrumentBehaviour : PhysicsProp
         base.DiscardItemFromEnemy();
         isHeldByEnemy = false;
         isHeld = false;
-    }
-
-    [ServerRpc(RequireOwnership = false)]
-    private void UpdateItemOffsetsServerRpc(string recievedInstrumentId, ItemOffset itemOffset)
-    {
-        if (_instrumentId != recievedInstrumentId) return;
-        if (itemProperties.positionOffset == itemOffset.positionOffset &&
-            itemProperties.rotationOffset == itemOffset.rotationOffset &&
-            itemProperties.restingRotation == itemOffset.restingRotation) return;
-        UpdateItemOffsetsClientRpc(itemOffset);
-    }
-
-    [ClientRpc]
-    private void UpdateItemOffsetsClientRpc(ItemOffset itemOffset)
-    {
-        ApplyItemOffset(itemOffset);
-    }
-
-    private void ApplyItemOffset(ItemOffset itemOffset)
-    {
-        itemProperties.positionOffset = itemOffset.positionOffset;
-        itemProperties.rotationOffset = itemOffset.rotationOffset;
-        itemProperties.restingRotation = itemOffset.restingRotation;
     }
 
     [ServerRpc(RequireOwnership = false)]

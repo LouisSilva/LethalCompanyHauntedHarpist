@@ -36,7 +36,8 @@ namespace LethalCompanyHarpGhost
         private static EnemyType _harpGhostEnemyType;
 
         public static Item HarpItem;
-        public static Item BagpipesItem;
+        private static Item BagpipesItem;
+        public static Item TubaItem;
 
         private void Awake()
         {
@@ -53,8 +54,9 @@ namespace LethalCompanyHarpGhost
             HarpGhostConfig = new HarpGhostConfig(Config);
             
             SetupHarpGhost();
+            
             SetupHarp();
-            SetupBagpipes();
+            SetupTuba();
             
             var types = Assembly.GetExecutingAssembly().GetTypes();
             foreach (Type type in types)
@@ -119,7 +121,6 @@ namespace LethalCompanyHarpGhost
 
         private static void SetupBagpipes()
         {
-            return;
             BagpipesItem = Assets.MainAssetBundle.LoadAsset<Item>("BagpipesItemData");
             if (BagpipesItem == null)
             {
@@ -131,6 +132,18 @@ namespace LethalCompanyHarpGhost
             RegisterScrap(BagpipesItem, 0, LevelTypes.All);
         }
         
+        private static void SetupTuba()
+        {
+            TubaItem = Assets.MainAssetBundle.LoadAsset<Item>("TubaItemData");
+            if (TubaItem == null)
+            {
+                _mls.LogError("Failed to load TubaItemData from AssetBundle");
+            }
+            
+            NetworkPrefabs.RegisterNetworkPrefab(TubaItem.spawnPrefab);
+            Utilities.FixMixerGroups(TubaItem.spawnPrefab);
+            RegisterScrap(TubaItem, 0, LevelTypes.All);
+        }
     }
 
     public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
