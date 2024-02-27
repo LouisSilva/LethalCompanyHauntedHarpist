@@ -1,3 +1,8 @@
+## 1.2.4
+* Fixed bug that makes the harp play different music for different people
+* Changed the harp ghost's default attack damage to 45 from 35 (you can change the value with configs)
+* Made the plugin try to load the instruments' audio files on startup to hopefully kill the lag caused when a harp is first played (music) in a game. The DissonanceLagFix mod is also now added as a dependency to help with the lag just in-case the plugin was unable to load the audio files on startup.   
+
 ## 1.2.3
 * Fixed disappearing harps bug
 * Fixed double harps appearing when ghost gets annoyed

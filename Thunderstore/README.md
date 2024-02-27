@@ -15,12 +15,8 @@
   
 </details>
 
-## Future (possible) Updates
+## Future Updates
 
-- More configs upon request
-- Mariachi band, when angered they all have shotguns (the reward for provoking them would be getting all their expensive instruments if you managed to kill them all)
-- Parades (I'm not going to say more)
-- Punk rocker who can shoot lightning
-- Piano, violin, bagpipes, saxophone etc
-  
-Haven't really thought much about it yet.
+Aside from bug fixes, the future updates will come in the form of a new ghost, which will have a unique instrument and a unique set of abilities and functions which will make each ghost **very** different.
+
+If you **REALLY** want spoilers, then feel free to look at the github code, however I advise you to wait and see (and also because I change my mind **a lot**)

@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
 using BepInEx;
@@ -23,13 +26,17 @@ namespace LethalCompanyHarpGhost
     {
         public const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
         private const string ModName = "Lethal Company Harp Ghost Mod";
-        private const string ModVersion = "1.2.3";
+        private const string ModVersion = "1.2.4";
 
         private readonly Harmony _harmony = new Harmony(ModGuid);
         
+        // ReSharper disable once InconsistentNaming
         private static readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource(ModGuid);
 
         private static HarpGhostPlugin _instance;
+
+        // ReSharper disable once InconsistentNaming
+        private static readonly Dictionary<string, List<AudioClip>> _instrumentAudioClips = new();
         
         public static HarpGhostConfig HarpGhostConfig { get; internal set; }
 
@@ -37,7 +44,7 @@ namespace LethalCompanyHarpGhost
 
         public static Item HarpItem;
         private static Item BagpipesItem;
-        public static Item TubaItem;
+        private static Item TubaItem;
 
         private void Awake()
         {
@@ -56,7 +63,8 @@ namespace LethalCompanyHarpGhost
             SetupHarpGhost();
             
             SetupHarp();
-            SetupTuba();
+            // SetupBagpipes();
+            // SetupTuba();
             
             var types = Assembly.GetExecutingAssembly().GetTypes();
             foreach (Type type in types)
@@ -99,7 +107,7 @@ namespace LethalCompanyHarpGhost
             //     infoNode: harpGhostTerminalNode, infoKeyword:harpGhostTerminalKeyword);
         }
 
-        private static void SetupHarp()
+        private void SetupHarp()
         {
             // string[] assetNames = Assets.MainAssetBundle.GetAllAssetNames();
             // foreach (string assetName in assetNames)
@@ -116,6 +124,13 @@ namespace LethalCompanyHarpGhost
             
             NetworkPrefabs.RegisterNetworkPrefab(HarpItem.spawnPrefab);
             Utilities.FixMixerGroups(HarpItem.spawnPrefab);
+
+            // Async load audio clips to get rid of lag spike
+            AudioClip[] audioClips = HarpItem.spawnPrefab.GetComponent<InstrumentBehaviour>().instrumentAudioClips;
+            List<string> audioClipNames = [];
+            audioClipNames.AddRange(audioClips.Select(curAudioClip => curAudioClip.name));
+            LoadInstrumentAudioClipsAsync(HarpItem.itemName, audioClipNames);
+            
             RegisterScrap(HarpItem, 0, LevelTypes.All);
         }
 
@@ -143,6 +158,27 @@ namespace LethalCompanyHarpGhost
             NetworkPrefabs.RegisterNetworkPrefab(TubaItem.spawnPrefab);
             Utilities.FixMixerGroups(TubaItem.spawnPrefab);
             RegisterScrap(TubaItem, 0, LevelTypes.All);
+        }
+
+        private void LoadInstrumentAudioClipsAsync(string instrumentName, List<string> audioClipNames)
+        {
+            foreach (string audioClipName in audioClipNames)
+            {
+                StartCoroutine(Assets.LoadAudioClipAsync(audioClipName, clip =>
+                {
+                    if (!_instrumentAudioClips.ContainsKey(instrumentName))
+                        _instrumentAudioClips[instrumentName] = [];
+                    _instrumentAudioClips[instrumentName].Add(clip);
+                    _mls.LogDebug($"{instrumentName} audio clip '{audioClipName}' loaded asynchronously");
+                }));
+            }
+        }
+
+        public static AudioClip GetInstrumentAudioClip(string instrumentName, int index)
+        {
+            if (_instrumentAudioClips.ContainsKey(instrumentName) && index < _instrumentAudioClips[instrumentName].Count)
+                return _instrumentAudioClips[instrumentName][index];
+            return null;
         }
     }
 
@@ -193,7 +229,7 @@ namespace LethalCompanyHarpGhost
             GhostAttackDamage = cfg.Bind(
                 "General",
                 "Attack Damage",
-                35,
+                45,
                 "The attack damage of the ghost"
             );
             
@@ -263,14 +299,14 @@ namespace LethalCompanyHarpGhost
             GhostVoiceSfxVolume = cfg.Bind(
                 "Audio",
                 "Voice Sound Effects Volume",
-                1f,
+                0.8f,
                 "The volume of the ghost's voice. Values are from 0-1"
             );
 
             InstrumentVolume = cfg.Bind(
                 "Audio",
                 "Instrument Volume",
-                1f,
+                0.8f,
                 "The volume of the music played from any instrument. Values are from 0-1"
             );
             
@@ -299,7 +335,7 @@ namespace LethalCompanyHarpGhost
                 "Spawn Values",
                 "Ghost Spawn Level",
                 LevelTypes.DineLevel,
-                "The LevelTypes that the ghost spawns in. Only single values are accepted."
+                "The LevelTypes that the ghost spawns in"
             );
             
             HarpMinValue = cfg.Bind(
@@ -449,7 +485,7 @@ namespace LethalCompanyHarpGhost
     public static class Assets
     {
         private const string MainAssetBundleName = "Assets.harpghostbundle";
-        public static AssetBundle MainAssetBundle = null;
+        public static AssetBundle MainAssetBundle;
 
         private static string GetAssemblyName() => Assembly.GetExecutingAssembly().FullName.Split(',')[0];
         public static void PopulateAssets()
@@ -457,6 +493,17 @@ namespace LethalCompanyHarpGhost
             if (MainAssetBundle != null) return;
             using Stream assetStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(GetAssemblyName() + "." + MainAssetBundleName);
             MainAssetBundle = AssetBundle.LoadFromStream(assetStream);
+        }
+
+        public static IEnumerator LoadAudioClipAsync(string clipName, Action<AudioClip> callback)
+        {
+            if (MainAssetBundle == null) yield break;
+
+            AssetBundleRequest request = MainAssetBundle.LoadAssetAsync<AudioClip>(clipName);
+            yield return request;
+            
+            AudioClip clip = request.asset as AudioClip;
+            callback?.Invoke(clip);
         }
     }
 }

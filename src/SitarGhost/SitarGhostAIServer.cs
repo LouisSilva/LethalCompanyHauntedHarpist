@@ -2,15 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using BepInEx.Logging;
-using GameNetcodeStuff;
 using LethalCompanyHarpGhost.HarpGhost;
 using UnityEngine;
 using UnityEngine.AI;
 using PlayerControllerB = GameNetcodeStuff.PlayerControllerB;
 
-namespace LethalCompanyHarpGhost.TubaGhost;
+namespace LethalCompanyHarpGhost.SitarGhost;
 
-public class TubaGhostAIServer : EnemyAI
+public class SitarGhostAIServer : EnemyAI
 {
     private ManualLogSource _mls;
     private string _ghostId;
@@ -26,7 +25,7 @@ public class TubaGhostAIServer : EnemyAI
     
     private Vector3 _agentLastPosition = default;
 
-    private PlayerControllerB _targetPlayer;
+    // private PlayerControllerB _targetPlayer;
     
     private RoundManager _roundManager;
     
@@ -34,16 +33,13 @@ public class TubaGhostAIServer : EnemyAI
     [Space(5f)]
 #pragma warning disable 0649
     [SerializeField] private HarpGhostAudioManager audioManager;
-    [SerializeField] private TubaGhostNetcodeController netcodeController;
+    [SerializeField] private SitarGhostNetcodeController netcodeController;
     [SerializeField] private HarpGhostAnimationController animationController;
 #pragma warning restore 0649
 
     private enum States
     {
-        ChoosingTargetPlayer,
-        GoingTowardsPlayer,
-        FollowingPlayerAndPlayingMusic,
-        RunningFromPlayer,
+        PlayingMusic,
         Dead
     }
 
@@ -55,7 +51,7 @@ public class TubaGhostAIServer : EnemyAI
         _ghostId = Guid.NewGuid().ToString();
         netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
         
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Tuba Ghost AI {_ghostId} | Server");
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Sitar Ghost AI {_ghostId} | Server");
         
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) _mls.LogError("NavMeshAgent component not found on " + name);
@@ -64,7 +60,7 @@ public class TubaGhostAIServer : EnemyAI
         audioManager = GetComponent<HarpGhostAudioManager>();
         if (audioManager == null) _mls.LogError("Audio Manger is null");
 
-        netcodeController = GetComponent<TubaGhostNetcodeController>();
+        netcodeController = GetComponent<SitarGhostNetcodeController>();
         if (netcodeController == null) _mls.LogError("Netcode Controller is null");
 
         animationController = GetComponent<HarpGhostAnimationController>();
@@ -78,7 +74,7 @@ public class TubaGhostAIServer : EnemyAI
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, false);
         
         //InitializeConfigValues();
-        _mls.LogInfo("Tuba Ghost Spawned");
+        _mls.LogInfo("Sitar Ghost Spawned");
     }
     
     private void FixedUpdate()
@@ -119,38 +115,13 @@ public class TubaGhostAIServer : EnemyAI
 
         switch (currentBehaviourStateIndex)
         {
-            case (int)States.ChoosingTargetPlayer:
+            case (int)States.PlayingMusic:
             {
-                PickTargetPlayer();
                 break;
             }
         }
     }
 
-    private void PickTargetPlayer()
-    {
-        Dictionary<PlayerControllerB, float> playerInterestLevels = new();
-        foreach (PlayerControllerB player in StartOfRound.Instance.allPlayerScripts)
-        {
-            if (player.isPlayerDead) continue;
-            Tuple<bool, float> playerInterestLevel = GetPlayerInterestLevel(player);
-                    
-            // If the player does not have an interest level, skip them
-            if (!playerInterestLevel.Item1) continue;
-            playerInterestLevels.Add(player, playerInterestLevel.Item2);
-        }
-
-        _targetPlayer = playerInterestLevels.Count != 0 ? playerInterestLevels.Aggregate((x, y) => x.Value > y.Value ? x : y).Key : null;
-    }
-
-    private Tuple<bool, float> GetPlayerInterestLevel(PlayerControllerB player)
-    {
-        if (player.currentlyHeldObjectServer != null && player.currentlyHeldObjectServer.itemProperties.isScrap)
-            return Tuple.Create(false, 0f);
-        if (player.carryWeight < 1.5) return Tuple.Create(false, 0f);
-
-        return Tuple.Create(true, player.carryWeight + player.currentlyHeldObjectServer.scrapValue / 200);
-    }
 
     private void CalculateAgentSpeed()
     {

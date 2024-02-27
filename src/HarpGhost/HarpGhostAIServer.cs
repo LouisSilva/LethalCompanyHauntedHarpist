@@ -481,7 +481,7 @@ public class HarpGhostAIServer : EnemyAI
             return;
         }
 
-        if (currentBehaviourStateIndex != 5)
+        if (currentBehaviourStateIndex != (int)States.Dead)
         {
             MoveWithAcceleration();
         }

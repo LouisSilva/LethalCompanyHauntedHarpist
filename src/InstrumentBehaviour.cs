@@ -24,31 +24,51 @@ public class InstrumentBehaviour : PhysicsProp
     private float _noiseInterval;
     
     private bool _isPlayingMusic;
+    private bool _isInAltPlayerOffset;
     
     [Serializable]
-    public struct ItemOffset
+    public struct ItemOffset : INetworkSerializable
     {
         public Vector3 positionOffset = default;
         public Vector3 rotationOffset = default;
-
+    
         public ItemOffset(Vector3 positionOffset = default, Vector3 rotationOffset = default)
         {
             this.positionOffset = positionOffset;
             this.rotationOffset = rotationOffset;
         }
-
-        // public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
-        // {
-        //     serializer.SerializeValue(ref positionOffset);
-        //     serializer.SerializeValue(ref rotationOffset);
-        // }
+    
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref positionOffset);
+            serializer.SerializeValue(ref rotationOffset);
+        }
     }
 
-    #pragma warning disable 0649
     [SerializeField] private ItemOffset playerInstrumentOffset;
+    [SerializeField] private ItemOffset playerAltInstrumentOffset;
     [SerializeField] private ItemOffset enemyInstrumentOffset;
-    #pragma warning restore 0649
-    
+
+    private void Awake()
+    {
+        // This has to be done because for some reason the ItemOffset values in the unity inspector just get overriden for some reason
+        switch (itemProperties.itemName)
+        {
+            case "Harp":
+                playerInstrumentOffset = new ItemOffset(new Vector3(-0.8f, 0.22f, 0.07f), new Vector3(3f, 12f, -100f));
+                playerAltInstrumentOffset = new ItemOffset(new Vector3(-0.4f, 0.2f, -0.1f), new Vector3(-70, 115, -200));
+                enemyInstrumentOffset = new ItemOffset(new Vector3(0f, -0.6f, 0.6f));
+                break;
+            case "Bagpipes":
+                break;
+            case "Tuba":
+                playerInstrumentOffset = new ItemOffset(new Vector3(-0.4f, 0.2f, -0.1f), new Vector3(-70, 115, -200));
+                break;
+            case "Sitar":
+                break;
+        }
+    }
+
     public override void Start()
     {
         base.Start();
@@ -104,8 +124,16 @@ public class InstrumentBehaviour : PhysicsProp
             }
             else
             {
-                rotationOffset = playerInstrumentOffset.rotationOffset;
-                positionOffset = playerInstrumentOffset.positionOffset;
+                if (_isInAltPlayerOffset)
+                {
+                    rotationOffset = playerAltInstrumentOffset.rotationOffset;
+                    positionOffset = playerAltInstrumentOffset.positionOffset;
+                }
+                else
+                {
+                    rotationOffset = playerInstrumentOffset.rotationOffset;
+                    positionOffset = playerInstrumentOffset.positionOffset;
+                }
             }
             
             transform.rotation = parentObject.rotation;
@@ -144,9 +172,16 @@ public class InstrumentBehaviour : PhysicsProp
         isBeingUsed = used;
     }
 
-    private void StartMusic()
+    private void StartMusic(int clipIndex)
     {
-        instrumentAudioSource.clip = instrumentAudioClips[Random.Range(0, instrumentAudioClips.Length)];
+        AudioClip selectedClip = HarpGhostPlugin.GetInstrumentAudioClip(itemProperties.itemName, clipIndex);
+        if (selectedClip == null)
+        {
+            _mls.LogWarning($"{itemProperties.itemName} audio clips not loaded yet!");
+            selectedClip = instrumentAudioClips[clipIndex];
+        }
+        
+        instrumentAudioSource.clip = selectedClip;
         instrumentAudioSource.pitch = 1f;
         instrumentAudioSource.volume = Mathf.Clamp(HarpGhostConfig.Default.InstrumentVolume.Value, 0f, 1f);
         instrumentAudioSource.Play();
@@ -154,11 +189,27 @@ public class InstrumentBehaviour : PhysicsProp
         _isPlayingMusic = true;
     }
 
+    private void StartMusic()
+    {
+        StartMusic(Random.Range(0, instrumentAudioClips.Length));
+    }
+
     private void StopMusic()
     {
         StartCoroutine(MusicPitchDown());
         _timesPlayedWithoutTurningOff = 0;
         _isPlayingMusic = false;
+    }
+
+    public override void ItemInteractLeftRight(bool right)
+    {
+        base.ItemInteractLeftRight(right);
+        if (playerHeldBy == null) return;
+        if (!right || (playerAltInstrumentOffset.positionOffset == default && playerInstrumentOffset.rotationOffset == default)) 
+            return;
+        
+        // Set alternative player offsets if it exists
+        _isInAltPlayerOffset = !_isInAltPlayerOffset;
     }
     
     private IEnumerator MusicPitchDown()
@@ -230,12 +281,12 @@ public class InstrumentBehaviour : PhysicsProp
     internal void StartMusicServerRpc()
     {
         if (_isPlayingMusic) return;
-        StartMusicClientRpc();
+        StartMusicClientRpc(Random.Range(0, instrumentAudioClips.Length));
     }
 
     [ClientRpc]
-    private void StartMusicClientRpc()
+    private void StartMusicClientRpc(int clipNumber)
     {
-        StartMusic();
+        StartMusic(clipNumber);
     }
 }
