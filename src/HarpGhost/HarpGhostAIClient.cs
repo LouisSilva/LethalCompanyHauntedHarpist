@@ -13,11 +13,11 @@ public class HarpGhostAIClient : MonoBehaviour
     private ManualLogSource _mls;
     private string _ghostId;
     
-    private NetworkObjectReference _harpObjectRef;
+    private NetworkObjectReference _instrumentObjectRef;
 
-    private int _harpScrapValue;
+    private int _instrumentScrapValue;
 
-    private InstrumentBehaviour _heldHarp;
+    private InstrumentBehaviour _heldInstrument;
 
     private PlayerControllerB _targetPlayer;
     
@@ -32,11 +32,11 @@ public class HarpGhostAIClient : MonoBehaviour
 
     private void OnEnable()
     {
-        netcodeController.OnDropHarp += HandleDropHarp;
-        netcodeController.OnSpawnHarp += HandleSpawnHarp;
-        netcodeController.OnGrabHarp += HandleGrabHarp;
-        netcodeController.OnPlayHarpMusic += HandleOnPlayHarpMusic;
-        netcodeController.OnStopHarpMusic += HandleOnStopHarpMusic;
+        netcodeController.OnDropHarp += HandleDropInstrument;
+        netcodeController.OnSpawnHarp += HandleSpawnInstrument;
+        netcodeController.OnGrabHarp += HandleGrabInstrument;
+        netcodeController.OnPlayHarpMusic += HandleOnPlayInstrumentMusic;
+        netcodeController.OnStopHarpMusic += HandleOnStopInstrumentMusic;
         netcodeController.OnChangeTargetPlayer += HandleChangeTargetPlayer;
         netcodeController.OnDamageTargetPlayer += HandleDamageTargetPlayer;
         netcodeController.OnIncreaseTargetPlayerFearLevel += HandleIncreaseTargetPlayerFearLevel;
@@ -45,11 +45,11 @@ public class HarpGhostAIClient : MonoBehaviour
 
     private void OnDestroy()
     {
-        netcodeController.OnDropHarp -= HandleDropHarp;
-        netcodeController.OnSpawnHarp -= HandleSpawnHarp;
-        netcodeController.OnGrabHarp -= HandleGrabHarp;
-        netcodeController.OnPlayHarpMusic -= HandleOnPlayHarpMusic;
-        netcodeController.OnStopHarpMusic -= HandleOnStopHarpMusic;
+        netcodeController.OnDropHarp -= HandleDropInstrument;
+        netcodeController.OnSpawnHarp -= HandleSpawnInstrument;
+        netcodeController.OnGrabHarp -= HandleGrabInstrument;
+        netcodeController.OnPlayHarpMusic -= HandleOnPlayInstrumentMusic;
+        netcodeController.OnStopHarpMusic -= HandleOnStopInstrumentMusic;
         netcodeController.OnChangeTargetPlayer -= HandleChangeTargetPlayer;
         netcodeController.OnDamageTargetPlayer -= HandleDamageTargetPlayer;
         netcodeController.OnIncreaseTargetPlayerFearLevel -= HandleIncreaseTargetPlayerFearLevel;
@@ -97,61 +97,61 @@ public class HarpGhostAIClient : MonoBehaviour
         }
     }
 
-    private void HandleOnPlayHarpMusic(string recievedGhostId)
+    private void HandleOnPlayInstrumentMusic(string recievedGhostId)
     {
         if (_ghostId != recievedGhostId) return;
-        if (_heldHarp == null) return;
-        _heldHarp.StartMusicServerRpc();
+        if (_heldInstrument == null) return;
+        _heldInstrument.StartMusicServerRpc();
     }
     
-    private void HandleOnStopHarpMusic(string recievedGhostId)
+    private void HandleOnStopInstrumentMusic(string recievedGhostId)
     {
         if (_ghostId != recievedGhostId) return;
-        if (_heldHarp == null) return;
-        _heldHarp.StopMusicServerRpc();
+        if (_heldInstrument == null) return;
+        _heldInstrument.StopMusicServerRpc();
     }
 
-    private void HandleDropHarp(string recievedGhostId, Vector3 dropPosition)
+    private void HandleDropInstrument(string recievedGhostId, Vector3 dropPosition)
     {
         if (_ghostId != recievedGhostId) return;
-        if (_heldHarp == null) return;
-        _heldHarp.parentObject = null;
-        _heldHarp.transform.SetParent(StartOfRound.Instance.propsContainer, true);
-        _heldHarp.EnablePhysics(true);
-        _heldHarp.fallTime = 0f;
+        if (_heldInstrument == null) return;
+        _heldInstrument.parentObject = null;
+        _heldInstrument.transform.SetParent(StartOfRound.Instance.propsContainer, true);
+        _heldInstrument.EnablePhysics(true);
+        _heldInstrument.fallTime = 0f;
         
         Transform parent;
-        _heldHarp.startFallingPosition =
-            (parent = _heldHarp.transform.parent).InverseTransformPoint(_heldHarp.transform.position);
-        _heldHarp.targetFloorPosition = parent.InverseTransformPoint(dropPosition);
-        _heldHarp.floorYRot = -1;
-        _heldHarp.grabbable = true;
-        _heldHarp.grabbableToEnemies = true;
-        _heldHarp.isHeld = false;
-        _heldHarp.isHeldByEnemy = false;
-        _heldHarp.StopMusicServerRpc();
-        _heldHarp = null;
+        _heldInstrument.startFallingPosition =
+            (parent = _heldInstrument.transform.parent).InverseTransformPoint(_heldInstrument.transform.position);
+        _heldInstrument.targetFloorPosition = parent.InverseTransformPoint(dropPosition);
+        _heldInstrument.floorYRot = -1;
+        _heldInstrument.grabbable = true;
+        _heldInstrument.grabbableToEnemies = true;
+        _heldInstrument.isHeld = false;
+        _heldInstrument.isHeldByEnemy = false;
+        _heldInstrument.StopMusicServerRpc();
+        _heldInstrument = null;
     }
 
-    private void HandleGrabHarp(string recievedGhostId)
+    private void HandleGrabInstrument(string recievedGhostId)
     {
         if (_ghostId != recievedGhostId) return;
-        if (_heldHarp != null) return;
-        if (!_harpObjectRef.TryGet(out NetworkObject networkObject)) return;
-        _heldHarp = networkObject.gameObject.GetComponent<InstrumentBehaviour>();
+        if (_heldInstrument != null) return;
+        if (!_instrumentObjectRef.TryGet(out NetworkObject networkObject)) return;
+        _heldInstrument = networkObject.gameObject.GetComponent<InstrumentBehaviour>();
 
-        _heldHarp.SetScrapValue(_harpScrapValue);
-        _heldHarp.parentObject = grabTarget;
-        _heldHarp.isHeldByEnemy = true;
-        _heldHarp.grabbableToEnemies = false;
-        _heldHarp.grabbable = false;
+        _heldInstrument.SetScrapValue(_instrumentScrapValue);
+        _heldInstrument.parentObject = grabTarget;
+        _heldInstrument.isHeldByEnemy = true;
+        _heldInstrument.grabbableToEnemies = false;
+        _heldInstrument.grabbable = false;
     }
     
-    private void HandleSpawnHarp(string recievedGhostId, NetworkObjectReference harpObject, int harpScrapValue)
+    private void HandleSpawnInstrument(string recievedGhostId, NetworkObjectReference instrumentObject, int instrumentScrapValue)
     {
         if (_ghostId != recievedGhostId) return;
-        _harpObjectRef = harpObject;
-        _harpScrapValue = harpScrapValue;
+        _instrumentObjectRef = instrumentObject;
+        _instrumentScrapValue = instrumentScrapValue;
     }
 
     private void HandleChangeTargetPlayer(string recievedGhostId, int targetPlayerObjectId)

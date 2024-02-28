@@ -20,3 +20,7 @@
 Aside from bug fixes, the future updates will come in the form of a new ghost, which will have a unique instrument and a unique set of abilities and functions which will make each ghost **very** different.
 
 If you **REALLY** want spoilers, then feel free to look at the github code, however I advise you to wait and see (and also because I change my mind **a lot**)
+
+# Dissonance Lag Fix
+
+It is highly recommended you install the [DissonanceLagFix](https://thunderstore.io/c/lethal-company/p/linkoid/DissonanceLagFix/) mod, which will reduce any potential lag caused when an instrument is played for the first time in a game

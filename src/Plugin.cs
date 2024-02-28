@@ -26,7 +26,7 @@ namespace LethalCompanyHarpGhost
     {
         public const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
         private const string ModName = "Lethal Company Harp Ghost Mod";
-        private const string ModVersion = "1.2.4";
+        private const string ModVersion = "1.2.5";
 
         private readonly Harmony _harmony = new Harmony(ModGuid);
         
@@ -43,7 +43,7 @@ namespace LethalCompanyHarpGhost
         private static EnemyType _harpGhostEnemyType;
 
         public static Item HarpItem;
-        private static Item BagpipesItem;
+        public static Item BagpipesItem;
         private static Item TubaItem;
 
         private void Awake()
@@ -63,8 +63,8 @@ namespace LethalCompanyHarpGhost
             SetupHarpGhost();
             
             SetupHarp();
-            // SetupBagpipes();
-            // SetupTuba();
+            SetupBagpipes();
+            SetupTuba();
             
             var types = Assembly.GetExecutingAssembly().GetTypes();
             foreach (Type type in types)

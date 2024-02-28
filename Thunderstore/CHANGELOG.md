@@ -1,3 +1,6 @@
+## 1.2.5
+* Removed DissonanceLagFix as a hard dependency
+
 ## 1.2.4
 * Fixed bug that makes the harp play different music for different people
 * Changed the harp ghost's default attack damage to 45 from 35 (you can change the value with configs)
