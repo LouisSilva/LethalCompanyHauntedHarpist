@@ -10,6 +10,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using GameNetcodeStuff;
 using HarmonyLib;
+using LethalCompanyHarpGhost.BagpipesGhost;
 using UnityEngine;
 using LethalLib.Modules;
 using Unity.Collections;
@@ -26,7 +27,7 @@ namespace LethalCompanyHarpGhost
     {
         public const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
         private const string ModName = "Lethal Company Harp Ghost Mod";
-        private const string ModVersion = "1.2.5";
+        private const string ModVersion = "1.2.7";
 
         private readonly Harmony _harmony = new Harmony(ModGuid);
         
@@ -41,6 +42,9 @@ namespace LethalCompanyHarpGhost
         public static HarpGhostConfig HarpGhostConfig { get; internal set; }
 
         private static EnemyType _harpGhostEnemyType;
+        private static EnemyType _bagpipesGhostEnemyType;
+
+        public static GameObject NutcrackerPrefab = null;
 
         public static Item HarpItem;
         public static Item BagpipesItem;
@@ -61,6 +65,7 @@ namespace LethalCompanyHarpGhost
             HarpGhostConfig = new HarpGhostConfig(Config);
             
             SetupHarpGhost();
+            SetupBagpipesGhost();
             
             SetupHarp();
             SetupBagpipes();
@@ -80,6 +85,9 @@ namespace LethalCompanyHarpGhost
                 }
             }
             
+            _harmony.PatchAll(typeof(HarpGhostPlugin));
+            _harmony.PatchAll(typeof(NutcrackerPatches));
+            // _harmony.PatchAll(typeof(EnemyAIPatches));
             _mls.LogInfo($"Plugin {ModName} is loaded!");
         }
 
@@ -105,6 +113,17 @@ namespace LethalCompanyHarpGhost
             //     [LevelTypes.DineLevel] = Mathf.Clamp(HarpGhostConfig.Instance.GhostSpawnRate.Value, 0, 100), 
             //     [LevelTypes.RendLevel] = Mathf.Clamp(HarpGhostConfig.Instance.GhostSpawnRate.Value, 0, 100)}, 
             //     infoNode: harpGhostTerminalNode, infoKeyword:harpGhostTerminalKeyword);
+        }
+        
+        private static void SetupBagpipesGhost()
+        {
+            _bagpipesGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("BagpipesGhost");
+            TerminalNode harpGhostTerminalNode = Assets.MainAssetBundle.LoadAsset<TerminalNode>("HarpGhostTN");
+            TerminalKeyword harpGhostTerminalKeyword = Assets.MainAssetBundle.LoadAsset<TerminalKeyword>("HarpGhostTK");
+            
+            NetworkPrefabs.RegisterNetworkPrefab(_bagpipesGhostEnemyType.enemyPrefab);
+            Utilities.FixMixerGroups(_bagpipesGhostEnemyType.enemyPrefab);
+            RegisterEnemy(_bagpipesGhostEnemyType, Mathf.Clamp(HarpGhostConfig.Instance.GhostSpawnRate.Value, 0, 999), HarpGhostConfig.Instance.GhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
         }
 
         private void SetupHarp()
@@ -179,6 +198,26 @@ namespace LethalCompanyHarpGhost
             if (_instrumentAudioClips.ContainsKey(instrumentName) && index < _instrumentAudioClips[instrumentName].Count)
                 return _instrumentAudioClips[instrumentName][index];
             return null;
+        }
+        
+        [HarmonyPatch(typeof(Terminal), "Start")]
+        [HarmonyPostfix]
+        private static void GetAllSpawnableEnemies(ref SelectableLevel[] ___moonsCatalogueList)
+        {
+            SelectableLevel[] selectableLevels = ___moonsCatalogueList;
+            for (int i = 0; i < selectableLevels.Length; i++)
+            {
+                SelectableLevel level = selectableLevels[i];
+                foreach (SpawnableEnemyWithRarity t in level.Enemies)
+                {
+                    if (t.enemyType.enemyName != "Nutcracker") continue;
+
+                    NutcrackerPrefab = t.enemyType.enemyPrefab;
+                    _mls.LogDebug("Found nutcracker prefab");
+                    return;
+                }
+            }
+            _mls.LogError("Nutcracker prefab not found");
         }
     }
 

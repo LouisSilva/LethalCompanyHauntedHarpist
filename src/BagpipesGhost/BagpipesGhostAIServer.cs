@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using BepInEx.Logging;
-using LethalCompanyHarpGhost.HarpGhost;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -12,37 +12,39 @@ public class BagpipesGhostAIServer : EnemyAI
 {
     private ManualLogSource _mls;
     private string _ghostId;
-    
-    private GameObject[] _escorts;
+
+    private List<GameObject> _escorts = [];
+
+    public static List<EnemyAI> Ghosts = [];
 
     [Header("AI and Pathfinding")]
     [Space(5f)]
     public AISearchRoutine roamMap;
     private float _agentCurrentSpeed;
-    private const float _escortHorizontalBaseLength = 5f;
-    private const float _escortRowSpacing = 3f;
-    private const float _escortSingleFileSpacing = 2f;
+    private const float EscortHorizontalBaseLength = 5f;
+    private const float EscortRowSpacing = 3f;
     [SerializeField] private float agentMaxAcceleration = 200f;
     [SerializeField] private float agentMaxSpeed = 0.5f;
-
-    private bool _isEscortsInSingleFileLine = false;
+    
     private bool _isNarrowPath = false;
     private bool _inStunAnimation = false;
+    
+    [SerializeField] private int numberOfEscorts = 3;
 
     private Vector3 _agentLastPosition;
-    private List<Vector3> _escortAgentPathPoints = [];
+    private readonly List<Vector3> _escortAgentPathPoints = [];
 
     private RoundManager _roundManager;
     
     [Header("Controllers and Managers")]
     [Space(5f)]
     #pragma warning disable 0649
-    [SerializeField] private HarpGhostAudioManager audioManager;
+    [SerializeField] private BagpipesGhostAudioManager audioManager;
     [SerializeField] private BagpipesGhostNetcodeController netcodeController;
-    [SerializeField] private HarpGhostAnimationController animationController;
+    [SerializeField] private BagpipesGhostAnimationController animationController;
     #pragma warning restore 0649
     
-    private enum States
+    public enum States
     {
         PlayingMusicWhileEscorted,
         RunningAway,
@@ -56,6 +58,7 @@ public class BagpipesGhostAIServer : EnemyAI
         
         _ghostId = Guid.NewGuid().ToString();
         netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
+        Ghosts.Add(this);
         
         _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Bagpipes Ghost AI {_ghostId} | Server");
         
@@ -63,25 +66,30 @@ public class BagpipesGhostAIServer : EnemyAI
         if (agent == null) _mls.LogError("NavMeshAgent component not found on " + name);
         agent.enabled = true;
         
-        audioManager = GetComponent<HarpGhostAudioManager>();
+        audioManager = GetComponent<BagpipesGhostAudioManager>();
         if (audioManager == null) _mls.LogError("Audio Manger is null");
 
         netcodeController = GetComponent<BagpipesGhostNetcodeController>();
         if (netcodeController == null) _mls.LogError("Netcode Controller is null");
 
-        animationController = GetComponent<HarpGhostAnimationController>();
+        animationController = GetComponent<BagpipesGhostAnimationController>();
         if (animationController == null) _mls.LogError("Animation Controller is null");
         
         _roundManager = FindObjectOfType<RoundManager>();
         
         UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsDead, false);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, false);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, false);
+        LogDebug($"{_ghostId}, {BagpipesGhostAnimationController.IsDead}");
+        // netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsDead, false);
+        // netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsStunned, false);
+        // netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsRunning, false);
         
-        netcodeController.SpawnBagpipesServerRpc(_ghostId);
-        netcodeController.GrabBagpipesClientRpc(_ghostId);
-        StartCoroutine(DelayedBagpipesMusicActivate());
+        // netcodeController.SpawnBagpipesServerRpc(_ghostId);
+        // netcodeController.GrabBagpipesClientRpc(_ghostId);
+        // StartCoroutine(DelayedBagpipesMusicActivate());
+        StartCoroutine(DelayedSpawnEscorts());
+        
+        if (HarpGhostPlugin.NutcrackerPrefab != null) LogDebug(HarpGhostPlugin.NutcrackerPrefab.name);
+        else _mls.LogDebug("nutcracker prefab is null");
         
         _mls.LogInfo("Bagpipes Ghost Spawned");
     }
@@ -105,14 +113,14 @@ public class BagpipesGhostAIServer : EnemyAI
         if (stunNormalizedTimer <= 0.0 && _inStunAnimation && !isEnemyDead)
         {
             LogDebug("Doing stun recover animation");
-            netcodeController.DoAnimationClientRpc(_ghostId, HarpGhostAnimationController.Recover);
+            netcodeController.DoAnimationClientRpc(_ghostId, BagpipesGhostAnimationController.Recover);
             _inStunAnimation = false;
-            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, false);
+            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsStunned, false);
         }
         
         if (StartOfRound.Instance.allPlayersDead)
         {
-            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, false);
+            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsRunning, false);
             return;
         }
 
@@ -130,8 +138,8 @@ public class BagpipesGhostAIServer : EnemyAI
             case (int)States.RunningAway:
             {
                 bool isRunning = _agentCurrentSpeed >= 3f;
-                if (animationController.GetBool(HarpGhostAnimationController.IsRunning) != isRunning && !_inStunAnimation)
-                    netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, isRunning);
+                if (animationController.GetBool(BagpipesGhostAnimationController.IsRunning) != isRunning && !_inStunAnimation)
+                    netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsRunning, isRunning);
                 break;
             }
 
@@ -165,9 +173,9 @@ public class BagpipesGhostAIServer : EnemyAI
 
     private void UpdateAgentFormation()
     {
-        float currentBaseLength = _isNarrowPath ? 0 : _escortHorizontalBaseLength;
+        float currentBaseLength = _isNarrowPath ? 0 : EscortHorizontalBaseLength;
         
-        for (int i = 0; i < _escorts.Length; i++)
+        for (int i = 0; i < _escorts.Count; i++)
         {
             int pathPointIndex = Mathf.Max(0, _escortAgentPathPoints.Count - 1 - i * 2);
             Vector3 targetPosition =
@@ -175,7 +183,7 @@ public class BagpipesGhostAIServer : EnemyAI
 
             float lateralOffset = ((i % 2) * 2 - 1) * currentBaseLength / 2;
             int row = i / 2;
-            Vector3 formationOffset = transform.right * lateralOffset - transform.forward * (_escortRowSpacing * row);
+            Vector3 formationOffset = transform.right * lateralOffset - transform.forward * (EscortRowSpacing * row);
 
             NavMeshAgent curEscortNavMeshAgent = _escorts[i].GetComponent<NavMeshAgent>();
             if (curEscortNavMeshAgent != null)
@@ -189,6 +197,8 @@ public class BagpipesGhostAIServer : EnemyAI
 
     private void UpdateEscortAgentPathPoints()
     {
+        if (_escorts.Count == 0) return;
+        if (_escortAgentPathPoints.Count == 0) _escortAgentPathPoints.Add(transform.position);
         if (Vector3.Distance(_escortAgentPathPoints[^1], transform.position) > 1f)
             _escortAgentPathPoints.Add(transform.position);
 
@@ -197,8 +207,8 @@ public class BagpipesGhostAIServer : EnemyAI
 
     private bool CheckForNarrowPassages()
     {
-        bool leftBlocked = Physics.Raycast(transform.position, -transform.right, out RaycastHit _, _escortHorizontalBaseLength / 2);
-        bool rightBlocked = Physics.Raycast(transform.position, transform.right, out RaycastHit _, _escortHorizontalBaseLength / 2);
+        bool leftBlocked = Physics.Raycast(transform.position, -transform.right, out RaycastHit _, EscortHorizontalBaseLength / 2);
+        bool rightBlocked = Physics.Raycast(transform.position, transform.right, out RaycastHit _, EscortHorizontalBaseLength / 2);
         return leftBlocked || rightBlocked;
     }
 
@@ -208,6 +218,31 @@ public class BagpipesGhostAIServer : EnemyAI
         float angleDifference = Vector3.Angle(transform.forward, directionToTarget);
         const float turnSpeedAdjustment = 0.5f;
         return Mathf.Max(1, turnSpeedAdjustment * (180 - angleDifference) / 180);
+    }
+
+    private void SpawnEscorts()
+    {
+        _escorts = new List<GameObject>(numberOfEscorts);
+        for (int i = 0; i < numberOfEscorts; i++)
+        {
+            GameObject escort = Instantiate(HarpGhostPlugin.NutcrackerPrefab, transform.position, Quaternion.identity);
+            AddEscort(escort);
+            escort.GetComponentInChildren<NetworkObject>().Spawn(destroyWithScene: true);
+        }
+    }
+
+    private void AddEscort(GameObject escort)
+    {
+        if (_escorts == null || _escorts.Contains(escort)) return;
+        _escorts.Add(escort);
+        EscortRegistry.AddEscort(escort, this);
+    }
+
+    public void RemoveEscort(GameObject escort)
+    {
+        if (escort == null || !_escorts.Contains(escort)) return;
+        _escorts.Remove(escort);
+        EscortRegistry.RemoveEscort(escort);
     }
     
     private void CalculateAgentSpeed()
@@ -242,6 +277,12 @@ public class BagpipesGhostAIServer : EnemyAI
         netcodeController.PlayBagpipesMusicClientRpc(_ghostId);
     }
 
+    private IEnumerator DelayedSpawnEscorts()
+    {
+        yield return new WaitForSeconds(0.30f);
+        SpawnEscorts();
+    }
+    
     private void LogDebug(string logMessage)
     {
         #if DEBUG
@@ -251,5 +292,5 @@ public class BagpipesGhostAIServer : EnemyAI
     
     public Vector3 TransformPosition => transform.position;
     public RoundManager RoundManagerInstance => RoundManager.Instance;
-    public InstrumentBehaviour HeldHarp { get; set; }
+    public InstrumentBehaviour HeldBagpipe { get; set; }
 }

@@ -22,6 +22,7 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     public event Action<string, Vector3> OnDropBagpipes;
     public event Action<string> OnPlayBagpipesMusic;
     public event Action<string> OnStopBagpipesMusic;
+    public event Action<string> OnEnterDeathState;
     public event Action<string, int, int, bool> OnPlayCreatureVoice;
 
     private void Start()
@@ -41,6 +42,7 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     [ClientRpc]
     public void ChangeAnimationParameterBoolClientRpc(string recievedGhostId, int animationId, bool value)
     {
+        LogDebug($"{animationId}, {value}");
         OnChangeAnimationParameterBool?.Invoke(recievedGhostId, animationId, value);
     }
 
@@ -116,6 +118,12 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
         int randomNum = UnityEngine.Random.Range(0, clipArrayLength);
         LogDebug($"Invoking OnPlayCreatureVoice | Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
         OnPlayCreatureVoice?.Invoke(recievedGhostId, typeIndex, randomNum, interrupt);
+    }
+    
+    [ClientRpc]
+    public void EnterDeathStateClientRpc(string recievedGhostId)
+    {
+        OnEnterDeathState?.Invoke(recievedGhostId);
     }
 
     private void LogDebug(string msg)
