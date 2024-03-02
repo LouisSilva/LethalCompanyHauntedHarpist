@@ -14,6 +14,8 @@ public class HarpGhostAIServer : EnemyAI
 {
     private ManualLogSource _mls;
     private string _ghostId;
+    
+    private static readonly int AlternativeColourFadeInTimer = Shader.PropertyToID("_AlternativeColourFadeInTimer");
 
     [Header("AI and Pathfinding")]
     [Space(5f)]
@@ -29,9 +31,12 @@ public class HarpGhostAIServer : EnemyAI
     private float _agentCurrentSpeed = 0f;
     private float _timeSinceHittingLocalPlayer = 0f;
     private float _hearNoiseCooldown = 0f;
+    private float _transitioningMaterialTimer= 0f;
     
     private bool _hasBegunInvestigating = false;
     private bool _inStunAnimation = false;
+    private bool _isTransitioningMaterial = false;
+    private bool _hasTransitionedMaterial = false;
     
     private Vector3 _targetPosition = default;
     private Vector3 _agentLastPosition = default;
@@ -41,10 +46,17 @@ public class HarpGhostAIServer : EnemyAI
     [Header("Transforms")]
     [Space(3f)]
     public BoxCollider attackArea;
-
+    
+    #pragma warning disable 0649
+    [Header("Materials and Renderers")]
+    [Space(3f)]
+    [SerializeField] private bool enableGhostAngryModel = true;
+    [SerializeField] private Renderer rendererLeftEye;
+    [SerializeField] private Renderer rendererRightEye;
+    [SerializeField] private MaterialPropertyBlock _propertyBlock;
+    
     [Header("Controllers and Managers")]
     [Space(5f)]
-    #pragma warning disable 0649
     [SerializeField] private HarpGhostAudioManager audioManager;
     [SerializeField] private HarpGhostNetcodeController netcodeController;
     [SerializeField] private HarpGhostAnimationController animationController;
@@ -83,13 +95,14 @@ public class HarpGhostAIServer : EnemyAI
         if (animationController == null) _mls.LogError("Animation Controller is null");
         
         _roundManager = FindObjectOfType<RoundManager>();
+        _propertyBlock = new MaterialPropertyBlock();
         
         UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
+        InitializeConfigValues();
+        
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsDead, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, false);
-        
-        InitializeConfigValues();
         
         netcodeController.SpawnHarpServerRpc(_ghostId);
         netcodeController.GrabHarpClientRpc(_ghostId);
@@ -149,10 +162,30 @@ public class HarpGhostAIServer : EnemyAI
 
         if (stunNormalizedTimer <= 0.0 && _inStunAnimation && !isEnemyDead)
         {
-            LogDebug("Doing stun recover animation");
             netcodeController.DoAnimationClientRpc(_ghostId, HarpGhostAnimationController.Recover);
             _inStunAnimation = false;
             netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, false);
+        }
+
+        if (_isTransitioningMaterial && !_hasTransitionedMaterial && enableGhostAngryModel)
+        {
+            _transitioningMaterialTimer += Time.deltaTime;
+            float transitionValue = Mathf.Clamp01(_transitioningMaterialTimer / 5f);
+            
+            
+            // rendererGhostBody.GetPropertyBlock(propertyBlock);
+            rendererLeftEye.GetPropertyBlock(_propertyBlock);
+            rendererRightEye.GetPropertyBlock(_propertyBlock);
+            _propertyBlock.SetFloat(AlternativeColourFadeInTimer, transitionValue);
+            // rendererGhostBody.SetPropertyBlock(propertyBlock);
+            rendererLeftEye.SetPropertyBlock(_propertyBlock);
+            rendererRightEye.SetPropertyBlock(_propertyBlock);
+            
+            if (_transitioningMaterialTimer >= 5f)
+            {
+                _isTransitioningMaterial = false;
+                _hasTransitionedMaterial = true;
+            }
         }
         
         if (StartOfRound.Instance.allPlayersDead)
@@ -176,6 +209,7 @@ public class HarpGhostAIServer : EnemyAI
 
                 if (annoyanceLevel >= annoyanceThreshold)
                 {
+                    _isTransitioningMaterial = true;
                     netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Upset, audioManager.upsetSfx.Length);
                     SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
                 }
@@ -233,14 +267,12 @@ public class HarpGhostAIServer : EnemyAI
                 if (roamMap.inProgress) StopSearch(roamMap);
                 
                 PlayerControllerB tempTargetPlayer = CheckLineOfSightForClosestPlayer(115f, 80, 2);
-                LogDebug($"Temp player: {tempTargetPlayer}");
                 if (tempTargetPlayer != null)
                 {
                     SwitchBehaviourStateLocally((int)States.ChasingTargetPlayer);
                     break;
                 }
                 
-                LogDebug($"Is searchforplayers in progress: {searchForPlayers.inProgress}");
                 if (!searchForPlayers.inProgress)
                 {
                     if (_targetPosition != default)
@@ -269,7 +301,6 @@ public class HarpGhostAIServer : EnemyAI
 
                 // Check for player in LOS
                 PlayerControllerB tempTargetPlayer = CheckLineOfSightForClosestPlayer(135f, 80, 3);
-                LogDebug($"Temp target player: {tempTargetPlayer}");
                 if (tempTargetPlayer != null)
                 {
                     SwitchBehaviourStateLocally((int)States.ChasingTargetPlayer);
@@ -314,19 +345,16 @@ public class HarpGhostAIServer : EnemyAI
                 bool ourTargetFound = false;
                 if (playersInLineOfSight is { Length: > 0 })
                 {
-                    LogDebug($"playersinlos: {playersInLineOfSight.Length}");
                     ourTargetFound = targetPlayer != null && playersInLineOfSight.Any(playerControllerB => playerControllerB == targetPlayer && playerControllerB != null);
                 }
                 
                 // If no players were found, switch to state 2
                 else
                 {
-                    LogDebug("No players found, switching to state 2");
                     SwitchBehaviourStateLocally((int)States.InvestigatingTargetPosition);
                     break;
                 }
-
-                LogDebug($"Our target found: {ourTargetFound}");
+                
                 
                 // If our target wasn't found, switch target
                 if (!ourTargetFound)
@@ -335,19 +363,16 @@ public class HarpGhostAIServer : EnemyAI
                     PlayerControllerB playerControllerB = CheckLineOfSightForClosestPlayer(110f, 80, 3);
                     if (playerControllerB == null)
                     {
-                        LogDebug("No players found for second time, switching to state 2");
                         SwitchBehaviourStateLocally((int)States.InvestigatingTargetPosition);
                         break;
                     }
                     
-                    LogDebug("New target found, beginning the chase");
                     BeginChasingPlayer((int)playerControllerB.playerClientId);
                 }
                 
                 _targetPosition = targetPlayer.transform.position;
                 if (targetPlayer == null)
                 {
-                    LogDebug("Target player is null");
                     netcodeController.ChangeTargetPlayerClientRpc(_ghostId, (int)targetPlayer.playerClientId);
                 }
                 
@@ -506,17 +531,16 @@ public class HarpGhostAIServer : EnemyAI
         
         if (enemyHP > 0)
         {
+            _isTransitioningMaterial = true;
             netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Damage, audioManager.damageSfx.Length);
             if (playerWhoHit != null)
             {
-                LogDebug($"Player {playerWhoHit.name} hit ghost");
                 netcodeController.ChangeTargetPlayerClientRpc(_ghostId, (int)playerWhoHit.playerClientId);
                 SwitchBehaviourStateLocally((int)States.ChasingTargetPlayer);
             }
 
             else
             {
-                LogDebug("Unknown player hit ghost");
                 if (currentBehaviourStateIndex == (int)States.PlayingMusic) SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
             }
             
@@ -524,7 +548,6 @@ public class HarpGhostAIServer : EnemyAI
         }
         
         // Ghost is dead
-        LogDebug("Ghost is dead!");
         netcodeController.EnterDeathStateClientRpc(_ghostId);
         KillEnemyClientRpc(false);
         SwitchBehaviourStateLocally((int)States.Dead);
@@ -537,8 +560,8 @@ public class HarpGhostAIServer : EnemyAI
     {
         base.SetEnemyStunned(setToStunned, setToStunTime, setStunnedByPlayer);
         if (!IsServer) return;
-        LogDebug("SetEnemyStunned called");
         
+        _isTransitioningMaterial = true;
         netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Stun, audioManager.stunSfx.Length);
         netcodeController.DropHarpClientRpc(_ghostId, transform.position);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, true);
@@ -547,14 +570,12 @@ public class HarpGhostAIServer : EnemyAI
 
         if (setStunnedByPlayer != null)
         {
-            LogDebug($"Player {setStunnedByPlayer.name} stunned ghost");
             netcodeController.ChangeTargetPlayerClientRpc(_ghostId, (int)setStunnedByPlayer.playerClientId);
             SwitchBehaviourStateLocally((int)States.ChasingTargetPlayer);
         }
 
         else
         {
-            LogDebug("Unknown player stunned ghost");
             if (currentBehaviourStateIndex == (int)States.PlayingMusic) SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
         }
     }
@@ -574,7 +595,6 @@ public class HarpGhostAIServer : EnemyAI
             PlayerControllerB playerControllerB = PlayerMeetsStandardCollisionConditions(player);
             if (playerControllerB == null) continue;
             
-            LogDebug($"Attacking player {playerControllerB.name}");
             netcodeController.ChangeTargetPlayerClientRpc(_ghostId, (int)playerControllerB.playerClientId);
             _timeSinceHittingLocalPlayer = 0f;
             netcodeController.DoAnimationClientRpc(_ghostId, HarpGhostAnimationController.Attack);
@@ -593,7 +613,6 @@ public class HarpGhostAIServer : EnemyAI
         
         PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[targetPlayerObjectId];
         targetPlayer = player;
-        LogDebug($"Target player is now: {player.name}");
     }
 
     private void HandleChangeAgentMaxSpeed(string recievedGhostId, float newMaxSpeed, float newMaxSpeed2)
@@ -669,7 +688,6 @@ public class HarpGhostAIServer : EnemyAI
         if (!IsServer) return;
         if (currentBehaviourStateIndex is (int)States.PlayingMusic or (int)States.Dead || _timeSinceHittingLocalPlayer < 2f || _inStunAnimation) return;
         
-        LogDebug("Collided with player!");
         PlayerControllerB playerControllerB = PlayerMeetsStandardCollisionConditions(other);
         if (playerControllerB == null) return;
 
@@ -678,7 +696,6 @@ public class HarpGhostAIServer : EnemyAI
         
         netcodeController.ChangeTargetPlayerClientRpc(_ghostId, (int)playerControllerB.playerClientId);
         netcodeController.DoAnimationClientRpc(_ghostId, HarpGhostAnimationController.Attack);
-        LogDebug($"Attacking player {playerControllerB.name}");
     }
 
     public override void FinishedCurrentSearchRoutine()
@@ -703,15 +720,15 @@ public class HarpGhostAIServer : EnemyAI
         {
             case (int)States.PlayingMusic:
             {
-                _hearNoiseCooldown = 0.02f;
+                _hearNoiseCooldown = 0.01f;
                 float distanceToNoise = Vector3.Distance(transform.position, noisePosition);
-                float noiseThreshold = 11f * noiseLoudness;
+                float noiseThreshold = 15f * noiseLoudness;
                 LogDebug($"Harp Ghost '{gameObject.name}': Heard Noise | Distance: {distanceToNoise} meters away | Noise loudness: {noiseLoudness}");
 
                 if (Physics.Linecast(transform.position, noisePosition, 256))
                 {
-                    noiseLoudness /= 2f;
-                    noiseThreshold /= 2f;
+                    noiseLoudness /= 1.5f;
+                    noiseThreshold /= 1.5f;
                 }
 
                 if (noiseLoudness < 0.25 || distanceToNoise >= noiseThreshold) return;

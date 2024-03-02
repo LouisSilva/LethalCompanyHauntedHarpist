@@ -67,7 +67,7 @@ public class HarpGhostAudioManager : MonoBehaviour
 
     private void Start()
     {
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Audio Controller");
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost Audio Controller {_ghostId}");
         
         if (creatureSfxSource == null) _mls.LogError("creatureSfxSource is null");
         if (creatureVoiceSource == null) _mls.LogError("creatureVoiceSource is null");
@@ -126,7 +126,6 @@ public class HarpGhostAudioManager : MonoBehaviour
     {
         if (_ghostId != recievedGhostId) return;
         creatureVoiceSource.pitch = Random.Range(0.8f, 1.1f);
-        LogDebug($"Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
         
         AudioClip audioClip = typeIndex switch
         {

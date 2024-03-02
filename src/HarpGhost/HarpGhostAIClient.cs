@@ -58,7 +58,7 @@ public class HarpGhostAIClient : MonoBehaviour
 
     private void Start()
     {
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost AI | Client");
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost AI {_ghostId} | Client");
     }
 
     private void LogDebug(string msg)
@@ -76,14 +76,13 @@ public class HarpGhostAIClient : MonoBehaviour
     private void HandleIncreaseTargetPlayerFearLevel(string recievedGhostId)
     {
         if (_ghostId != recievedGhostId) return;
-        if (GameNetworkManager.Instance.localPlayerController != _targetPlayer) return; LogDebug("localplayercontroller is not target player");
+        if (GameNetworkManager.Instance.localPlayerController != _targetPlayer) return;
         
         if (_targetPlayer == null)
         {
             return;
         }
         
-        LogDebug($"Increasing fear level for {_targetPlayer.name}");
         if (_targetPlayer.HasLineOfSightToPosition(eye.position, 115f, 50, 3f))
         {
             _targetPlayer.JumpToFearLevel(1);

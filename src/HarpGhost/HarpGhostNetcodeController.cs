@@ -32,7 +32,7 @@ public class HarpGhostNetcodeController : NetworkBehaviour
 
     private void Start()
     {
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Netcode Controller");
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost Netcode Controller");
         
         harpGhostAIServer = GetComponent<HarpGhostAIServer>();
         if (harpGhostAIServer == null) _mls.LogError("harpGhostAI is null");
@@ -66,7 +66,6 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     public void DamageTargetPlayerServerRpc(string recievedGhostId, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
     {
-        LogDebug("DamageTargetPlayerServerRpc called");
         DamageTargetPlayerClientRpc(recievedGhostId, damage, causeOfDeath);
     }
 
@@ -79,7 +78,6 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     [ClientRpc]
     public void DamageTargetPlayerClientRpc(string recievedGhostId, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
     {
-        LogDebug("DamageTargetPlayerClientRpc called");
         OnDamageTargetPlayer?.Invoke(recievedGhostId, damage, causeOfDeath);
     }
 
@@ -92,7 +90,6 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     [ClientRpc]
     public void IncreaseTargetPlayerFearLevelClientRpc(string recievedGhostId)
     {
-        LogDebug("IncreaseTargetPlayerFearLevelClientRpc called");
         OnIncreaseTargetPlayerFearLevel?.Invoke(recievedGhostId);
     }
 

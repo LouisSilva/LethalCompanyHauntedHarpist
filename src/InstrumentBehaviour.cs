@@ -204,9 +204,12 @@ public class InstrumentBehaviour : PhysicsProp
     public override void ItemInteractLeftRight(bool right)
     {
         base.ItemInteractLeftRight(right);
-        if (playerHeldBy == null) return;
-        if (!right || (playerAltInstrumentOffset.positionOffset == default && playerInstrumentOffset.rotationOffset == default)) 
+        if (!right || (playerAltInstrumentOffset.positionOffset == default &&
+                       playerInstrumentOffset.rotationOffset == default))
+        {
             return;
+        }
+            
         
         // Set alternative player offsets if it exists
         _isInAltPlayerOffset = !_isInAltPlayerOffset;

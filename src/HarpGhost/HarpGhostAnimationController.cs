@@ -28,7 +28,7 @@ public class HarpGhostAnimationController : MonoBehaviour
 
     private void Start()
     {
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Animation Controller");
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost Animation Controller {_ghostId}");
         
         animator = GetComponent<Animator>();
         if (animator == null) _mls.LogError("Animator is null");
@@ -90,7 +90,6 @@ public class HarpGhostAnimationController : MonoBehaviour
     private void SetBool(string recievedGhostId, int parameter, bool value)
     {
         if (_ghostId != recievedGhostId) return;
-        LogDebug($"SetBoolCalled: {parameter}, {value}");
         animator.SetBool(parameter, value);
     }
 
@@ -102,7 +101,6 @@ public class HarpGhostAnimationController : MonoBehaviour
     private void SetTrigger(string recievedGhostId, int parameter)
     {
         if (_ghostId != recievedGhostId) return;
-        LogDebug($"SetTriggerCalled: {parameter}");
         animator.SetTrigger(parameter);
     }
     
@@ -120,14 +118,12 @@ public class HarpGhostAnimationController : MonoBehaviour
         
         netcodeController.ChangeAgentMaxSpeedServerRpc(_ghostId, 0f, 0f); // Ghost is frozen while doing the second attack anim
         netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Laugh, audioManager.laughSfx.Length);
-        LogDebug("OnAnimationEventAttackShiftComplete() called");
         StartCoroutine(DamageTargetPlayerAfterDelay(0.05f, _attackDamage, CauseOfDeath.Strangulation));
     }
     
     private IEnumerator DamageTargetPlayerAfterDelay(float delay, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown) // Damages the player in time with the correct point in the animation
     {
         yield return new WaitForSeconds(delay);
-        LogDebug("Damaging player in anim controller");
         netcodeController.DamageTargetPlayerServerRpc(_ghostId, damage, causeOfDeath);
     }
 }

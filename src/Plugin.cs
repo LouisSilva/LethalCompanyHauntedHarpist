@@ -10,7 +10,6 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using GameNetcodeStuff;
 using HarmonyLib;
-using LethalCompanyHarpGhost.BagpipesGhost;
 using UnityEngine;
 using LethalLib.Modules;
 using Unity.Collections;
@@ -23,13 +22,14 @@ using NetworkPrefabs = LethalLib.Modules.NetworkPrefabs;
 namespace LethalCompanyHarpGhost
 {
     [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
+    [BepInDependency(LethalLib.Plugin.ModGUID)]
     public class HarpGhostPlugin : BaseUnityPlugin
     {
         public const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
         private const string ModName = "Lethal Company Harp Ghost Mod";
         private const string ModVersion = "1.2.7";
 
-        private readonly Harmony _harmony = new Harmony(ModGuid);
+        private readonly Harmony _harmony = new(ModGuid);
         
         // ReSharper disable once InconsistentNaming
         private static readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource(ModGuid);
@@ -53,6 +53,8 @@ namespace LethalCompanyHarpGhost
         private void Awake()
         {
             if (_instance == null) _instance = this;
+            
+            InitializeNetworkStuff();
 
             Assets.PopulateAssets();
             if (Assets.MainAssetBundle == null)
@@ -69,24 +71,10 @@ namespace LethalCompanyHarpGhost
             
             SetupHarp();
             SetupBagpipes();
-            SetupTuba();
+            //SetupTuba();
             
-            var types = Assembly.GetExecutingAssembly().GetTypes();
-            foreach (Type type in types)
-            {
-                var methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                foreach (MethodInfo method in methods)
-                {
-                    object[] attributes = method.GetCustomAttributes(typeof(RuntimeInitializeOnLoadMethodAttribute), false);
-                    if (attributes.Length > 0)
-                    {
-                        method.Invoke(null, null);
-                    }
-                }
-            }
-            
-            _harmony.PatchAll(typeof(HarpGhostPlugin));
-            _harmony.PatchAll(typeof(NutcrackerPatches));
+            // _harmony.PatchAll(typeof(HarpGhostPlugin));
+            // _harmony.PatchAll(typeof(NutcrackerPatches));
             // _harmony.PatchAll(typeof(EnemyAIPatches));
             _mls.LogInfo($"Plugin {ModName} is loaded!");
         }
@@ -107,12 +95,14 @@ namespace LethalCompanyHarpGhost
             
             NetworkPrefabs.RegisterNetworkPrefab(_harpGhostEnemyType.enemyPrefab);
             Utilities.FixMixerGroups(_harpGhostEnemyType.enemyPrefab);
-            RegisterEnemy(_harpGhostEnemyType, Mathf.Clamp(HarpGhostConfig.Instance.GhostSpawnRate.Value, 0, 999), HarpGhostConfig.Instance.GhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
-            
-            // RegisterEnemy(HarpGhostEnemyType, SpawnType.Default, new Dictionary<LevelTypes, int>{
-            //     [LevelTypes.DineLevel] = Mathf.Clamp(HarpGhostConfig.Instance.GhostSpawnRate.Value, 0, 100), 
-            //     [LevelTypes.RendLevel] = Mathf.Clamp(HarpGhostConfig.Instance.GhostSpawnRate.Value, 0, 100)}, 
-            //     infoNode: harpGhostTerminalNode, infoKeyword:harpGhostTerminalKeyword);
+            RegisterEnemy(
+                _harpGhostEnemyType, 
+                Mathf.Clamp(HarpGhostConfig.Instance.GhostSpawnRate.Value, 0, 999), 
+                HarpGhostConfig.Instance.GhostSpawnLevel.Value, 
+                SpawnType.Default, 
+                harpGhostTerminalNode,
+                harpGhostTerminalKeyword
+                );
         }
         
         private static void SetupBagpipesGhost()
@@ -198,6 +188,23 @@ namespace LethalCompanyHarpGhost
             if (_instrumentAudioClips.ContainsKey(instrumentName) && index < _instrumentAudioClips[instrumentName].Count)
                 return _instrumentAudioClips[instrumentName][index];
             return null;
+        }
+
+        private static void InitializeNetworkStuff()
+        {
+            var types = Assembly.GetExecutingAssembly().GetTypes();
+            foreach (var type in types)
+            {
+                var methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                foreach (var method in methods)
+                {
+                    var attributes = method.GetCustomAttributes(typeof(RuntimeInitializeOnLoadMethodAttribute), false);
+                    if (attributes.Length > 0)
+                    {
+                        method.Invoke(null, null);
+                    }
+                }
+            }
         }
         
         [HarmonyPatch(typeof(Terminal), "Start")]
@@ -396,7 +403,7 @@ namespace LethalCompanyHarpGhost
             if (!IsClient) return;
 
             using FastBufferWriter stream = new(IntSize, Allocator.Temp);
-            MessageManager.SendNamedMessage("ModName_OnRequestConfigSync", 0uL, stream);
+            MessageManager.SendNamedMessage($"{HarpGhostPlugin.ModGuid}_OnRequestConfigSync", 0uL, stream);
         }
 
         private static void OnRequestSync(ulong clientId, FastBufferReader _) {
@@ -413,7 +420,7 @@ namespace LethalCompanyHarpGhost
                 stream.WriteValueSafe(in value, default);
                 stream.WriteBytesSafe(array);
 
-                MessageManager.SendNamedMessage("ModName_OnReceiveConfigSync", clientId, stream);
+                MessageManager.SendNamedMessage($"{HarpGhostPlugin.ModGuid}_OnReceiveConfigSync", clientId, stream);
             } catch(Exception e) {
                 Debug.Log($"Error occurred syncing config with client: {clientId}\n{e}");
             }
@@ -443,14 +450,14 @@ namespace LethalCompanyHarpGhost
         [HarmonyPatch(typeof(PlayerControllerB), "ConnectClientToPlayerObject")]
         public static void InitializeLocalPlayer() {
             if (IsHost) {
-                MessageManager.RegisterNamedMessageHandler("HarpGhost_OnRequestConfigSync", OnRequestSync);
+                MessageManager.RegisterNamedMessageHandler($"{HarpGhostPlugin.ModGuid}_OnRequestConfigSync", OnRequestSync);
                 Synced = true;
 
                 return;
             }
 
             Synced = false;
-            MessageManager.RegisterNamedMessageHandler("HarpGhost_OnReceiveConfigSync", OnReceiveSync);
+            MessageManager.RegisterNamedMessageHandler($"{HarpGhostPlugin.ModGuid}_OnReceiveConfigSync", OnReceiveSync);
             RequestSync();
         }
         
@@ -521,7 +528,7 @@ namespace LethalCompanyHarpGhost
         }
     }
     
-    public static class Assets
+    internal static class Assets
     {
         private const string MainAssetBundleName = "Assets.harpghostbundle";
         public static AssetBundle MainAssetBundle;
