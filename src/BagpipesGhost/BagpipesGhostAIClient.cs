@@ -44,7 +44,7 @@ public class BagpipesGhostAIClient : MonoBehaviour
 
     private void Start()
     {
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Bagpipes Ghost AI | Client");
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Bagpipes Ghost AI {_ghostId} | Client");
     }
 
     private void LogDebug(string msg)

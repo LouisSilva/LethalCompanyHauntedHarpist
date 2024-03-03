@@ -1,10 +1,9 @@
 ﻿using BepInEx.Logging;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
-namespace LethalCompanyHarpGhost.BagpipesGhost;
+namespace LethalCompanyHarpGhost.EnforcerGhost;
 
-public class BagpipesGhostAudioManager : MonoBehaviour
+public class EnforcerGhostAudioManager : MonoBehaviour
 {
     private ManualLogSource _mls;
     private string _ghostId;
@@ -25,7 +24,7 @@ public class BagpipesGhostAudioManager : MonoBehaviour
     [Space(5f)]
     [Header("Controllers")]
     #pragma warning disable 0649
-    [SerializeField] private BagpipesGhostNetcodeController netcodeController;
+    [SerializeField] private EnforcerGhostNetcodeController netcodeController;
     #pragma warning restore 0649
 
     private enum AudioClipTypes
@@ -67,7 +66,7 @@ public class BagpipesGhostAudioManager : MonoBehaviour
 
     private void Start()
     {
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Bagpipe Ghost Audio  {_ghostId}");
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Enforcer Ghost Audio  {_ghostId}");
         
         if (creatureSfxSource == null) _mls.LogError("creatureSfxSource is null");
         if (creatureVoiceSource == null) _mls.LogError("creatureVoiceSource is null");
@@ -139,7 +138,7 @@ public class BagpipesGhostAudioManager : MonoBehaviour
 
         if (audioClip == null)
         {
-            _mls.LogError($"Bagpipes ghost voice audio clip index '{typeIndex}' and randomNum: '{randomNum}' is null");
+            _mls.LogError($"Enforcer ghost voice audio clip index '{typeIndex}' and randomNum: '{randomNum}' is null");
             return;
         }
         

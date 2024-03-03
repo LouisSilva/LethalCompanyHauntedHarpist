@@ -43,8 +43,7 @@ namespace LethalCompanyHarpGhost
 
         private static EnemyType _harpGhostEnemyType;
         private static EnemyType _bagpipesGhostEnemyType;
-
-        public static GameObject NutcrackerPrefab = null;
+        internal static EnemyType EnforcerGhostEnemyType;
 
         public static Item HarpItem;
         public static Item BagpipesItem;
@@ -68,14 +67,13 @@ namespace LethalCompanyHarpGhost
             
             SetupHarpGhost();
             SetupBagpipesGhost();
+            SetupEnforcerGhost();
             
             SetupHarp();
             SetupBagpipes();
             //SetupTuba();
             
-            // _harmony.PatchAll(typeof(HarpGhostPlugin));
-            // _harmony.PatchAll(typeof(NutcrackerPatches));
-            // _harmony.PatchAll(typeof(EnemyAIPatches));
+            _harmony.PatchAll();
             _mls.LogInfo($"Plugin {ModName} is loaded!");
         }
 
@@ -114,6 +112,17 @@ namespace LethalCompanyHarpGhost
             NetworkPrefabs.RegisterNetworkPrefab(_bagpipesGhostEnemyType.enemyPrefab);
             Utilities.FixMixerGroups(_bagpipesGhostEnemyType.enemyPrefab);
             RegisterEnemy(_bagpipesGhostEnemyType, Mathf.Clamp(HarpGhostConfig.Instance.GhostSpawnRate.Value, 0, 999), HarpGhostConfig.Instance.GhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
+        }
+        
+        private static void SetupEnforcerGhost()
+        {
+            EnforcerGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("EnforcerGhost");
+            TerminalNode harpGhostTerminalNode = Assets.MainAssetBundle.LoadAsset<TerminalNode>("HarpGhostTN");
+            TerminalKeyword harpGhostTerminalKeyword = Assets.MainAssetBundle.LoadAsset<TerminalKeyword>("HarpGhostTK");
+            
+            NetworkPrefabs.RegisterNetworkPrefab(EnforcerGhostEnemyType.enemyPrefab);
+            Utilities.FixMixerGroups(EnforcerGhostEnemyType.enemyPrefab);
+            RegisterEnemy(EnforcerGhostEnemyType, 0, HarpGhostConfig.Instance.GhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
         }
 
         private void SetupHarp()
@@ -205,26 +214,6 @@ namespace LethalCompanyHarpGhost
                     }
                 }
             }
-        }
-        
-        [HarmonyPatch(typeof(Terminal), "Start")]
-        [HarmonyPostfix]
-        private static void GetAllSpawnableEnemies(ref SelectableLevel[] ___moonsCatalogueList)
-        {
-            SelectableLevel[] selectableLevels = ___moonsCatalogueList;
-            for (int i = 0; i < selectableLevels.Length; i++)
-            {
-                SelectableLevel level = selectableLevels[i];
-                foreach (SpawnableEnemyWithRarity t in level.Enemies)
-                {
-                    if (t.enemyType.enemyName != "Nutcracker") continue;
-
-                    NutcrackerPrefab = t.enemyType.enemyPrefab;
-                    _mls.LogDebug("Found nutcracker prefab");
-                    return;
-                }
-            }
-            _mls.LogError("Nutcracker prefab not found");
         }
     }
 

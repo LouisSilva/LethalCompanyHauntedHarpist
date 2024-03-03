@@ -1,17 +1,17 @@
 ﻿using BepInEx.Logging;
 using UnityEngine;
 
-namespace LethalCompanyHarpGhost.BagpipesGhost;
+namespace LethalCompanyHarpGhost.EnforcerGhost;
 
-public class BagpipesGhostAnimationController : MonoBehaviour
+public class EnforcerGhostAnimationController : MonoBehaviour
 {
     private ManualLogSource _mls;
     private string _ghostId;
     
     #pragma warning disable 0649
     [SerializeField] private Animator animator;
-    [SerializeField] private BagpipesGhostNetcodeController netcodeController;
-    [SerializeField] private BagpipesGhostAudioManager audioManager;
+    [SerializeField] private EnforcerGhostNetcodeController netcodeController;
+    [SerializeField] private EnforcerGhostAudioManager audioManager;
     #pragma warning restore 0649
     
     public static readonly int IsRunning = Animator.StringToHash("isRunning");
@@ -26,15 +26,15 @@ public class BagpipesGhostAnimationController : MonoBehaviour
 
     private void Start()
     {
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Bagpipe Ghost Animation Controller {_ghostId}");
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Enforcer Ghost Animation Controller {_ghostId}");
         
         animator = GetComponent<Animator>();
         if (animator == null) _mls.LogError("Animator is null");
 
-        netcodeController = GetComponent<BagpipesGhostNetcodeController>();
+        netcodeController = GetComponent<EnforcerGhostNetcodeController>();
         if (netcodeController == null) _mls.LogError("netcodeController is null");
 
-        audioManager = GetComponent<BagpipesGhostAudioManager>();
+        audioManager = GetComponent<EnforcerGhostAudioManager>();
         if (audioManager == null) _mls.LogError("audioManager is null");
     }
 

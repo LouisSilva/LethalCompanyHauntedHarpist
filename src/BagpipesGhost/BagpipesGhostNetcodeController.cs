@@ -27,10 +27,10 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
 
     private void Start()
     {
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Netcode Controller");
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Bagpipe Ghost Netcode Controller");
         
         bagpipesGhostAIServer = GetComponent<BagpipesGhostAIServer>();
-        if (bagpipesGhostAIServer == null) _mls.LogError("tubaGhostAI is null");
+        if (bagpipesGhostAIServer == null) _mls.LogError("bagpipesGhostAI is null");
     }
     
     [ClientRpc]
