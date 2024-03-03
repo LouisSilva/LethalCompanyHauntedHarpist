@@ -84,7 +84,7 @@ public class HarpGhostAnimationController : MonoBehaviour
     private void HandleInitializeConfigValues(string recievedGhostId)
     {
         if (_ghostId != recievedGhostId) return;
-        _attackDamage = HarpGhostConfig.Instance.GhostAttackDamage.Value;
+        _attackDamage = HarpGhostConfig.Instance.HarpGhostAttackDamage.Value;
     }
 
     private void SetBool(string recievedGhostId, int parameter, bool value)

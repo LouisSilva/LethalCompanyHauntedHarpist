@@ -66,11 +66,11 @@ namespace LethalCompanyHarpGhost
             HarpGhostConfig = new HarpGhostConfig(Config);
             
             SetupHarpGhost();
-            SetupBagpipesGhost();
-            SetupEnforcerGhost();
+            //SetupBagpipesGhost();
+            //SetupEnforcerGhost();
             
             SetupHarp();
-            SetupBagpipes();
+            //SetupBagpipes();
             //SetupTuba();
             
             _harmony.PatchAll();
@@ -80,13 +80,13 @@ namespace LethalCompanyHarpGhost
         private static void SetupHarpGhost()
         {
             _harpGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("HarpGhost");
-            _harpGhostEnemyType.canDie = HarpGhostConfig.Instance.GhostIsKillable.Value;
-            _harpGhostEnemyType.PowerLevel = HarpGhostConfig.Instance.GhostPowerLevel.Value;
-            _harpGhostEnemyType.canBeStunned = HarpGhostConfig.Instance.GhostIsStunnable.Value;
-            _harpGhostEnemyType.MaxCount = HarpGhostConfig.Instance.MaxAmountOfGhosts.Value;
-            _harpGhostEnemyType.stunTimeMultiplier = HarpGhostConfig.Instance.GhostStunTimeMultiplier.Value;
-            _harpGhostEnemyType.stunGameDifficultyMultiplier = HarpGhostConfig.Instance.GhostStunGameDifficultyMultiplier.Value;
-            _harpGhostEnemyType.canSeeThroughFog = HarpGhostConfig.Instance.GhostCanSeeThroughFog.Value;
+            _harpGhostEnemyType.canDie = HarpGhostConfig.Instance.HarpGhostIsKillable.Value;
+            _harpGhostEnemyType.PowerLevel = HarpGhostConfig.Instance.HarpGhostPowerLevel.Value;
+            _harpGhostEnemyType.canBeStunned = HarpGhostConfig.Instance.HarpGhostIsStunnable.Value;
+            _harpGhostEnemyType.MaxCount = HarpGhostConfig.Instance.MaxAmountOfHarpGhosts.Value;
+            _harpGhostEnemyType.stunTimeMultiplier = HarpGhostConfig.Instance.HarpGhostStunTimeMultiplier.Value;
+            _harpGhostEnemyType.stunGameDifficultyMultiplier = HarpGhostConfig.Instance.HarpGhostStunGameDifficultyMultiplier.Value;
+            _harpGhostEnemyType.canSeeThroughFog = HarpGhostConfig.Instance.HarpGhostCanSeeThroughFog.Value;
             
             TerminalNode harpGhostTerminalNode = Assets.MainAssetBundle.LoadAsset<TerminalNode>("HarpGhostTN");
             TerminalKeyword harpGhostTerminalKeyword = Assets.MainAssetBundle.LoadAsset<TerminalKeyword>("HarpGhostTK");
@@ -95,8 +95,8 @@ namespace LethalCompanyHarpGhost
             Utilities.FixMixerGroups(_harpGhostEnemyType.enemyPrefab);
             RegisterEnemy(
                 _harpGhostEnemyType, 
-                Mathf.Clamp(HarpGhostConfig.Instance.GhostSpawnRate.Value, 0, 999), 
-                HarpGhostConfig.Instance.GhostSpawnLevel.Value, 
+                Mathf.Clamp(HarpGhostConfig.Instance.HarpGhostSpawnRate.Value, 0, 999), 
+                HarpGhostConfig.Instance.HarpGhostSpawnLevel.Value, 
                 SpawnType.Default, 
                 harpGhostTerminalNode,
                 harpGhostTerminalKeyword
@@ -111,7 +111,7 @@ namespace LethalCompanyHarpGhost
             
             NetworkPrefabs.RegisterNetworkPrefab(_bagpipesGhostEnemyType.enemyPrefab);
             Utilities.FixMixerGroups(_bagpipesGhostEnemyType.enemyPrefab);
-            RegisterEnemy(_bagpipesGhostEnemyType, Mathf.Clamp(HarpGhostConfig.Instance.GhostSpawnRate.Value, 0, 999), HarpGhostConfig.Instance.GhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
+            RegisterEnemy(_bagpipesGhostEnemyType, Mathf.Clamp(HarpGhostConfig.Instance.HarpGhostSpawnRate.Value, 0, 999), HarpGhostConfig.Instance.HarpGhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
         }
         
         private static void SetupEnforcerGhost()
@@ -122,7 +122,7 @@ namespace LethalCompanyHarpGhost
             
             NetworkPrefabs.RegisterNetworkPrefab(EnforcerGhostEnemyType.enemyPrefab);
             Utilities.FixMixerGroups(EnforcerGhostEnemyType.enemyPrefab);
-            RegisterEnemy(EnforcerGhostEnemyType, 0, HarpGhostConfig.Instance.GhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
+            RegisterEnemy(EnforcerGhostEnemyType, 0, HarpGhostConfig.Instance.HarpGhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
         }
 
         private void SetupHarp()
@@ -219,26 +219,26 @@ namespace LethalCompanyHarpGhost
 
     public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
     {
-        public readonly ConfigEntry<int> GhostInitialHealth;
-        public readonly ConfigEntry<int> GhostAttackDamage;
-        public readonly ConfigEntry<float> GhostStunTimeMultiplier;
-        public readonly ConfigEntry<float> GhostMaxDoorSpeedMultiplier;
-        public readonly ConfigEntry<float> GhostStunGameDifficultyMultiplier;
-        public readonly ConfigEntry<bool> GhostIsStunnable;
-        public readonly ConfigEntry<bool> GhostIsKillable;
-        public readonly ConfigEntry<bool> GhostCanSeeThroughFog;
+        public readonly ConfigEntry<int> HarpGhostInitialHealth;
+        public readonly ConfigEntry<int> HarpGhostAttackDamage;
+        public readonly ConfigEntry<float> HarpGhostStunTimeMultiplier;
+        public readonly ConfigEntry<float> HarpGhostMaxDoorSpeedMultiplier;
+        public readonly ConfigEntry<float> HarpGhostStunGameDifficultyMultiplier;
+        public readonly ConfigEntry<bool> HarpGhostIsStunnable;
+        public readonly ConfigEntry<bool> HarpGhostIsKillable;
+        public readonly ConfigEntry<bool> HarpGhostCanSeeThroughFog;
         
-        public readonly ConfigEntry<float> GhostAnnoyanceLevelDecayRate;
-        public readonly ConfigEntry<float> GhostAnnoyanceThreshold;
-        public readonly ConfigEntry<float> GhostMaxSearchRadius;
+        public readonly ConfigEntry<float> HarpGhostAnnoyanceLevelDecayRate;
+        public readonly ConfigEntry<float> HarpGhostAnnoyanceThreshold;
+        public readonly ConfigEntry<float> HarpGhostMaxSearchRadius;
 
-        public readonly ConfigEntry<float> GhostVoiceSfxVolume;
+        public readonly ConfigEntry<float> HarpGhostVoiceSfxVolume;
         public readonly ConfigEntry<float> InstrumentVolume;
 
-        public readonly ConfigEntry<int> GhostSpawnRate;
-        public readonly ConfigEntry<int> MaxAmountOfGhosts;
-        public readonly ConfigEntry<int> GhostPowerLevel;
-        public readonly ConfigEntry<LevelTypes> GhostSpawnLevel;
+        public readonly ConfigEntry<int> HarpGhostSpawnRate;
+        public readonly ConfigEntry<int> MaxAmountOfHarpGhosts;
+        public readonly ConfigEntry<int> HarpGhostPowerLevel;
+        public readonly ConfigEntry<LevelTypes> HarpGhostSpawnLevel;
         
         public readonly ConfigEntry<int> HarpMinValue;
         public readonly ConfigEntry<int> HarpMaxValue;
@@ -247,91 +247,91 @@ namespace LethalCompanyHarpGhost
         {
             InitInstance(this);
             
-            GhostInitialHealth = cfg.Bind(
+            HarpGhostInitialHealth = cfg.Bind(
                 "General",
                 "Health",
                 3,
                 "The health when spawned"
                 );
             
-            GhostIsKillable = cfg.Bind(
+            HarpGhostIsKillable = cfg.Bind(
                 "General",
                 "Ghost Is Killable",
                 true,
                 "Whether a Harp Ghost can be killed or not"
             );
             
-            GhostAttackDamage = cfg.Bind(
+            HarpGhostAttackDamage = cfg.Bind(
                 "General",
                 "Attack Damage",
                 45,
                 "The attack damage of the ghost"
             );
             
-            GhostStunTimeMultiplier = cfg.Bind(
+            HarpGhostStunTimeMultiplier = cfg.Bind(
                 "General",
                 "Stun Time Multiplier",
                 1f,
                 "The multiplier for how long a Harp Ghost can be stunned"
             );
             
-            GhostMaxDoorSpeedMultiplier = cfg.Bind(
+            HarpGhostMaxDoorSpeedMultiplier = cfg.Bind(
                 "General",
                 "Max Door Speed Multiplier",
                 6f,
                 "The MAXIMUM multiplier for how long it takes a Harp Ghost to open a door (maximum because the value changes depending on how angry the ghost is, there is no global value)"
             );
             
-            GhostIsStunnable= cfg.Bind(
+            HarpGhostIsStunnable= cfg.Bind(
                 "General",
                 "Ghost Is Stunnable",
                 true,
                 "Whether a Harp Ghost can be stunned or not"
             );
             
-            GhostStunTimeMultiplier = cfg.Bind(
+            HarpGhostStunTimeMultiplier = cfg.Bind(
                 "General",
                 "Stun Time Multiplier",
                 1f,
                 "The multiplier for how long a Harp Ghost can be stunned"
             );
             
-            GhostStunGameDifficultyMultiplier = cfg.Bind(
+            HarpGhostStunGameDifficultyMultiplier = cfg.Bind(
                 "General",
                 "Stun Game Difficulty Multiplier",
                 0f,
                 "Not sure what this does"
             );
             
-            GhostCanSeeThroughFog = cfg.Bind(
+            HarpGhostCanSeeThroughFog = cfg.Bind(
                 "General",
                 "Ghost Can See Through Fog",
                 false,
                 "Whether a Harp Ghost can see through fog"
             );
             
-            GhostAnnoyanceLevelDecayRate = cfg.Bind(
+            HarpGhostAnnoyanceLevelDecayRate = cfg.Bind(
                 "General",
                 "Annoyance Level Decay Rate",
                 0.3f,
                 "The decay rate of the ghost's annoyance level (due to noises) over time"
             );
             
-            GhostAnnoyanceThreshold = cfg.Bind(
+            HarpGhostAnnoyanceThreshold = cfg.Bind(
                 "General",
                 "Annoyance Level Threshold",
                 8f,
                 "The threshold of how annoyed the ghost has to be (from noise) to get angry"
             );
             
-            GhostMaxSearchRadius = cfg.Bind(
+            HarpGhostMaxSearchRadius = cfg.Bind(
                 "General",
                 "Max Search Radius",
                 100f,
                 "The maximum distance the ghost will go to search for a player"
             );
             
-            GhostVoiceSfxVolume = cfg.Bind(
+            HarpGhostVoiceSfxVolume = cfg.Bind(
                 "Audio",
                 "Voice Sound Effects Volume",
                 0.8f,
@@ -345,28 +345,28 @@ namespace LethalCompanyHarpGhost
                 "The volume of the music played from any instrument. Values are from 0-1"
             );
             
-            GhostSpawnRate = cfg.Bind(
+            HarpGhostSpawnRate = cfg.Bind(
                 "Spawn Values",
                 "Harp Ghost Spawn Value",
                 40,
                 "The weighted spawn rarity of the harp ghost"
             );
             
-            MaxAmountOfGhosts = cfg.Bind(
+            MaxAmountOfHarpGhosts = cfg.Bind(
                 "Spawn Values",
                 "Max Amount of Harp Ghosts",
                 2,
                 "The maximum amount of harp ghosts that can spawn in a game"
             );
             
-            GhostPowerLevel = cfg.Bind(
+            HarpGhostPowerLevel = cfg.Bind(
                 "Spawn Values",
                 "Ghost Power Level",
                 1,
                 "The power level of a Harp Ghost"
             );
             
-            GhostSpawnLevel = cfg.Bind(
+            HarpGhostSpawnLevel = cfg.Bind(
                 "Spawn Values",
                 "Ghost Spawn Level",
                 LevelTypes.DineLevel,

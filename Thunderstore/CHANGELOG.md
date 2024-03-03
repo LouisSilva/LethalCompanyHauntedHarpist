@@ -1,3 +1,7 @@
+## 1.2.7
+* The harp ghost's eyes turn red when angry
+* Reduced lag when the harp spawns (hopefully)
+
 ## 1.2.5
 * Removed DissonanceLagFix as a hard dependency
 

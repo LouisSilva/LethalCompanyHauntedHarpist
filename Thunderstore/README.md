@@ -8,18 +8,21 @@
 
 <details>
   <summary>Spoiler warning</summary>
-<br/>
 <p>The ethereal entity known as the Haunted Harpist is categorized as a spectral presence of uncertain origin. Its form is reminiscent of the classic depiction of a phantom, lacking distinct humanoid features and attire, with an outline that shrouds its core in mystery. Its most notable characteristic is the ancient harp it perpetually clutches, strumming melodies that echo through the desolate halls of the mansion it inhabits.</p>
 
 <p>If disturbed by excessive noise or a deliberate attempt to disrupt its eerie concerto, the Haunted Harpist will abandon its harmonious routine and become a relentless pursuer. For explorers encountering the Haunted Harpist, it is recommended to move with stealth and avoid interrupting its performance.</p>
   
 </details>
 
-## Future Updates
+## Next Big Update
+<details>
+  <summary>Spoiler warning</summary>
+<p>The next ghost to be added to the game is called the Phantom Piper. The Phantom Piper plays the bagpipes.</p>
 
-Aside from bug fixes, the future updates will come in the form of a new ghost, which will have a unique instrument and a unique set of abilities and functions which will make each ghost **very** different.
+<p>Unlike the Haunted Harpist, the Phantom Piper is scared of players and will run away, bagpipes in hand, when provoked.</p>
 
-If you **REALLY** want spoilers, then feel free to look at the github code, however I advise you to wait and see (and also because I change my mind **a lot**)
+<p>Although luckily for the him, he is always escorted by his own Ethereal Enforcers.</p>
+</details>
 
 # Dissonance Lag Fix
 

@@ -111,7 +111,8 @@ public class EnforcerGhostAIServer : EnemyAI
 
         switch (currentBehaviourStateIndex)
         {
-            
+            case 0:
+                break;
         }
     }
 

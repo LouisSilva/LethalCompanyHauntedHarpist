@@ -179,7 +179,7 @@ public class BagpipesGhostAIServer : EnemyAI
                 agentMaxSpeed = 0.5f;
                 agentMaxAcceleration = 50f;
                 movingTowardsTargetPlayer = false;
-                openDoorSpeedMultiplier = Mathf.Clamp(6f, 0, HarpGhostConfig.Instance.GhostMaxDoorSpeedMultiplier.Value);
+                openDoorSpeedMultiplier = Mathf.Clamp(6f, 0, HarpGhostConfig.Instance.HarpGhostMaxDoorSpeedMultiplier.Value);
 
                 break;
             }
@@ -190,7 +190,7 @@ public class BagpipesGhostAIServer : EnemyAI
                 
                 agentMaxSpeed = 10f;
                 agentMaxAcceleration = 100f;
-                openDoorSpeedMultiplier = Mathf.Clamp(2f, 0, HarpGhostConfig.Instance.GhostMaxDoorSpeedMultiplier.Value);
+                openDoorSpeedMultiplier = Mathf.Clamp(2f, 0, HarpGhostConfig.Instance.HarpGhostMaxDoorSpeedMultiplier.Value);
 
                 RetireAllEscorts();
                 break;
