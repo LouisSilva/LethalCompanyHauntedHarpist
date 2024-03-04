@@ -66,11 +66,11 @@ namespace LethalCompanyHarpGhost
             HarpGhostConfig = new HarpGhostConfig(Config);
             
             SetupHarpGhost();
-            //SetupBagpipesGhost();
-            //SetupEnforcerGhost();
+            SetupBagpipesGhost();
+            SetupEnforcerGhost();
             
             SetupHarp();
-            //SetupBagpipes();
+            SetupBagpipes();
             //SetupTuba();
             
             _harmony.PatchAll();
@@ -201,13 +201,13 @@ namespace LethalCompanyHarpGhost
 
         private static void InitializeNetworkStuff()
         {
-            var types = Assembly.GetExecutingAssembly().GetTypes();
-            foreach (var type in types)
+            Type[] types = Assembly.GetExecutingAssembly().GetTypes();
+            foreach (Type type in types)
             {
-                var methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                foreach (var method in methods)
+                MethodInfo[] methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                foreach (MethodInfo method in methods)
                 {
-                    var attributes = method.GetCustomAttributes(typeof(RuntimeInitializeOnLoadMethodAttribute), false);
+                    object[] attributes = method.GetCustomAttributes(typeof(RuntimeInitializeOnLoadMethodAttribute), false);
                     if (attributes.Length > 0)
                     {
                         method.Invoke(null, null);
@@ -221,16 +221,19 @@ namespace LethalCompanyHarpGhost
     {
         public readonly ConfigEntry<int> HarpGhostInitialHealth;
         public readonly ConfigEntry<int> HarpGhostAttackDamage;
+        public readonly ConfigEntry<float> HarpGhostAttackCooldown;
+        public readonly ConfigEntry<float> HarpGhostAttackAreaLength;
         public readonly ConfigEntry<float> HarpGhostStunTimeMultiplier;
-        public readonly ConfigEntry<float> HarpGhostMaxDoorSpeedMultiplier;
+        public readonly ConfigEntry<float> HarpGhostDoorSpeedMultiplierInChaseMode;
+        public readonly ConfigEntry<float> HarpGhostMaxAccelerationInChaseMode;
+        public readonly ConfigEntry<float> HarpGhostMaxSpeedInChaseMode;
         public readonly ConfigEntry<float> HarpGhostStunGameDifficultyMultiplier;
-        public readonly ConfigEntry<bool> HarpGhostIsStunnable;
-        public readonly ConfigEntry<bool> HarpGhostIsKillable;
-        public readonly ConfigEntry<bool> HarpGhostCanSeeThroughFog;
-        
         public readonly ConfigEntry<float> HarpGhostAnnoyanceLevelDecayRate;
         public readonly ConfigEntry<float> HarpGhostAnnoyanceThreshold;
         public readonly ConfigEntry<float> HarpGhostMaxSearchRadius;
+        public readonly ConfigEntry<bool> HarpGhostIsStunnable;
+        public readonly ConfigEntry<bool> HarpGhostIsKillable;
+        public readonly ConfigEntry<bool> HarpGhostCanSeeThroughFog;
 
         public readonly ConfigEntry<float> HarpGhostVoiceSfxVolume;
         public readonly ConfigEntry<float> InstrumentVolume;
@@ -239,6 +242,8 @@ namespace LethalCompanyHarpGhost
         public readonly ConfigEntry<int> MaxAmountOfHarpGhosts;
         public readonly ConfigEntry<int> HarpGhostPowerLevel;
         public readonly ConfigEntry<LevelTypes> HarpGhostSpawnLevel;
+
+        public readonly ConfigEntry<bool> HarpGhostAngryEyesEnabled;
         
         public readonly ConfigEntry<int> HarpMinValue;
         public readonly ConfigEntry<int> HarpMaxValue;
@@ -256,9 +261,23 @@ namespace LethalCompanyHarpGhost
             
             HarpGhostIsKillable = cfg.Bind(
                 "General",
-                "Ghost Is Killable",
+                "Killable",
                 true,
                 "Whether a Harp Ghost can be killed or not"
+            );
+            
+            HarpGhostIsStunnable= cfg.Bind(
+                "General",
+                "Stunnable",
+                true,
+                "Whether a Harp Ghost can be stunned or not"
+            );
+            
+            HarpGhostCanSeeThroughFog = cfg.Bind(
+                "General",
+                "Can See Through Fog",
+                false,
+                "Whether a Harp Ghost can see through fog"
             );
             
             HarpGhostAttackDamage = cfg.Bind(
@@ -268,6 +287,34 @@ namespace LethalCompanyHarpGhost
                 "The attack damage of the ghost"
             );
             
+            HarpGhostAttackCooldown = cfg.Bind(
+                "General",
+                "Attack Cooldown",
+                2f,
+                "The max speed of the Harp Ghost in chase mode"
+            );
+            
+            HarpGhostAttackAreaLength = cfg.Bind(
+                "General",
+                "Attack Area Length",
+                0.91f,
+                "The length of the Harp Ghost's attack area in the Z dimension (in in-game meters)"
+            );
+            
+            HarpGhostMaxSpeedInChaseMode = cfg.Bind(
+                "General",
+                "Max Speed In Chase Mode",
+                8f,
+                "The max speed of the Harp Ghost in chase mode"
+            );
+            
+            HarpGhostMaxAccelerationInChaseMode = cfg.Bind(
+                "General",
+                "Max Acceleration In Chase Mode",
+                50f,
+                "The max acceleration of the Harp Ghost in chase mode"
+            );
+            
             HarpGhostStunTimeMultiplier = cfg.Bind(
                 "General",
                 "Stun Time Multiplier",
@@ -275,18 +322,11 @@ namespace LethalCompanyHarpGhost
                 "The multiplier for how long a Harp Ghost can be stunned"
             );
             
-            HarpGhostMaxDoorSpeedMultiplier = cfg.Bind(
+            HarpGhostDoorSpeedMultiplierInChaseMode = cfg.Bind(
                 "General",
                 "Max Door Speed Multiplier",
                 6f,
                 "The MAXIMUM multiplier for how long it takes a Harp Ghost to open a door (maximum because the value changes depending on how angry the ghost is, there is no global value)"
-            );
-            
-            HarpGhostIsStunnable= cfg.Bind(
-                "General",
-                "Ghost Is Stunnable",
-                true,
-                "Whether a Harp Ghost can be stunned or not"
             );
             
             HarpGhostStunTimeMultiplier = cfg.Bind(
@@ -301,13 +341,6 @@ namespace LethalCompanyHarpGhost
                 "Stun Game Difficulty Multiplier",
                 0f,
                 "Not sure what this does"
-            );
-            
-            HarpGhostCanSeeThroughFog = cfg.Bind(
-                "General",
-                "Ghost Can See Through Fog",
-                false,
-                "Whether a Harp Ghost can see through fog"
             );
             
             HarpGhostAnnoyanceLevelDecayRate = cfg.Bind(
@@ -347,7 +380,7 @@ namespace LethalCompanyHarpGhost
             
             HarpGhostSpawnRate = cfg.Bind(
                 "Spawn Values",
-                "Harp Ghost Spawn Value",
+                "Spawn Value",
                 40,
                 "The weighted spawn rarity of the harp ghost"
             );
@@ -361,14 +394,14 @@ namespace LethalCompanyHarpGhost
             
             HarpGhostPowerLevel = cfg.Bind(
                 "Spawn Values",
-                "Ghost Power Level",
+                "Power Level",
                 1,
                 "The power level of a Harp Ghost"
             );
             
             HarpGhostSpawnLevel = cfg.Bind(
                 "Spawn Values",
-                "Ghost Spawn Level",
+                "Spawn Level",
                 LevelTypes.DineLevel,
                 "The LevelTypes that the ghost spawns in"
             );
@@ -385,6 +418,13 @@ namespace LethalCompanyHarpGhost
                 "Harp Maximum value",
                 300,
                 "The maximum value that the harp can be set to"
+            );
+
+            HarpGhostAngryEyesEnabled = cfg.Bind(
+                "Cosmetics",
+                "Angry Eyes Enabled",
+                true,
+                "Whether the Harp Ghost's eyes turn red when angry"
             );
         }
 

@@ -42,7 +42,6 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     [ClientRpc]
     public void ChangeAnimationParameterBoolClientRpc(string recievedGhostId, int animationId, bool value)
     {
-        LogDebug($"{animationId}, {value}");
         OnChangeAnimationParameterBool?.Invoke(recievedGhostId, animationId, value);
     }
 
@@ -85,7 +84,7 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
             Quaternion.identity,
             bagpipesGhostAIServer.RoundManagerInstance.spawnedScrapContainer);
         
-        AudioSource bagpipesAudioSource = bagpipesObject.GetComponent<AudioSource>();
+        AudioSource bagpipesAudioSource = bagpipesObject.GetComponentInChildren<AudioSource>();
         if (bagpipesAudioSource == null) _mls.LogError("bagpipesAudioSource is null");
 
         InstrumentBehaviour bagpipesBehaviour = bagpipesObject.GetComponent<InstrumentBehaviour>();
@@ -129,7 +128,7 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     private void LogDebug(string msg)
     {
         #if DEBUG
-        _mls.LogInfo(msg);
+        _mls?.LogInfo(msg);
         #endif
     }
 }

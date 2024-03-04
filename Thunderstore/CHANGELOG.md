@@ -1,3 +1,13 @@
+## 1.2.8
+* Added the following configs:
+    * Harp Ghost's max speed in chase mode
+    * Harp Ghost's max acceleration in chase mode
+    * Harp Ghost's enable red eyes when angry (is true by default)
+    * Harp Ghost's attack cooldown
+    * Harp Ghost's attack area length (how far the attack area reaches out pretty much)
+  
+* Changed the max open door speed config to "open door speed multiplier when in chase mode" because the previous one was a bit useless and didnt really make sense
+
 ## 1.2.7
 * The harp ghost's eyes turn red when angry
 * Reduced lag when the harp spawns (hopefully)

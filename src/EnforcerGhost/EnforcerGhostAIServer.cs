@@ -44,11 +44,11 @@ public class EnforcerGhostAIServer : EnemyAI
     {
         base.Start();
         if (!IsServer) return;
-
-        _ghostId = Guid.NewGuid().ToString();
-        netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
         
         _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Enforcer Ghost AI {_ghostId} | Server");
+        
+        netcodeController = GetComponent<EnforcerGhostNetcodeController>();
+        if (netcodeController == null) _mls.LogError("Netcode Controller is null");
         
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) _mls.LogError("NavMeshAgent component not found on " + name);
@@ -57,13 +57,13 @@ public class EnforcerGhostAIServer : EnemyAI
         audioManager = GetComponent<EnforcerGhostAudioManager>();
         if (audioManager == null) _mls.LogError("Audio Manger is null");
 
-        netcodeController = GetComponent<EnforcerGhostNetcodeController>();
-        if (netcodeController == null) _mls.LogError("Netcode Controller is null");
-
         animationController = GetComponent<EnforcerGhostAnimationController>();
         if (animationController == null) _mls.LogError("Animation Controller is null");
         
         _roundManager = FindObjectOfType<RoundManager>();
+        
+        _ghostId = Guid.NewGuid().ToString();
+        netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
         
         UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, EnforcerGhostAnimationController.IsDead, false);

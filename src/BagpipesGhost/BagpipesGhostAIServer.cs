@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using BepInEx.Logging;
 using LethalCompanyHarpGhost.EnforcerGhost;
 using Unity.Netcode;
@@ -55,10 +56,10 @@ public class BagpipesGhostAIServer : EnemyAI
         base.Start();
         if (!IsServer) return;
         
-        _ghostId = Guid.NewGuid().ToString();
-        netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
-        
         _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Bagpipes Ghost AI {_ghostId} | Server");
+        
+        netcodeController = GetComponent<BagpipesGhostNetcodeController>();
+        if (netcodeController == null) _mls.LogError("Netcode Controller is null");
         
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) _mls.LogError("NavMeshAgent component not found on " + name);
@@ -67,27 +68,38 @@ public class BagpipesGhostAIServer : EnemyAI
         audioManager = GetComponent<BagpipesGhostAudioManager>();
         if (audioManager == null) _mls.LogError("Audio Manger is null");
 
-        netcodeController = GetComponent<BagpipesGhostNetcodeController>();
-        if (netcodeController == null) _mls.LogError("Netcode Controller is null");
-
         animationController = GetComponent<BagpipesGhostAnimationController>();
         if (animationController == null) _mls.LogError("Animation Controller is null");
         
         _roundManager = FindObjectOfType<RoundManager>();
         
+        _ghostId = Guid.NewGuid().ToString();
+        netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
+        
         UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
-        // netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsDead, false);
-        // netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsStunned, false);
-        // netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsRunning, false);
+        InitializeConfigValues();
         
-        // netcodeController.SpawnBagpipesServerRpc(_ghostId);
-        // netcodeController.GrabBagpipesClientRpc(_ghostId);
-        // StartCoroutine(DelayedBagpipesMusicActivate());
+        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsDead, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsStunned, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsRunning, false);
         
-        if (HarpGhostPlugin.EnforcerGhostEnemyType.enemyPrefab == null) _mls.LogError("Enforcer ghost prefab is null");
-        else StartCoroutine(SpawnEscorts());
+        netcodeController.SpawnBagpipesServerRpc(_ghostId);
+        netcodeController.GrabBagpipesClientRpc(_ghostId);
+
+        if (HarpGhostPlugin.EnforcerGhostEnemyType.enemyPrefab == null)
+        {
+            _mls.LogError("Enforcer ghost prefab is null, making bagpipe ghost run away from players because he is not escorted");
+            SwitchBehaviourStateLocally((int)States.RunningAway);
+        }
+        else StartCoroutine(SpawnEscorts(() => { netcodeController.PlayBagpipesMusicClientRpc(_ghostId); }));
         
         _mls.LogInfo("Bagpipes Ghost Spawned");
+    }
+
+    private void InitializeConfigValues()
+    {
+        if (!IsServer) return;
+        netcodeController.InitializeConfigValuesClientRpc(_ghostId);
     }
 
     private void FixedUpdate()
@@ -179,7 +191,7 @@ public class BagpipesGhostAIServer : EnemyAI
                 agentMaxSpeed = 0.5f;
                 agentMaxAcceleration = 50f;
                 movingTowardsTargetPlayer = false;
-                openDoorSpeedMultiplier = Mathf.Clamp(6f, 0, HarpGhostConfig.Instance.HarpGhostMaxDoorSpeedMultiplier.Value);
+                openDoorSpeedMultiplier = 6;
 
                 break;
             }
@@ -190,7 +202,7 @@ public class BagpipesGhostAIServer : EnemyAI
                 
                 agentMaxSpeed = 10f;
                 agentMaxAcceleration = 100f;
-                openDoorSpeedMultiplier = Mathf.Clamp(2f, 0, HarpGhostConfig.Instance.HarpGhostMaxDoorSpeedMultiplier.Value);
+                openDoorSpeedMultiplier = 6;
 
                 RetireAllEscorts();
                 break;
@@ -210,7 +222,7 @@ public class BagpipesGhostAIServer : EnemyAI
 
     private void UpdateAgentFormation()
     {
-        float currentBaseLength = _isNarrowPath ? 0 : EscortHorizontalBaseLength;
+        _isNarrowPath = CheckForNarrowPassages();
         for (int i = 0; i < _escorts.Count; i++)
         {
             // Check if escort is dead and if so remove them from the escort list
@@ -220,23 +232,34 @@ public class BagpipesGhostAIServer : EnemyAI
                 continue;
             }
             
-            int pathPointIndex = Mathf.Max(0, _escortAgentPathPoints.Count - 1 - i * 2);
-            Vector3 targetPosition =
-                _escortAgentPathPoints[Mathf.Clamp(pathPointIndex, 0, _escortAgentPathPoints.Count - 1)];
-
-            float lateralOffset = ((i % 2) * 2 - 1) * currentBaseLength / 2;
-            int row = i / 2;
-            Vector3 formationOffset = transform.right * lateralOffset - transform.forward * (EscortRowSpacing * row);
-            
             NavMeshAgent curEscortNavMeshAgent = _escorts[i].agent;
-            if (curEscortNavMeshAgent != null)
+            if (curEscortNavMeshAgent == null) continue;
+
+            Vector3 targetPosition;
+            Vector3 formationOffset;
+            if (!_isNarrowPath && _escorts.Count > 1)
             {
-                curEscortNavMeshAgent.speed = CalculateEscortSpeed(
-                    curEscortNavMeshAgent.transform.position,
-                    targetPosition + formationOffset
-                    );
-                curEscortNavMeshAgent.SetDestination(targetPosition + formationOffset);
-            } else LogDebug("Current escort nav mesh agent is null");
+                // Triangle formation
+                float lateralOffset = ((i % 2) * 2 - 1) * EscortHorizontalBaseLength / 2;
+                int row = i / 2;
+                formationOffset = transform.right * lateralOffset - transform.forward * (EscortRowSpacing * row);
+                int pathPointIndex = Mathf.Max(0, _escortAgentPathPoints.Count - 1 - row * 2);
+                targetPosition = _escortAgentPathPoints[Mathf.Clamp(pathPointIndex, 0, _escortAgentPathPoints.Count - 1)];
+            }
+            else
+            {
+                int pathPointIndex = Mathf.Max(0, _escortAgentPathPoints.Count - 1 - i);
+                targetPosition =
+                    _escortAgentPathPoints[Mathf.Clamp(pathPointIndex, 0, _escortAgentPathPoints.Count - 1)];
+                formationOffset = -transform.forward * (EscortRowSpacing * (i + 1));
+            }
+            
+            curEscortNavMeshAgent.speed = CalculateEscortSpeed
+            (
+                curEscortNavMeshAgent.transform.position,
+                targetPosition + formationOffset
+            );
+            curEscortNavMeshAgent.SetDestination(targetPosition + formationOffset);
         }
     }
 
@@ -252,8 +275,9 @@ public class BagpipesGhostAIServer : EnemyAI
 
     private bool CheckForNarrowPassages()
     {
-        bool leftBlocked = Physics.Raycast(transform.position, -transform.right, out RaycastHit _, EscortHorizontalBaseLength / 2);
-        bool rightBlocked = Physics.Raycast(transform.position, transform.right, out RaycastHit _, EscortHorizontalBaseLength / 2);
+        float sideLength = EscortHorizontalBaseLength * Mathf.Sqrt(2);
+        bool leftBlocked = Physics.Raycast(transform.position, -transform.right, out RaycastHit _, sideLength / 2);
+        bool rightBlocked = Physics.Raycast(transform.position, transform.right, out RaycastHit _, sideLength / 2);
         return leftBlocked || rightBlocked;
     }
 
@@ -302,14 +326,8 @@ public class BagpipesGhostAIServer : EnemyAI
         float accelerationAdjustment = Time.deltaTime;
         agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
     }
-    
-    private IEnumerator DelayedBagpipesMusicActivate() // Needed to mitigate race conditions
-    {
-        yield return new WaitForSeconds(0.5f);
-        netcodeController.PlayBagpipesMusicClientRpc(_ghostId);
-    }
 
-    private IEnumerator SpawnEscorts()
+    private IEnumerator SpawnEscorts(Action callback = null)
     {
         yield return new WaitForSeconds(0.5f); // wait a little bit to allow the ghost to move a bit away from the vent where it spawned at (away from the wall)
         
@@ -317,10 +335,15 @@ public class BagpipesGhostAIServer : EnemyAI
         for (int i = 0; i < numberOfEscorts; i++)
         {
             GameObject escort = Instantiate(HarpGhostPlugin.EnforcerGhostEnemyType.enemyPrefab, transform.position, Quaternion.identity);
-            AddEscort(escort.GetComponentInChildren<EnforcerGhostAIServer>());
             escort.GetComponentInChildren<NetworkObject>().Spawn(destroyWithScene: true);
+            AddEscort(escort.GetComponent<EnforcerGhostAIServer>());
             yield return new WaitForSeconds(1f);
         }
+
+        // This callback can technically be used for anything, but its only use is going to be for playing music after the escorts are spawned
+        if (callback == null) yield break;
+        yield return new WaitForSeconds(0.5f);
+        callback.Invoke();
     }
     
     private void LogDebug(string logMessage)
@@ -334,32 +357,3 @@ public class BagpipesGhostAIServer : EnemyAI
     public RoundManager RoundManagerInstance => RoundManager.Instance;
     public InstrumentBehaviour HeldBagpipe { get; set; }
 }
-
-// A registry to keep track of all the escorts mapped to their associated bagpipe ghost
-// public static class EscortRegistry
-// {
-//     private static Dictionary<EnforcerGhostAIServer, BagpipesGhostAIServer> _escortToGhostDict = [];
-//
-//     public static void AddEscort(EnforcerGhostAIServer escort, BagpipesGhostAIServer bagpipeGhost)
-//     {
-//         if (escort != null && bagpipeGhost != null) _escortToGhostDict[escort] = bagpipeGhost;
-//     }
-//
-//     public static void RemoveEscort(EnforcerGhostAIServer escort)
-//     {
-//         _escortToGhostDict.Remove(escort);
-//     }
-//
-//     public static BagpipesGhostAIServer GetGhostForEscort(EnforcerGhostAIServer escort)
-//     {
-//         return _escortToGhostDict.TryGetValue(escort, out BagpipesGhostAIServer bagpipeGhost) ? bagpipeGhost : null;
-//     }
-//
-//     public static void RemoveAllEscorts()
-//     {
-//         foreach (KeyValuePair<EnforcerGhostAIServer, BagpipesGhostAIServer> t in _escortToGhostDict)
-//         {
-//             RemoveEscort(t.Key);
-//         }
-//     }
-// }
