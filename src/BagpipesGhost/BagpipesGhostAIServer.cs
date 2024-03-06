@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using BepInEx.Logging;
 using LethalCompanyHarpGhost.EnforcerGhost;
 using Unity.Netcode;
@@ -20,7 +19,12 @@ public class BagpipesGhostAIServer : EnemyAI
     [Header("AI and Pathfinding")]
     [Space(5f)]
     public AISearchRoutine roamMap;
+    
+    private bool _agentIsMoving = false;
+    private bool _isIdleTimerRunning = false;
+    
     private float _agentCurrentSpeed;
+    private float _idleTimer;
     private const float EscortHorizontalBaseLength = 5f;
     private const float EscortRowSpacing = 3f;
     [SerializeField] private float agentMaxAcceleration = 200f;
@@ -42,6 +46,7 @@ public class BagpipesGhostAIServer : EnemyAI
     [SerializeField] private BagpipesGhostAudioManager audioManager;
     [SerializeField] private BagpipesGhostNetcodeController netcodeController;
     [SerializeField] private BagpipesGhostAnimationController animationController;
+    private LineRenderer _lineRenderer;
     #pragma warning restore 0649
 
     private enum States
@@ -78,6 +83,14 @@ public class BagpipesGhostAIServer : EnemyAI
         
         UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
         InitializeConfigValues();
+
+        GameObject debugCircle = new GameObject("Circle");
+        debugCircle.transform.SetParent(transform, false);
+        _lineRenderer = debugCircle.AddComponent<LineRenderer>();
+        _lineRenderer.widthMultiplier = 0.1f;
+        _lineRenderer.positionCount = 51;
+        _lineRenderer.useWorldSpace = true;
+        _lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
         
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsDead, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsStunned, false);
@@ -116,6 +129,8 @@ public class BagpipesGhostAIServer : EnemyAI
     {
         base.Update();
         if (!IsServer) return;
+
+        if (_isIdleTimerRunning) _idleTimer += Time.deltaTime;
         
         CalculateAgentSpeed();
         
@@ -136,10 +151,6 @@ public class BagpipesGhostAIServer : EnemyAI
         {
             case (int)States.PlayingMusicWhileEscorted:
             {
-                _isNarrowPath = CheckForNarrowPassages();
-                UpdateEscortAgentPathPoints();
-                UpdateAgentFormation();
-
                 break;
             }
 
@@ -167,7 +178,35 @@ public class BagpipesGhostAIServer : EnemyAI
         {
             case (int)States.PlayingMusicWhileEscorted:
             {
+                _agentIsMoving = (transform.position - _agentLastPosition).magnitude > 0.1f;
                 if (!roamMap.inProgress) StartSearch(transform.position, roamMap);
+
+                // Starts the idle timer if the ghost isnt moving
+                if (!_agentIsMoving)
+                {
+                    switch (_isIdleTimerRunning)
+                    {
+                        case true when _idleTimer > 5f:
+                            LogDebug("Restarting search because ghost not moving");
+                            StopSearch(roamMap);
+                            StartSearch(transform.position, roamMap);
+                            _isIdleTimerRunning = false;
+                            _idleTimer = 0f;
+                            break;
+                        
+                        case false:
+                            _isIdleTimerRunning = true;
+                            _idleTimer = 0f;
+                            break;
+                    }
+                }
+                
+                _isNarrowPath = CheckForNarrowPassages();
+                UpdateEscortAgentPathPoints();
+                UpdateAgentFormation();
+                
+                DrawDebugCircleAtTargetNode();
+                
                 break;
             }
 
@@ -192,6 +231,8 @@ public class BagpipesGhostAIServer : EnemyAI
                 agentMaxAcceleration = 50f;
                 movingTowardsTargetPlayer = false;
                 openDoorSpeedMultiplier = 6;
+                _idleTimer = 0;
+                _isIdleTimerRunning = false;
 
                 break;
             }
@@ -203,7 +244,29 @@ public class BagpipesGhostAIServer : EnemyAI
                 agentMaxSpeed = 10f;
                 agentMaxAcceleration = 100f;
                 openDoorSpeedMultiplier = 6;
+                movingTowardsTargetPlayer = false;
+                _idleTimer = 0;
+                _isIdleTimerRunning = false;
 
+                RetireAllEscorts();
+                break;
+            }
+
+            case (int)States.Dead:
+            {
+                LogDebug($"Switched to behaviour state {(int)States.Dead}!");
+                
+                agentMaxSpeed = 0f;
+                agentMaxAcceleration = 0f;
+                movingTowardsTargetPlayer = false;
+                agent.speed = 0;
+                agent.enabled = false;
+                isEnemyDead = true;
+                _idleTimer = 0f;
+                _isIdleTimerRunning = false;
+                
+                netcodeController.DropBagpipesClientRpc(_ghostId, transform.position);
+                netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsDead, true);
                 RetireAllEscorts();
                 break;
             }
@@ -226,40 +289,34 @@ public class BagpipesGhostAIServer : EnemyAI
         for (int i = 0; i < _escorts.Count; i++)
         {
             // Check if escort is dead and if so remove them from the escort list
-            if (_escorts[i].isEnemyDead)
+            if (_escorts[i].isEnemyDead || _escorts[i] == null)
             {
                 _escorts.RemoveAt(i);
                 continue;
             }
             
+            // Check if the bagpipe ghost is moving, if not then dont bother making the escorts do anything
+            if (!_agentIsMoving && (transform.position - _escorts[i].transform.position).magnitude < EscortRowSpacing) continue;
+            
             NavMeshAgent curEscortNavMeshAgent = _escorts[i].agent;
             if (curEscortNavMeshAgent == null) continue;
 
             Vector3 targetPosition;
-            Vector3 formationOffset;
-            if (!_isNarrowPath && _escorts.Count > 1)
+            if (!_isNarrowPath && _escorts.Count > 1) // triangle formation
             {
-                // Triangle formation
                 float lateralOffset = ((i % 2) * 2 - 1) * EscortHorizontalBaseLength / 2;
                 int row = i / 2;
-                formationOffset = transform.right * lateralOffset - transform.forward * (EscortRowSpacing * row);
-                int pathPointIndex = Mathf.Max(0, _escortAgentPathPoints.Count - 1 - row * 2);
-                targetPosition = _escortAgentPathPoints[Mathf.Clamp(pathPointIndex, 0, _escortAgentPathPoints.Count - 1)];
+                Vector3 directionOffset = transform.right * lateralOffset - transform.forward * (EscortRowSpacing * row);
+                targetPosition = transform.position + directionOffset;
             }
-            else
+            else // single file line
             {
-                int pathPointIndex = Mathf.Max(0, _escortAgentPathPoints.Count - 1 - i);
-                targetPosition =
-                    _escortAgentPathPoints[Mathf.Clamp(pathPointIndex, 0, _escortAgentPathPoints.Count - 1)];
-                formationOffset = -transform.forward * (EscortRowSpacing * (i + 1));
+                int targetIndex = Mathf.Max(0, _escortAgentPathPoints.Count - 1 - i);
+                targetPosition = _escortAgentPathPoints[Mathf.Clamp(targetIndex, 0, _escortAgentPathPoints.Count - 1)];
             }
             
-            curEscortNavMeshAgent.speed = CalculateEscortSpeed
-            (
-                curEscortNavMeshAgent.transform.position,
-                targetPosition + formationOffset
-            );
-            curEscortNavMeshAgent.SetDestination(targetPosition + formationOffset);
+            if (_agentIsMoving || (curEscortNavMeshAgent.destination - targetPosition).magnitude > 0.1f)
+                curEscortNavMeshAgent.SetDestination(targetPosition);
         }
     }
 
@@ -336,7 +393,10 @@ public class BagpipesGhostAIServer : EnemyAI
         {
             GameObject escort = Instantiate(HarpGhostPlugin.EnforcerGhostEnemyType.enemyPrefab, transform.position, Quaternion.identity);
             escort.GetComponentInChildren<NetworkObject>().Spawn(destroyWithScene: true);
-            AddEscort(escort.GetComponent<EnforcerGhostAIServer>());
+
+            EnforcerGhostAIServer escortScript = escort.GetComponent<EnforcerGhostAIServer>();
+            escortScript.agent.avoidancePriority = Mathf.Min(i + 1, 99); // Give the escort agents a different, descending priority
+            AddEscort(escortScript);
             yield return new WaitForSeconds(1f);
         }
 
@@ -344,6 +404,25 @@ public class BagpipesGhostAIServer : EnemyAI
         if (callback == null) yield break;
         yield return new WaitForSeconds(0.5f);
         callback.Invoke();
+    }
+
+    private void DrawDebugCircleAtTargetNode()
+    {
+        if (!_lineRenderer || !roamMap.inProgress || roamMap.currentTargetNode == null) return;
+
+        Vector3 centerPosition = roamMap.currentTargetNode.transform.position;
+        float angle = 20f;
+        const float circleRadius = 0.5f;
+        
+        for (int i = 0; i <= 50; i++)
+        {
+            float x = centerPosition.x + Mathf.Sin(Mathf.Deg2Rad * angle) * circleRadius;
+            float z = centerPosition.z + Mathf.Cos(Mathf.Deg2Rad * angle) * circleRadius;
+            float y = centerPosition.y;
+            
+            _lineRenderer.SetPosition(i, new Vector3(x, y, z));
+            angle += 360f / 50;
+        }
     }
     
     private void LogDebug(string logMessage)

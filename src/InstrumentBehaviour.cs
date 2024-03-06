@@ -8,6 +8,8 @@ using Random = UnityEngine.Random;
 
 namespace LethalCompanyHarpGhost;
 
+// Add a damage and speed boost for when the bagpipes are being played by a player
+
 public class InstrumentBehaviour : PhysicsProp
 {
     private ManualLogSource _mls;
@@ -60,6 +62,7 @@ public class InstrumentBehaviour : PhysicsProp
                 enemyInstrumentOffset = new ItemOffset(new Vector3(0f, -0.6f, 0.6f));
                 break;
             case "Bagpipes":
+                enemyInstrumentOffset = new ItemOffset(new Vector3(0.5f, 0.45f, 0.7f), new Vector3(0, 90, 0));
                 break;
             case "Tuba":
                 playerInstrumentOffset = new ItemOffset(new Vector3(-0.4f, 0.2f, -0.1f), new Vector3(-70, 115, -200));
@@ -209,7 +212,6 @@ public class InstrumentBehaviour : PhysicsProp
         {
             return;
         }
-            
         
         // Set alternative player offsets if it exists
         _isInAltPlayerOffset = !_isInAltPlayerOffset;

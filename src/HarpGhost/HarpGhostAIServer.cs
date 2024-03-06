@@ -14,8 +14,6 @@ public class HarpGhostAIServer : EnemyAI
 {
     private ManualLogSource _mls;
     private string _ghostId;
-    
-    private static readonly int AlternativeColourFadeInTimer = Shader.PropertyToID("_AlternativeColourFadeInTimer");
 
     [Header("AI and Pathfinding")]
     [Space(5f)]
@@ -32,12 +30,11 @@ public class HarpGhostAIServer : EnemyAI
     private float _agentCurrentSpeed = 0f;
     private float _timeSinceHittingLocalPlayer = 0f;
     private float _hearNoiseCooldown = 0f;
-    private float _transitioningMaterialTimer= 0f;
     
     private bool _hasBegunInvestigating = false;
     private bool _inStunAnimation = false;
-    private bool _isTransitioningMaterial = false;
     private bool _hasTransitionedMaterial = false;
+    private bool _canHearPlayers = true;
     
     private Vector3 _targetPosition = default;
     private Vector3 _agentLastPosition = default;
@@ -49,13 +46,6 @@ public class HarpGhostAIServer : EnemyAI
     public BoxCollider attackArea;
     
     #pragma warning disable 0649
-    [Header("Materials and Renderers")]
-    [Space(3f)]
-    [SerializeField] private bool enableGhostAngryModel = true;
-    [SerializeField] private Renderer rendererLeftEye;
-    [SerializeField] private Renderer rendererRightEye;
-    [SerializeField] private MaterialPropertyBlock _propertyBlock;
-    
     [Header("Controllers and Managers")]
     [Space(5f)]
     [SerializeField] private HarpGhostAudioManager audioManager;
@@ -93,7 +83,6 @@ public class HarpGhostAIServer : EnemyAI
         if (animationController == null) _mls.LogError("Animation Controller is null");
         
         _roundManager = FindObjectOfType<RoundManager>();
-        _propertyBlock = new MaterialPropertyBlock();
         
         _ghostId = Guid.NewGuid().ToString();
         netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
@@ -138,8 +127,8 @@ public class HarpGhostAIServer : EnemyAI
         annoyanceDecayRate = HarpGhostConfig.Instance.HarpGhostAnnoyanceLevelDecayRate.Value;
         annoyanceThreshold = HarpGhostConfig.Instance.HarpGhostAnnoyanceThreshold.Value;
         maxSearchRadius = HarpGhostConfig.Instance.HarpGhostMaxSearchRadius.Value;
-        enableGhostAngryModel = HarpGhostConfig.Default.HarpGhostAngryEyesEnabled.Value;
         attackCooldown = HarpGhostConfig.Instance.HarpGhostAttackCooldown.Value;
+        _canHearPlayers = HarpGhostConfig.Instance.HarpGhostCanHearPlayersWhenAngry.Value;
         
         ExtendAttackAreaCollider();
     }
@@ -165,24 +154,6 @@ public class HarpGhostAIServer : EnemyAI
             _inStunAnimation = false;
             netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, false);
         }
-
-        if (_isTransitioningMaterial && !_hasTransitionedMaterial && enableGhostAngryModel)
-        {
-            _transitioningMaterialTimer += Time.deltaTime;
-            float transitionValue = Mathf.Clamp01(_transitioningMaterialTimer / 5f);
-            
-            rendererLeftEye.GetPropertyBlock(_propertyBlock);
-            rendererRightEye.GetPropertyBlock(_propertyBlock);
-            _propertyBlock.SetFloat(AlternativeColourFadeInTimer, transitionValue);
-            rendererLeftEye.SetPropertyBlock(_propertyBlock);
-            rendererRightEye.SetPropertyBlock(_propertyBlock);
-            
-            if (_transitioningMaterialTimer >= 5f)
-            {
-                _isTransitioningMaterial = false;
-                _hasTransitionedMaterial = true;
-            }
-        }
         
         if (StartOfRound.Instance.allPlayersDead)
         {
@@ -205,7 +176,7 @@ public class HarpGhostAIServer : EnemyAI
 
                 if (annoyanceLevel >= annoyanceThreshold)
                 {
-                    _isTransitioningMaterial = true;
+                    TurnGhostEyesRed();
                     netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Upset, audioManager.upsetSfx.Length);
                     SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
                 }
@@ -527,7 +498,7 @@ public class HarpGhostAIServer : EnemyAI
         
         if (enemyHP > 0)
         {
-            _isTransitioningMaterial = true;
+            TurnGhostEyesRed();
             netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Damage, audioManager.damageSfx.Length);
             if (playerWhoHit != null)
             {
@@ -557,7 +528,7 @@ public class HarpGhostAIServer : EnemyAI
         base.SetEnemyStunned(setToStunned, setToStunTime, setStunnedByPlayer);
         if (!IsServer) return;
         
-        _isTransitioningMaterial = true;
+        TurnGhostEyesRed();
         netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Stun, audioManager.stunSfx.Length);
         netcodeController.DropHarpClientRpc(_ghostId, transform.position);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, true);
@@ -574,6 +545,15 @@ public class HarpGhostAIServer : EnemyAI
         {
             if (currentBehaviourStateIndex == (int)States.PlayingMusic) SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
         }
+    }
+
+    private void TurnGhostEyesRed()
+    {
+        if (!IsServer) return;
+        if (_hasTransitionedMaterial) return;
+        
+        _hasTransitionedMaterial = true;
+        netcodeController.TurnGhostEyesRed(_ghostId);
     }
 
     private void AttackPlayerIfClose() // Checks if the player is in the ghost's attack area and if so, attacks
@@ -744,7 +724,7 @@ public class HarpGhostAIServer : EnemyAI
             
             case (int)States.SearchingForPlayers:
             {
-                if (timesNoisePlayedInOneSpot > 5) return;
+                if (timesNoisePlayedInOneSpot > 5 || !_canHearPlayers) return;
                 _hearNoiseCooldown = 0.1f;
                 float distanceToNoise = Vector3.Distance(transform.position, noisePosition);
                 float noiseThreshold = 8f * noiseLoudness;

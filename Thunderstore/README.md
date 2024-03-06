@@ -8,6 +8,7 @@
 
 <details>
   <summary>Spoiler warning</summary>
+<br>
 <p>The ethereal entity known as the Haunted Harpist is categorized as a spectral presence of uncertain origin. Its form is reminiscent of the classic depiction of a phantom, lacking distinct humanoid features and attire, with an outline that shrouds its core in mystery. Its most notable characteristic is the ancient harp it perpetually clutches, strumming melodies that echo through the desolate halls of the mansion it inhabits.</p>
 
 <p>If disturbed by excessive noise or a deliberate attempt to disrupt its eerie concerto, the Haunted Harpist will abandon its harmonious routine and become a relentless pursuer. For explorers encountering the Haunted Harpist, it is recommended to move with stealth and avoid interrupting its performance.</p>
@@ -17,6 +18,7 @@
 ## Next Big Update
 <details>
   <summary>Spoiler warning</summary>
+<br>
 <p>The next ghost to be added to the game is called the Phantom Piper. The Phantom Piper plays the bagpipes.</p>
 
 <p>Unlike the Haunted Harpist, the Phantom Piper is scared of players and will run away, bagpipes in hand, when provoked.</p>

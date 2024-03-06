@@ -3,6 +3,8 @@ using BepInEx.Logging;
 using UnityEngine;
 using UnityEngine.AI;
 
+// TODO: Add "Fat Boi" config which allows people to make the enforcer ghost unable to fly across gaps because they are too fat
+
 namespace LethalCompanyHarpGhost.EnforcerGhost;
 
 public class EnforcerGhostAIServer : EnemyAI

@@ -27,6 +27,20 @@ public class HarpGhostAIClient : MonoBehaviour
     
     #pragma warning disable 0649
     [SerializeField] private HarpGhostNetcodeController netcodeController;
+    
+    [Header("Materials and Renderers")]
+    [Space(3f)]
+    [SerializeField] private bool enableGhostAngryModel = true;
+    [SerializeField] private Renderer rendererLeftEye;
+    [SerializeField] private Renderer rendererRightEye;
+    [SerializeField] private MaterialPropertyBlock _propertyBlock;
+    
+    private bool _isTransitioningMaterial = false;
+    private bool _hasTransitionedMaterial = false;
+    
+    private float _transitioningMaterialTimer= 0f;
+    
+    private static readonly int AlternativeColourFadeInTimer = Shader.PropertyToID("_AlternativeColourFadeInTimer");
     #pragma warning restore 0649
     
 
@@ -41,6 +55,7 @@ public class HarpGhostAIClient : MonoBehaviour
         netcodeController.OnDamageTargetPlayer += HandleDamageTargetPlayer;
         netcodeController.OnIncreaseTargetPlayerFearLevel += HandleIncreaseTargetPlayerFearLevel;
         netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
+        netcodeController.OnGhostEyesTurnRed += HandleGhostEyesTurnRed;
     }
 
     private void OnDestroy()
@@ -54,23 +69,53 @@ public class HarpGhostAIClient : MonoBehaviour
         netcodeController.OnDamageTargetPlayer -= HandleDamageTargetPlayer;
         netcodeController.OnIncreaseTargetPlayerFearLevel -= HandleIncreaseTargetPlayerFearLevel;
         netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
+        netcodeController.OnGhostEyesTurnRed -= HandleGhostEyesTurnRed;
     }
 
     private void Start()
     {
         _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost AI {_ghostId} | Client");
+        _propertyBlock = new MaterialPropertyBlock();
+        
+        InitializeConfigValues();
     }
 
-    private void LogDebug(string msg)
+    private void Update()
     {
-        #if DEBUG
-        _mls.LogInfo(msg);
-        #endif
+        if (_isTransitioningMaterial && !_hasTransitionedMaterial && enableGhostAngryModel)
+        {
+            _transitioningMaterialTimer += Time.deltaTime;
+            float transitionValue = Mathf.Clamp01(_transitioningMaterialTimer / 5f);
+            
+            rendererLeftEye.GetPropertyBlock(_propertyBlock);
+            rendererRightEye.GetPropertyBlock(_propertyBlock);
+            _propertyBlock.SetFloat(AlternativeColourFadeInTimer, transitionValue);
+            rendererLeftEye.SetPropertyBlock(_propertyBlock);
+            rendererRightEye.SetPropertyBlock(_propertyBlock);
+            
+            if (_transitioningMaterialTimer >= 5f)
+            {
+                _isTransitioningMaterial = false;
+                _hasTransitionedMaterial = true;
+            }
+        }
+    }
+
+    private void InitializeConfigValues()
+    {
+        enableGhostAngryModel = HarpGhostConfig.Default.HarpGhostAngryEyesEnabled.Value;
     }
 
     private void HandleUpdateGhostIdentifier(string recievedGhostId)
     {
         _ghostId = recievedGhostId;
+    }
+
+    private void HandleGhostEyesTurnRed(string recievedGhostId)
+    {
+        if (_ghostId != recievedGhostId) return;
+        _transitioningMaterialTimer = 0;
+        _isTransitioningMaterial = true;
     }
 
     private void HandleIncreaseTargetPlayerFearLevel(string recievedGhostId)
@@ -164,12 +209,18 @@ public class HarpGhostAIClient : MonoBehaviour
         
         PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[targetPlayerObjectId];
         _targetPlayer = player;
-        LogDebug($"Target player is now: {player.name}");
     }
 
     private void HandleDamageTargetPlayer(string recievedGhostId, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
     {
         if (_ghostId != recievedGhostId) return;
         _targetPlayer.DamagePlayer(damage, causeOfDeath: causeOfDeath);
+    }
+    
+    private void LogDebug(string msg)
+    {
+#if DEBUG
+        _mls.LogInfo(msg);
+#endif
     }
 }

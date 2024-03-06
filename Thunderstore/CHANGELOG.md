@@ -2,18 +2,23 @@
 * Added the following configs:
     * Harp Ghost's max speed in chase mode
     * Harp Ghost's max acceleration in chase mode
-    * Harp Ghost's enable red eyes when angry (is true by default)
+    * Harp Ghost enable red eyes when angry (its true by default)
     * Harp Ghost's attack cooldown
     * Harp Ghost's attack area length (how far the attack area reaches out pretty much)
+    * Harp Ghost's ability to hear players to aid its search when angry (true by default)
   
 * Changed the max open door speed config to "open door speed multiplier when in chase mode" because the previous one was a bit useless and didnt really make sense
+* Fixed bug where only the host player would see the ghost's eyes turn red
 
 ## 1.2.7
 * The harp ghost's eyes turn red when angry
 * Reduced lag when the harp spawns (hopefully)
 
-## 1.2.5
+## 1.2.6
 * Removed DissonanceLagFix as a hard dependency
+
+## 1.2.5
+* Thunderstore bugging out, ignore this
 
 ## 1.2.4
 * Fixed bug that makes the harp play different music for different people

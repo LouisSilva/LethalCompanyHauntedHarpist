@@ -29,6 +29,7 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     public event Action<string> OnIncreaseTargetPlayerFearLevel;
     public event Action<string> OnInitializeConfigValues;
     public event Action<string> OnUpdateGhostIdentifier;
+    public event Action<string> OnGhostEyesTurnRed;
 
     private void Start()
     {
@@ -97,6 +98,11 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     public void EnterDeathStateClientRpc(string recievedGhostId)
     {
         OnEnterDeathState?.Invoke(recievedGhostId);
+    }
+
+    public void TurnGhostEyesRed(string recievedGhostId)
+    {
+        OnGhostEyesTurnRed?.Invoke(recievedGhostId);
     }
 
     [ClientRpc]

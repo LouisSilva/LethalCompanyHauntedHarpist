@@ -27,7 +27,7 @@ namespace LethalCompanyHarpGhost
     {
         public const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
         private const string ModName = "Lethal Company Harp Ghost Mod";
-        private const string ModVersion = "1.2.7";
+        private const string ModVersion = "1.2.8";
 
         private readonly Harmony _harmony = new(ModGuid);
         
@@ -66,11 +66,11 @@ namespace LethalCompanyHarpGhost
             HarpGhostConfig = new HarpGhostConfig(Config);
             
             SetupHarpGhost();
-            SetupBagpipesGhost();
-            SetupEnforcerGhost();
+            //SetupBagpipesGhost();
+            //SetupEnforcerGhost();
             
             SetupHarp();
-            SetupBagpipes();
+            //SetupBagpipes();
             //SetupTuba();
             
             _harmony.PatchAll();
@@ -233,6 +233,7 @@ namespace LethalCompanyHarpGhost
         public readonly ConfigEntry<float> HarpGhostMaxSearchRadius;
         public readonly ConfigEntry<bool> HarpGhostIsStunnable;
         public readonly ConfigEntry<bool> HarpGhostIsKillable;
+        public readonly ConfigEntry<bool> HarpGhostCanHearPlayersWhenAngry;
         public readonly ConfigEntry<bool> HarpGhostCanSeeThroughFog;
 
         public readonly ConfigEntry<float> HarpGhostVoiceSfxVolume;
@@ -273,6 +274,13 @@ namespace LethalCompanyHarpGhost
                 "Whether a Harp Ghost can be stunned or not"
             );
             
+            HarpGhostCanHearPlayersWhenAngry = cfg.Bind(
+                "General",
+                "Can Hear Players When Angry",
+                true,
+                "Whether a Harp Ghost can hear players to aid its search when angry"
+            );
+            
             HarpGhostCanSeeThroughFog = cfg.Bind(
                 "General",
                 "Can See Through Fog",
@@ -284,20 +292,20 @@ namespace LethalCompanyHarpGhost
                 "General",
                 "Attack Damage",
                 45,
-                "The attack damage of the ghost"
+                "The attack damage of the Harp Ghost"
             );
             
             HarpGhostAttackCooldown = cfg.Bind(
                 "General",
                 "Attack Cooldown",
                 2f,
-                "The max speed of the Harp Ghost in chase mode"
+                "The max speed of the Harp Ghost in chase mode. Note that new attacks interrupt the audio and animation of the previous attack, therefore putting this value too low will make the attacks look and sound very jagged."
             );
             
             HarpGhostAttackAreaLength = cfg.Bind(
                 "General",
                 "Attack Area Length",
-                0.91f,
+                1f,
                 "The length of the Harp Ghost's attack area in the Z dimension (in in-game meters)"
             );
             
@@ -446,7 +454,7 @@ namespace LethalCompanyHarpGhost
             using FastBufferWriter stream = new(value + IntSize, Allocator.Temp);
 
             try {
-                stream.WriteValueSafe(in value, default);
+                stream.WriteValueSafe(in value);
                 stream.WriteBytesSafe(array);
 
                 MessageManager.SendNamedMessage($"{HarpGhostPlugin.ModGuid}_OnReceiveConfigSync", clientId, stream);
@@ -461,7 +469,7 @@ namespace LethalCompanyHarpGhost
                 return;
             }
 
-            reader.ReadValueSafe(out int val, default);
+            reader.ReadValueSafe(out int val);
             if (!reader.TryBeginRead(val)) {
                 Debug.LogError("Config sync error: Host could not sync.");
                 return;
