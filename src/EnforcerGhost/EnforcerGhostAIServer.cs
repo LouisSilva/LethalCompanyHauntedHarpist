@@ -33,6 +33,7 @@ public class EnforcerGhostAIServer : EnemyAI
     [SerializeField] private EnforcerGhostAudioManager audioManager;
     [SerializeField] private EnforcerGhostNetcodeController netcodeController;
     [SerializeField] private EnforcerGhostAnimationController animationController;
+    private IEscortee _escortee;
     #pragma warning restore 0649
 
     private enum States
@@ -71,8 +72,13 @@ public class EnforcerGhostAIServer : EnemyAI
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, EnforcerGhostAnimationController.IsDead, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, EnforcerGhostAnimationController.IsStunned, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, EnforcerGhostAnimationController.IsRunning, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, EnforcerGhostAnimationController.IsHoldingShotgun, false);
         
-        //InitializeConfigValues();
+        InitializeConfigValues();
+        
+        netcodeController.SpawnShotgunServerRpc(_ghostId);
+        netcodeController.GrabShotgunClientRpc(_ghostId);
+        
         _mls.LogInfo("Enforcer Ghost Spawned");
     }
     
@@ -118,10 +124,78 @@ public class EnforcerGhostAIServer : EnemyAI
         }
     }
 
-    // Called by the bagpipe ghost to tell the enforcer to switch to behaviour state 1
+    // Called by the escortee ghost to tell the enforcer to switch to behaviour state 1 and stop escorting
     public void EnterRambo()
     {
-        // Switchbehavourstate 1
+        if (currentBehaviourStateIndex != (int)States.Dead || currentBehaviourStateIndex != (int)States.Rambo)
+        {
+            SwitchBehaviourStateLocally((int)States.Rambo);
+        }
+    }
+
+    private void SwitchBehaviourStateLocally(int state)
+    {
+        if (!IsServer) return;
+        switch (state)
+        {
+            case (int)States.Escorting:
+            {
+                LogDebug($"Switched to behaviour state {(int)States.Escorting}!");
+                
+                agentMaxSpeed = 0.5f;
+                agentMaxAcceleration = 50f;
+                movingTowardsTargetPlayer = false;
+                openDoorSpeedMultiplier = 4f;
+
+                break;
+            }
+
+            case (int)States.Rambo:
+            {
+                LogDebug($"Switched to behaviour state {(int)States.Rambo}!");
+
+                agentMaxSpeed = 3f;
+                agentMaxAcceleration = 15f;
+                openDoorSpeedMultiplier = 1f;
+
+                _escortee?.EscorteeBreakoff();
+
+                break;
+            }
+
+            case (int)States.Dead:
+            {
+                LogDebug($"Switched to behaviour state {(int)States.Dead}!");
+
+                agentMaxSpeed = 0f;
+                agentMaxAcceleration = 0f;
+                movingTowardsTargetPlayer = false;
+                agent.speed = 0f;
+                agent.enabled = false;
+                isEnemyDead = true;
+                
+                _escortee?.EscorteeBreakoff();
+                netcodeController.DropShotgunClientRpc(_ghostId, transform.position);
+                netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, EnforcerGhostAnimationController.IsDead, true);
+                break;
+            }
+                
+        }
+    }
+    
+    private bool CheckForPath(Vector3 position)
+    {
+        position = RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, 1.75f);
+        path1 = new NavMeshPath();
+        
+        // ReSharper disable once UseIndexFromEndExpression
+        return agent.CalculatePath(position, path1) && !(Vector3.Distance(path1.corners[path1.corners.Length - 1], RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, 2.7f)) > 1.5499999523162842);
+    }
+    
+    private void InitializeConfigValues()
+    {
+        if (!IsServer) return;
+        netcodeController.InitializeConfigValuesClientRpc(_ghostId);
     }
     
     private void CalculateAgentSpeed()
@@ -150,19 +224,13 @@ public class EnforcerGhostAIServer : EnemyAI
         agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
     }
     
-    private bool CheckForPath(Vector3 position)
-    {
-        position = RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, 1.75f);
-        path1 = new NavMeshPath();
-        
-        // ReSharper disable once UseIndexFromEndExpression
-        return agent.CalculatePath(position, path1) && !(Vector3.Distance(path1.corners[path1.corners.Length - 1], RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, 2.7f)) > 1.5499999523162842);
-    }
-    
     private void LogDebug(string msg)
     {
         #if DEBUG
         _mls.LogInfo(msg);
         #endif
     }
+    
+    public Vector3 TransformPosition => transform.position;
+    public RoundManager RoundManagerInstance => RoundManager.Instance;
 }

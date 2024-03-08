@@ -15,9 +15,9 @@ public class BagpipesGhostAIClient : MonoBehaviour
 
     private InstrumentBehaviour _heldInstrument;
     
-    public Transform grabTarget;
-    
     #pragma warning disable 0649
+    [SerializeField] private Transform grabTarget;
+    
     [SerializeField] private BagpipesGhostNetcodeController netcodeController;
     #pragma warning restore 0649
     

@@ -48,6 +48,7 @@ namespace LethalCompanyHarpGhost
         public static Item HarpItem;
         public static Item BagpipesItem;
         private static Item TubaItem;
+        public static GameObject ShotgunPrefab;
 
         private void Awake()
         {
@@ -66,14 +67,15 @@ namespace LethalCompanyHarpGhost
             HarpGhostConfig = new HarpGhostConfig(Config);
             
             SetupHarpGhost();
-            //SetupBagpipesGhost();
-            //SetupEnforcerGhost();
+            SetupBagpipesGhost();
+            SetupEnforcerGhost();
             
             SetupHarp();
-            //SetupBagpipes();
+            SetupBagpipes();
             //SetupTuba();
             
             _harmony.PatchAll();
+            _harmony.PatchAll(typeof(HarpGhostPlugin));
             _mls.LogInfo($"Plugin {ModName} is loaded!");
         }
 
@@ -152,7 +154,7 @@ namespace LethalCompanyHarpGhost
             RegisterScrap(HarpItem, 0, LevelTypes.All);
         }
 
-        private static void SetupBagpipes()
+        private void SetupBagpipes()
         {
             BagpipesItem = Assets.MainAssetBundle.LoadAsset<Item>("BagpipesItemData");
             if (BagpipesItem == null)
@@ -162,6 +164,12 @@ namespace LethalCompanyHarpGhost
             
             NetworkPrefabs.RegisterNetworkPrefab(BagpipesItem.spawnPrefab);
             Utilities.FixMixerGroups(BagpipesItem.spawnPrefab);
+
+            AudioClip[] audioClips = BagpipesItem.spawnPrefab.GetComponent<InstrumentBehaviour>().instrumentAudioClips;
+            List<string> audioClipNames = [];
+            audioClipNames.AddRange(audioClips.Select(curAudioClip => curAudioClip.name));
+            LoadInstrumentAudioClipsAsync(BagpipesItem.itemName, audioClipNames);
+            
             RegisterScrap(BagpipesItem, 0, LevelTypes.All);
         }
         
@@ -176,6 +184,17 @@ namespace LethalCompanyHarpGhost
             NetworkPrefabs.RegisterNetworkPrefab(TubaItem.spawnPrefab);
             Utilities.FixMixerGroups(TubaItem.spawnPrefab);
             RegisterScrap(TubaItem, 0, LevelTypes.All);
+        }
+
+        [HarmonyPatch(typeof(Terminal), "Start")]
+        [HarmonyPostfix]
+        private static void GetShotgunPrefab()
+        {
+            foreach (Item item in StartOfRound.Instance.allItemsList.itemsList.Where(item => item.name.ToLower() == "shotgun"))
+            {
+                ShotgunPrefab = item.spawnPrefab;
+                break;
+            }
         }
 
         private void LoadInstrumentAudioClipsAsync(string instrumentName, List<string> audioClipNames)

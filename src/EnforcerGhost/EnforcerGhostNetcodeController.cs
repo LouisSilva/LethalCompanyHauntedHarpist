@@ -19,6 +19,10 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     public event Action<string> OnUpdateGhostIdentifier;
     public event Action<string> OnEnterDeathState;
     public event Action<string, int, int, bool> OnPlayCreatureVoice;
+    public event Action<string, NetworkObjectReference, int> OnSpawnShotgun;
+    public event Action<string> OnGrabShotgun;
+    public event Action<string> OnGrabShotgunPhaseTwo; 
+    public event Action<string, Vector3> OnDropShotgun;
 
     private void Start()
     {
@@ -33,11 +37,59 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     {
         OnInitializeConfigValues?.Invoke(recievedGhostId);
     }
+
+    [ServerRpc]
+    public void SpawnShotgunServerRpc(string recievedGhostId)
+    {
+        GameObject shotgunObject = Instantiate(
+            HarpGhostPlugin.ShotgunPrefab,
+            enforcerGhostAIServer.TransformPosition,
+            Quaternion.identity,
+            enforcerGhostAIServer.RoundManagerInstance.spawnedScrapContainer
+            );
+
+        int shotgunScrapValue = UnityEngine.Random.Range(30, 90);
+        shotgunObject.GetComponent<GrabbableObject>().fallTime = 0f;
+        shotgunObject.GetComponent<GrabbableObject>().SetScrapValue(shotgunScrapValue);
+        enforcerGhostAIServer.RoundManagerInstance.totalScrapValueInLevel += shotgunScrapValue;
+        
+        shotgunObject.GetComponent<NetworkObject>().Spawn();
+        SpawnShotgunClientRpc(recievedGhostId, shotgunObject, shotgunScrapValue);
+    }
+
+    [ClientRpc]
+    public void SpawnShotgunClientRpc(string recievedGhostId, NetworkObjectReference shotgunObject, int shotgunScrapValue)
+    {
+        OnSpawnShotgun?.Invoke(recievedGhostId, shotgunObject, shotgunScrapValue);
+    }
+
+    [ClientRpc]
+    public void GrabShotgunClientRpc(string recievedGhostId)
+    {
+        OnGrabShotgun?.Invoke(recievedGhostId);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void GrabShotgunPhaseTwoServerRpc(string recievedGhostId)
+    {
+        GrabShotgunPhaseTwoClientRpc(recievedGhostId);
+    }
+
+    [ClientRpc]
+    private void GrabShotgunPhaseTwoClientRpc(string recievedGhostId)
+    {
+        OnGrabShotgunPhaseTwo?.Invoke(recievedGhostId);
+    }
+    
+    [ClientRpc]
+    public void DropShotgunClientRpc(string recievedGhostId, Vector3 targetPosition)
+    {
+        OnDropShotgun?.Invoke(recievedGhostId, targetPosition);
+    }
     
     [ClientRpc]
     public void ChangeAnimationParameterBoolClientRpc(string recievedGhostId, int animationId, bool value)
     {
-        LogDebug($"{animationId}, {value}");
         OnChangeAnimationParameterBool?.Invoke(recievedGhostId, animationId, value);
     }
 

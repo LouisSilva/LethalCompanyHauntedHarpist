@@ -1,4 +1,5 @@
 ﻿using BepInEx.Logging;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace LethalCompanyHarpGhost.EnforcerGhost;
@@ -17,10 +18,12 @@ public class EnforcerGhostAnimationController : MonoBehaviour
     public static readonly int IsRunning = Animator.StringToHash("isRunning");
     public static readonly int IsStunned = Animator.StringToHash("isStunned");
     public static readonly int IsDead = Animator.StringToHash("isDead");
+    public static readonly int IsHoldingShotgun = Animator.StringToHash("isHoldingShotgun");
     public static readonly int Death = Animator.StringToHash("death");
     public static readonly int Stunned = Animator.StringToHash("stunned");
     public static readonly int Recover = Animator.StringToHash("recover");
     public static readonly int Attack = Animator.StringToHash("attack");
+    public static readonly int PickupShotgun = Animator.StringToHash("pickupShotgun");
 
     private int _attackDamage = 35;
 
@@ -38,13 +41,6 @@ public class EnforcerGhostAnimationController : MonoBehaviour
         if (audioManager == null) _mls.LogError("audioManager is null");
     }
 
-    private void LogDebug(string msg)
-    {
-        #if DEBUG
-        _mls.LogInfo(msg);
-        #endif
-    }
-
     private void OnEnable()
     {
         netcodeController.OnDoAnimation += SetTrigger;
@@ -52,6 +48,7 @@ public class EnforcerGhostAnimationController : MonoBehaviour
         netcodeController.OnEnterDeathState += HandleOnEnterDeathState;
         netcodeController.OnInitializeConfigValues += HandleInitializeConfigValues;
         netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
+        netcodeController.OnGrabShotgun += HandleGrabShotgun;
     }
 
     private void OnDestroy()
@@ -62,6 +59,14 @@ public class EnforcerGhostAnimationController : MonoBehaviour
         netcodeController.OnEnterDeathState -= HandleOnEnterDeathState;
         netcodeController.OnInitializeConfigValues -= HandleInitializeConfigValues;
         netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
+        netcodeController.OnGrabShotgun -= HandleGrabShotgun;
+    }
+
+    private void HandleGrabShotgun(string recievedGhostId)
+    {
+        if (_ghostId != recievedGhostId) return;
+        SetTrigger(_ghostId, PickupShotgun);
+        SetBool(_ghostId, IsHoldingShotgun, true);
     }
 
     private void HandleUpdateGhostIdentifier(string recievedGhostId)
@@ -85,6 +90,13 @@ public class EnforcerGhostAnimationController : MonoBehaviour
         _attackDamage = HarpGhostConfig.Instance.HarpGhostAttackDamage.Value;
     }
 
+    private void OnAnimationEventPickupShotgun()
+    {
+        if (!NetworkManager.Singleton.IsClient || !netcodeController.IsOwner) return;
+        
+        netcodeController.GrabShotgunPhaseTwoServerRpc(_ghostId);
+    }
+
     private void SetBool(string recievedGhostId, int parameter, bool value)
     {
         if (_ghostId != recievedGhostId) return;
@@ -100,5 +112,12 @@ public class EnforcerGhostAnimationController : MonoBehaviour
     {
         if (_ghostId != recievedGhostId) return;
         animator.SetTrigger(parameter);
+    }
+    
+    private void LogDebug(string msg)
+    {
+        #if DEBUG
+        _mls.LogInfo(msg);
+        #endif
     }
 }

@@ -21,11 +21,10 @@ public class HarpGhostAIClient : MonoBehaviour
 
     private PlayerControllerB _targetPlayer;
     
-    public Transform grabTarget;
-
-    public Transform eye;
-    
     #pragma warning disable 0649
+    [SerializeField] private Transform grabTarget;
+    [SerializeField] private Transform eye;
+    
     [SerializeField] private HarpGhostNetcodeController netcodeController;
     
     [Header("Materials and Renderers")]

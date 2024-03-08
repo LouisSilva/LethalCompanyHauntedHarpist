@@ -40,12 +40,12 @@ public class HarpGhostAIServer : EnemyAI
     private Vector3 _agentLastPosition = default;
 
     private RoundManager _roundManager;
-
-    [Header("Transforms")]
-    [Space(3f)]
-    public BoxCollider attackArea;
     
     #pragma warning disable 0649
+    [Header("Transforms")]
+    [Space(3f)]
+    [SerializeField] private BoxCollider attackArea;
+    
     [Header("Controllers and Managers")]
     [Space(5f)]
     [SerializeField] private HarpGhostAudioManager audioManager;
@@ -494,8 +494,8 @@ public class HarpGhostAIServer : EnemyAI
         base.HitEnemy(force, playerWhoHit, playHitSFX);
         if (!IsServer) return;
         if (isEnemyDead) return;
-        enemyHP -= force;
         
+        enemyHP -= force;
         if (enemyHP > 0)
         {
             TurnGhostEyesRed();

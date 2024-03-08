@@ -2,14 +2,16 @@
 using System.Collections;
 using System.Collections.Generic;
 using BepInEx.Logging;
+using GameNetcodeStuff;
 using LethalCompanyHarpGhost.EnforcerGhost;
+using LethalCompanyHarpGhost.HarpGhost;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
 
 namespace LethalCompanyHarpGhost.BagpipesGhost;
 
-public class BagpipesGhostAIServer : EnemyAI
+public class BagpipesGhostAIServer : EnemyAI, IEscortee
 {
     private ManualLogSource _mls;
     private string _ghostId;
@@ -84,13 +86,13 @@ public class BagpipesGhostAIServer : EnemyAI
         UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
         InitializeConfigValues();
 
-        GameObject debugCircle = new GameObject("Circle");
-        debugCircle.transform.SetParent(transform, false);
-        _lineRenderer = debugCircle.AddComponent<LineRenderer>();
-        _lineRenderer.widthMultiplier = 0.1f;
-        _lineRenderer.positionCount = 51;
-        _lineRenderer.useWorldSpace = true;
-        _lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+        // GameObject debugCircle = new("Circle");
+        // debugCircle.transform.SetParent(transform, false);
+        // _lineRenderer = debugCircle.AddComponent<LineRenderer>();
+        // _lineRenderer.widthMultiplier = 0.1f;
+        // _lineRenderer.positionCount = 51;
+        // _lineRenderer.useWorldSpace = true;
+        // _lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
         
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsDead, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsStunned, false);
@@ -178,7 +180,7 @@ public class BagpipesGhostAIServer : EnemyAI
         {
             case (int)States.PlayingMusicWhileEscorted:
             {
-                _agentIsMoving = (transform.position - _agentLastPosition).magnitude > 0.1f;
+                _agentIsMoving = (transform.position - _agentLastPosition).magnitude > 0.05f;
                 if (!roamMap.inProgress) StartSearch(transform.position, roamMap);
 
                 // Starts the idle timer if the ghost isnt moving
@@ -273,6 +275,11 @@ public class BagpipesGhostAIServer : EnemyAI
         }
     }
 
+    public void EscorteeBreakoff()
+    {
+        RetireAllEscorts();
+    }
+
     // Makes the escorts enter rambo state and removes them from the escort list
     private void RetireAllEscorts()
     {
@@ -357,6 +364,88 @@ public class BagpipesGhostAIServer : EnemyAI
         if (escort == null || !_escorts.Contains(escort)) return;
         _escorts.Remove(escort);
     }
+
+    private IEnumerator SpawnEscorts(Action callback = null)
+    {
+        yield return new WaitForSeconds(0.5f); // wait a little bit to allow the ghost to move a bit away from the vent where it spawned at (away from the wall)
+        
+        _escorts = new List<EnforcerGhostAIServer>(numberOfEscorts);
+        for (int i = 0; i < numberOfEscorts; i++)
+        {
+            GameObject escort = Instantiate(HarpGhostPlugin.EnforcerGhostEnemyType.enemyPrefab, transform.position, Quaternion.identity);
+            escort.GetComponentInChildren<NetworkObject>().Spawn(destroyWithScene: true);
+
+            EnforcerGhostAIServer escortScript = escort.GetComponent<EnforcerGhostAIServer>();
+            escortScript.agent.avoidancePriority = Mathf.Min(i + 1, 99); // Give the escort agents a different, descending priority
+            AddEscort(escortScript);
+            yield return new WaitForSeconds(1f);
+        }
+
+        // This callback can technically be used for anything, but its only use is going to be for playing music after the escorts are spawned
+        if (callback == null) yield break;
+        yield return new WaitForSeconds(0.5f);
+        callback.Invoke();
+    }
+
+    public override void SetEnemyStunned(
+        bool setToStunned,
+        float setToStunTime = 1f,
+        PlayerControllerB setStunnedByPlayer = null)
+    {
+        base.SetEnemyStunned(setToStunned, setToStunTime, setStunnedByPlayer);
+        if (!IsServer) return;
+        
+        netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Stun, audioManager.stunSfx.Length);
+        netcodeController.DropBagpipesClientRpc(_ghostId, transform.position);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, true);
+        netcodeController.DoAnimationClientRpc(_ghostId, BagpipesGhostAnimationController.Stunned);
+        _inStunAnimation = true;
+
+        if (currentBehaviourStateIndex == (int)States.PlayingMusicWhileEscorted)
+        {
+            SwitchBehaviourStateLocally((int)States.RunningAway);
+            RetireAllEscorts();
+        }
+    }
+
+    public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false)
+    {
+        base.HitEnemy(force, playerWhoHit, playHitSFX);
+        if (!IsServer) return;
+        if (isEnemyDead) return;
+
+        enemyHP -= force;
+        if (enemyHP > 0)
+        {
+            netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Damage, audioManager.damageSfx.Length);
+            if (currentBehaviourStateIndex != (int)States.RunningAway) SwitchBehaviourStateLocally((int)States.RunningAway);
+            return;
+        }
+        
+        // Ghost is dead
+        netcodeController.EnterDeathStateClientRpc(_ghostId);
+        KillEnemyClientRpc(false);
+        SwitchBehaviourStateLocally((int)States.Dead);
+    }
+
+    private void DrawDebugCircleAtTargetNode()
+    {
+        if (!_lineRenderer || !roamMap.inProgress || roamMap.currentTargetNode == null) return;
+
+        Vector3 centerPosition = roamMap.currentTargetNode.transform.position;
+        float angle = 20f;
+        const float circleRadius = 0.5f;
+        
+        for (int i = 0; i <= 50; i++)
+        {
+            float x = centerPosition.x + Mathf.Sin(Mathf.Deg2Rad * angle) * circleRadius;
+            float z = centerPosition.z + Mathf.Cos(Mathf.Deg2Rad * angle) * circleRadius;
+            float y = centerPosition.y;
+            
+            _lineRenderer.SetPosition(i, new Vector3(x, y, z));
+            angle += 360f / 50;
+        }
+    }
     
     private void CalculateAgentSpeed()
     {
@@ -382,47 +471,6 @@ public class BagpipesGhostAIServer : EnemyAI
         
         float accelerationAdjustment = Time.deltaTime;
         agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
-    }
-
-    private IEnumerator SpawnEscorts(Action callback = null)
-    {
-        yield return new WaitForSeconds(0.5f); // wait a little bit to allow the ghost to move a bit away from the vent where it spawned at (away from the wall)
-        
-        _escorts = new List<EnforcerGhostAIServer>(numberOfEscorts);
-        for (int i = 0; i < numberOfEscorts; i++)
-        {
-            GameObject escort = Instantiate(HarpGhostPlugin.EnforcerGhostEnemyType.enemyPrefab, transform.position, Quaternion.identity);
-            escort.GetComponentInChildren<NetworkObject>().Spawn(destroyWithScene: true);
-
-            EnforcerGhostAIServer escortScript = escort.GetComponent<EnforcerGhostAIServer>();
-            escortScript.agent.avoidancePriority = Mathf.Min(i + 1, 99); // Give the escort agents a different, descending priority
-            AddEscort(escortScript);
-            yield return new WaitForSeconds(1f);
-        }
-
-        // This callback can technically be used for anything, but its only use is going to be for playing music after the escorts are spawned
-        if (callback == null) yield break;
-        yield return new WaitForSeconds(0.5f);
-        callback.Invoke();
-    }
-
-    private void DrawDebugCircleAtTargetNode()
-    {
-        if (!_lineRenderer || !roamMap.inProgress || roamMap.currentTargetNode == null) return;
-
-        Vector3 centerPosition = roamMap.currentTargetNode.transform.position;
-        float angle = 20f;
-        const float circleRadius = 0.5f;
-        
-        for (int i = 0; i <= 50; i++)
-        {
-            float x = centerPosition.x + Mathf.Sin(Mathf.Deg2Rad * angle) * circleRadius;
-            float z = centerPosition.z + Mathf.Cos(Mathf.Deg2Rad * angle) * circleRadius;
-            float y = centerPosition.y;
-            
-            _lineRenderer.SetPosition(i, new Vector3(x, y, z));
-            angle += 360f / 50;
-        }
     }
     
     private void LogDebug(string logMessage)
