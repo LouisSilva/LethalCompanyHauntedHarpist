@@ -60,6 +60,9 @@ public class InstrumentBehaviour : PhysicsProp
                 playerInstrumentOffset = new ItemOffset(new Vector3(-0.8f, 0.22f, 0.07f), new Vector3(3f, 12f, -100f));
                 playerAltInstrumentOffset = new ItemOffset(new Vector3(-0.4f, 0.2f, -0.1f), new Vector3(-70, 115, -200));
                 enemyInstrumentOffset = new ItemOffset(new Vector3(0f, -0.6f, 0.6f));
+                
+                instrumentAudioSource.volume = Mathf.Clamp(HarpGhostConfig.Default.HarpVolume.Value, 0f, 1f);
+                
                 break;
             case "Bagpipes":
                 enemyInstrumentOffset = new ItemOffset(new Vector3(0.5f, 0.45f, 0.7f), new Vector3(0, 90, 0));
@@ -97,7 +100,7 @@ public class InstrumentBehaviour : PhysicsProp
         
         _isPlayingMusic = false;
     }
-
+    
     public override void Update()
     {
         base.Update();
@@ -186,7 +189,6 @@ public class InstrumentBehaviour : PhysicsProp
         
         instrumentAudioSource.clip = selectedClip;
         instrumentAudioSource.pitch = 1f;
-        instrumentAudioSource.volume = Mathf.Clamp(HarpGhostConfig.Default.InstrumentVolume.Value, 0f, 1f);
         instrumentAudioSource.Play();
         WalkieTalkie.TransmitOneShotAudio(instrumentAudioSource, instrumentAudioSource.clip, instrumentAudioSource.volume);
         _isPlayingMusic = true;

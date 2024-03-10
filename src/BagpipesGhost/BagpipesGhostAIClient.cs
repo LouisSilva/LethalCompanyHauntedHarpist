@@ -30,6 +30,7 @@ public class BagpipesGhostAIClient : MonoBehaviour
         netcodeController.OnPlayBagpipesMusic += HandleOnPlayInstrumentMusic;
         netcodeController.OnStopBagpipesMusic += HandleOnStopInstrumentMusic;
         netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
+        netcodeController.OnDestroyBagpipes += HandleDestroyBagpipes;
     }
 
     private void OnDestroy()
@@ -40,6 +41,7 @@ public class BagpipesGhostAIClient : MonoBehaviour
         netcodeController.OnPlayBagpipesMusic -= HandleOnPlayInstrumentMusic;
         netcodeController.OnStopBagpipesMusic -= HandleOnStopInstrumentMusic;
         netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
+        netcodeController.OnDestroyBagpipes -= HandleDestroyBagpipes;
     }
 
     private void Start()
@@ -47,16 +49,10 @@ public class BagpipesGhostAIClient : MonoBehaviour
         _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Bagpipes Ghost AI {_ghostId} | Client");
     }
 
-    private void LogDebug(string msg)
+    private void HandleDestroyBagpipes(string recievedGhostId)
     {
-        #if DEBUG
-        _mls.LogInfo(msg);
-        #endif
-    }
-
-    private void HandleUpdateGhostIdentifier(string recievedGhostId)
-    {
-        _ghostId = recievedGhostId;
+        if (_ghostId != recievedGhostId) return;
+        _heldInstrument = null;
     }
 
     private void HandleOnPlayInstrumentMusic(string recievedGhostId)
@@ -114,5 +110,17 @@ public class BagpipesGhostAIClient : MonoBehaviour
         if (_ghostId != recievedGhostId) return;
         _instrumentObjectRef = instrumentObject;
         _instrumentScrapValue = instrumentScrapValue;
+    }
+    
+    private void LogDebug(string msg)
+    {
+        #if DEBUG
+        _mls.LogInfo(msg);
+        #endif
+    }
+
+    private void HandleUpdateGhostIdentifier(string recievedGhostId)
+    {
+        _ghostId = recievedGhostId;
     }
 }

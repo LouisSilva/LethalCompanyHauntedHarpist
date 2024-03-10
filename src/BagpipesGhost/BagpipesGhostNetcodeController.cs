@@ -20,6 +20,7 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     public event Action<string> OnGrabBagpipes;
     public event Action<string, NetworkObjectReference, int> OnSpawnBagpipes;
     public event Action<string, Vector3> OnDropBagpipes;
+    public event Action<string> OnDestroyBagpipes;
     public event Action<string> OnPlayBagpipesMusic;
     public event Action<string> OnStopBagpipesMusic;
     public event Action<string> OnEnterDeathState;
@@ -37,6 +38,12 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     public void InitializeConfigValuesClientRpc(string recievedGhostId)
     {
         OnInitializeConfigValues?.Invoke(recievedGhostId);
+    }
+
+    [ClientRpc]
+    public void DestroyHeldBagpipesClientRpc(string recievedGhostId)
+    {
+        OnDestroyBagpipes?.Invoke(recievedGhostId);
     }
     
     [ClientRpc]

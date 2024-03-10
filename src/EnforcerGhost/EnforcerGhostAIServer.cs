@@ -74,7 +74,7 @@ public class EnforcerGhostAIServer : EnemyAI
 
         audioManager = GetComponent<EnforcerGhostAudioManager>();
         if (audioManager == null) _mls.LogError("Audio Manger is null");
-
+        
         animationController = GetComponent<EnforcerGhostAnimationController>();
         if (animationController == null) _mls.LogError("Animation Controller is null");
         

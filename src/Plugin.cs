@@ -10,6 +10,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using GameNetcodeStuff;
 using HarmonyLib;
+using LethalCompanyHarpGhost.EnforcerGhost;
 using UnityEngine;
 using LethalLib.Modules;
 using Unity.Collections;
@@ -79,7 +80,7 @@ namespace LethalCompanyHarpGhost
             _mls.LogInfo($"Plugin {ModName} is loaded!");
         }
 
-        private static void SetupHarpGhost()
+        private void SetupHarpGhost()
         {
             _harpGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("HarpGhost");
             _harpGhostEnemyType.canDie = HarpGhostConfig.Instance.HarpGhostIsKillable.Value;
@@ -105,7 +106,7 @@ namespace LethalCompanyHarpGhost
                 );
         }
         
-        private static void SetupBagpipesGhost()
+        private void SetupBagpipesGhost()
         {
             _bagpipesGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("BagpipesGhost");
             TerminalNode harpGhostTerminalNode = Assets.MainAssetBundle.LoadAsset<TerminalNode>("HarpGhostTN");
@@ -116,7 +117,7 @@ namespace LethalCompanyHarpGhost
             RegisterEnemy(_bagpipesGhostEnemyType, Mathf.Clamp(HarpGhostConfig.Instance.HarpGhostSpawnRate.Value, 0, 999), HarpGhostConfig.Instance.HarpGhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
         }
         
-        private static void SetupEnforcerGhost()
+        private void SetupEnforcerGhost()
         {
             EnforcerGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("EnforcerGhost");
             TerminalNode harpGhostTerminalNode = Assets.MainAssetBundle.LoadAsset<TerminalNode>("HarpGhostTN");
@@ -125,6 +126,8 @@ namespace LethalCompanyHarpGhost
             NetworkPrefabs.RegisterNetworkPrefab(EnforcerGhostEnemyType.enemyPrefab);
             Utilities.FixMixerGroups(EnforcerGhostEnemyType.enemyPrefab);
             RegisterEnemy(EnforcerGhostEnemyType, 0, HarpGhostConfig.Instance.HarpGhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
+            
+            _harmony.PatchAll(typeof(ShotgunPatches));
         }
 
         private void SetupHarp()
@@ -259,7 +262,7 @@ namespace LethalCompanyHarpGhost
         public readonly ConfigEntry<bool> HarpGhostCanSeeThroughFog;
 
         public readonly ConfigEntry<float> HarpGhostVoiceSfxVolume;
-        public readonly ConfigEntry<float> InstrumentVolume;
+        public readonly ConfigEntry<float> HarpVolume;
 
         public readonly ConfigEntry<int> HarpGhostSpawnRate;
         public readonly ConfigEntry<int> MaxAmountOfHarpGhosts;
@@ -401,11 +404,11 @@ namespace LethalCompanyHarpGhost
                 "The volume of the ghost's voice. Values are from 0-1"
             );
 
-            InstrumentVolume = cfg.Bind(
+            HarpVolume = cfg.Bind(
                 "Audio",
-                "Instrument Volume",
+                "Harp Volume",
                 0.8f,
-                "The volume of the music played from any instrument. Values are from 0-1"
+                "The volume of the music played from the harp. Values are from 0-1"
             );
             
             HarpGhostSpawnRate = cfg.Bind(

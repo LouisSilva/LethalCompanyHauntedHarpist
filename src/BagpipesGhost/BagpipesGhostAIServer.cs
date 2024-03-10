@@ -37,6 +37,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     private bool _isNarrowPath = false;
     private bool _inStunAnimation = false;
     private bool _openDoorTimerActivated = false;
+    private bool _currentlyRetiringAllEscorts = false;
     
     [SerializeField] private int numberOfEscorts = 3;
     
@@ -46,6 +47,8 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     private EntranceTeleport _escapeDoor;
 
     private RoundManager _roundManager;
+
+    private InstrumentBehaviour _heldBagpipes;
     
     [Header("Controllers and Managers")]
     [Space(5f)]
@@ -92,13 +95,13 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
         InitializeConfigValues();
 
-        GameObject debugCircle = new("Circle");
-        debugCircle.transform.SetParent(transform, false);
-        _lineRenderer = debugCircle.AddComponent<LineRenderer>();
-        _lineRenderer.widthMultiplier = 0.1f;
-        _lineRenderer.positionCount = 51;
-        _lineRenderer.useWorldSpace = true;
-        _lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+        // GameObject debugCircle = new("Circle");
+        // debugCircle.transform.SetParent(transform, false);
+        // _lineRenderer = debugCircle.AddComponent<LineRenderer>();
+        // _lineRenderer.widthMultiplier = 0.1f;
+        // _lineRenderer.positionCount = 51;
+        // _lineRenderer.useWorldSpace = true;
+        // _lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
         
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsDead, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsStunned, false);
@@ -200,29 +203,6 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         {
             case (int)States.PlayingMusicWhileEscorted:
             {
-                // _agentIsMoving = (transform.position - _agentLastPosition).magnitude > 0.05f;
-                // if (!roamMap.inProgress) StartSearch(transform.position, roamMap);
-
-                // // Starts the idle timer if the ghost isnt moving
-                // if (!_agentIsMoving)
-                // {
-                //     switch (_isIdleTimerRunning)
-                //     {
-                //         case true when _idleTimer > 5f:
-                //             LogDebug("Restarting search because ghost not moving");
-                //             StopSearch(roamMap);
-                //             StartSearch(transform.position, roamMap);
-                //             _isIdleTimerRunning = false;
-                //             _idleTimer = 0f;
-                //             break;
-                //         
-                //         case false:
-                //             _isIdleTimerRunning = true;
-                //             _idleTimer = 0f;
-                //             break;
-                //     }
-                // }
-
                 if (!moveTowardsDestination)
                 {
                     SetDestinationToPosition(ChooseFarthestNodeFromPosition(transform.position).position);
@@ -247,6 +227,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
             case (int)States.RunningToEscapeDoor:
             {
                 if (roamMap.inProgress) StopSearch(roamMap);
+                if (isOutside) SwitchBehaviourStateLocally((int)States.RunningToEdgeOfOutsideMap);
                 if (!_chosenEscapeDoor) ChooseEscapeDoor();
 
                 // Check if the ghost has reached the exit door
@@ -281,23 +262,21 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         if (!IsServer) return;
 
         isOutside = true;
-        allAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
         serverPosition = _escapeDoor.entrancePoint.position;
         transform.position = serverPosition;
         
         agent.Warp(serverPosition);
         SyncPositionToClients();
         SwitchBehaviourStateLocally((int)States.RunningToEdgeOfOutsideMap);
-        SetDestinationToPosition(ChooseFarthestNodeFromPosition(StartOfRound.Instance.middleOfShipNode.position).position);
     }
 
     private void ExitTheGameThroughOutsideNode()
     {
         if(!IsServer) return;
         
-        netcodeController.EnterDeathStateClientRpc(_ghostId);
-        KillEnemyClientRpc(false);
-        SwitchBehaviourStateLocally((int)States.Dead);
+        Destroy(_heldBagpipes);
+        netcodeController.DestroyHeldBagpipesClientRpc(_ghostId);
+        Destroy(this);
     }
 
     private void ChooseEscapeDoor()
@@ -328,11 +307,14 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     private void RetireAllEscorts()
     {
         if (!IsServer) return;
-        
+        if (_currentlyRetiringAllEscorts) return;
+
+        _currentlyRetiringAllEscorts = true;
         for (int i=0;i<_escorts.Count;i++)
         {
             RemoveEscort(i);
         }
+        _currentlyRetiringAllEscorts = false;
     }
 
     private void UpdateAgentFormation()
@@ -443,7 +425,6 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         if (currentBehaviourStateIndex == (int)States.PlayingMusicWhileEscorted)
         {
             SwitchBehaviourStateLocally((int)States.RunningToEscapeDoor);
-            RetireAllEscorts();
         }
     }
 
@@ -508,6 +489,8 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 movingTowardsTargetPlayer = false;
                 
                 RetireAllEscorts();
+                allAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
+                SetDestinationToPosition(ChooseFarthestNodeFromPosition(StartOfRound.Instance.middleOfShipNode.position, true).position);
                 netcodeController.StopBagpipesMusicClientRpc(_ghostId);
                 
                 break;
@@ -604,5 +587,4 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     
     public Vector3 TransformPosition => transform.position;
     public RoundManager RoundManagerInstance => RoundManager.Instance;
-    public InstrumentBehaviour HeldBagpipe { get; set; }
 }
