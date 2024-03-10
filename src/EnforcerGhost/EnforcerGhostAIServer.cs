@@ -1,31 +1,44 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using BepInEx.Logging;
+using GameNetcodeStuff;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Serialization;
 
 // TODO: Add "Fat Boi" config which allows people to make the enforcer ghost unable to fly across gaps because they are too fat
 
 namespace LethalCompanyHarpGhost.EnforcerGhost;
 
+[SuppressMessage("ReSharper", "RedundantDefaultMemberInitializer")]
 public class EnforcerGhostAIServer : EnemyAI
 {
     private ManualLogSource _mls;
-    private string _ghostId;
-    
-    [Header("AI and Pathfinding")]
+    public string ghostId;
+
+    [Header("AI and Pathfinding")] 
     [Space(5f)]
+    public AISearchRoutine roamMap;
+    public AISearchRoutine searchForPlayers;
+    
     [SerializeField] private float agentMaxAcceleration = 50f;
     [SerializeField] private float agentMaxSpeed = 0.8f;
     private float _agentCurrentSpeed = 0f;
     private float _timeSinceHittingLocalPlayer = 0f;
 
+    private bool _hasBegunInvestigating = false;
     private bool _inStunAnimation = false;
-    
+    private bool _canHearPlayers = false;
+
+    private Vector3 _targetPosition = default;
     private Vector3 _agentLastPosition = default;
 
     // private PlayerControllerB _targetPlayer;
     
     private RoundManager _roundManager;
+
+    private ShotgunItem _heldShotgun;
     
     [Header("Controllers and Managers")]
     [Space(5f)]
@@ -33,13 +46,15 @@ public class EnforcerGhostAIServer : EnemyAI
     [SerializeField] private EnforcerGhostAudioManager audioManager;
     [SerializeField] private EnforcerGhostNetcodeController netcodeController;
     [SerializeField] private EnforcerGhostAnimationController animationController;
-    private IEscortee _escortee;
+    [HideInInspector] public IEscortee Escortee { private get; set; }
     #pragma warning restore 0649
 
     private enum States
     {
         Escorting,
-        Rambo,
+        SearchingForPlayers,
+        InvestigatingTargetPosition,
+        ShootingTargetPlayer,
         Dead
     }
 
@@ -48,7 +63,7 @@ public class EnforcerGhostAIServer : EnemyAI
         base.Start();
         if (!IsServer) return;
         
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Enforcer Ghost AI {_ghostId} | Server");
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Enforcer Ghost AI {ghostId} | Server");
         
         netcodeController = GetComponent<EnforcerGhostNetcodeController>();
         if (netcodeController == null) _mls.LogError("Netcode Controller is null");
@@ -65,19 +80,19 @@ public class EnforcerGhostAIServer : EnemyAI
         
         _roundManager = FindObjectOfType<RoundManager>();
         
-        _ghostId = Guid.NewGuid().ToString();
-        netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
+        ghostId = Guid.NewGuid().ToString();
+        netcodeController.SyncGhostIdentifierClientRpc(ghostId);
         
         UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, EnforcerGhostAnimationController.IsDead, false);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, EnforcerGhostAnimationController.IsStunned, false);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, EnforcerGhostAnimationController.IsRunning, false);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, EnforcerGhostAnimationController.IsHoldingShotgun, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAnimationController.IsDead, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAnimationController.IsStunned, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAnimationController.IsRunning, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAnimationController.IsHoldingShotgun, false);
         
         InitializeConfigValues();
         
-        netcodeController.SpawnShotgunServerRpc(_ghostId);
-        netcodeController.GrabShotgunClientRpc(_ghostId);
+        netcodeController.SpawnShotgunServerRpc(ghostId);
+        netcodeController.GrabShotgunClientRpc(ghostId);
         
         _mls.LogInfo("Enforcer Ghost Spawned");
     }
@@ -98,14 +113,14 @@ public class EnforcerGhostAIServer : EnemyAI
         
         if (stunNormalizedTimer <= 0.0 && _inStunAnimation && !isEnemyDead)
         {
-            netcodeController.DoAnimationClientRpc(_ghostId, EnforcerGhostAnimationController.Recover);
+            netcodeController.DoAnimationClientRpc(ghostId, EnforcerGhostAnimationController.Recover);
             _inStunAnimation = false;
-            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, EnforcerGhostAnimationController.IsStunned, false);
+            netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAnimationController.IsStunned, false);
         }
         
         if (StartOfRound.Instance.allPlayersDead)
         {
-            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, EnforcerGhostAnimationController.IsRunning, false);
+            netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAnimationController.IsRunning, false);
             return;
         }
         
@@ -119,18 +134,123 @@ public class EnforcerGhostAIServer : EnemyAI
 
         switch (currentBehaviourStateIndex)
         {
-            case 0:
+            case (int)States.Escorting:
+            {
+                if (Escortee == null) SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
                 break;
+            }
+            
+            case (int)States.SearchingForPlayers: // searching for player state
+            {
+                if (roamMap.inProgress) StopSearch(roamMap);
+                
+                PlayerControllerB tempTargetPlayer = CheckLineOfSightForClosestPlayer(90f, 40, 2);
+                if (tempTargetPlayer != null)
+                {
+                    SwitchBehaviourStateLocally((int)States.ShootingTargetPlayer);
+                    break;
+                }
+                
+                if (!searchForPlayers.inProgress)
+                {
+                    if (_targetPosition != default)
+                    {
+                        if (CheckForPath(_targetPosition))
+                        {
+                            searchForPlayers.searchWidth = 30f;
+                            StartSearch(_targetPosition, searchForPlayers);
+                            break;
+                        }
+                    }
+                    
+                    // If there is no target player last seen position, just search from where the ghost is currently at
+                    searchForPlayers.searchWidth = 100f;
+                    StartSearch(transform.position, searchForPlayers);
+                    break;
+                }
+                
+                break;
+            }
+            
+            case (int)States.InvestigatingTargetPosition: // investigating last seen player position state
+            {
+                if (roamMap.inProgress) StopSearch(roamMap);
+                if (searchForPlayers.inProgress) StopSearch(searchForPlayers);
+
+                // Check for player in LOS
+                PlayerControllerB tempTargetPlayer = CheckLineOfSightForClosestPlayer(90f, 40, 2);
+                if (tempTargetPlayer != null)
+                {
+                    SwitchBehaviourStateLocally((int)States.ShootingTargetPlayer);
+                    break;
+                }
+                
+                // begin investigating if not already
+                if (!_hasBegunInvestigating) 
+                {
+                    if (_targetPosition == default) SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
+                    else
+                    {
+                        if (!SetDestinationToPosition(_targetPosition, true))
+                        {
+                            SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
+                            break;
+                        }
+                        _hasBegunInvestigating = true;
+                    }
+                }
+
+                // If player isnt in LOS and ghost has reached the player's last known position, then switch to state 1
+                if (Vector3.Distance(transform.position, _targetPosition) <= 1)
+                {
+                    SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
+                    break;
+                }
+                
+                break;
+            }
+
+            case (int)States.ShootingTargetPlayer:
+            {
+                if (roamMap.inProgress) StopSearch(roamMap);
+                if (searchForPlayers.inProgress) StopSearch(searchForPlayers);
+                
+                break;
+            }
+
+            case (int)States.Dead:
+            {
+                if (roamMap.inProgress) StopSearch(roamMap);
+                if (searchForPlayers.inProgress) StopSearch(searchForPlayers);
+
+                break;
+            }
         }
+    }
+
+    private void AimAtPosition(Vector3 position)
+    {
+        Vector3 direction = (position - transform.position).normalized;
+        Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0, direction.z));
+        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 5f);
     }
 
     // Called by the escortee ghost to tell the enforcer to switch to behaviour state 1 and stop escorting
     public void EnterRambo()
     {
-        if (currentBehaviourStateIndex != (int)States.Dead || currentBehaviourStateIndex != (int)States.Rambo)
+        if (!IsServer) return;
+        if (currentBehaviourStateIndex != (int)States.Dead && currentBehaviourStateIndex != (int)States.SearchingForPlayers)
         {
-            SwitchBehaviourStateLocally((int)States.Rambo);
+            SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
         }
+    }
+
+    private void BeginChasingPlayer(int targetPlayerObjectId)
+    {
+        if (!IsServer) return;
+        PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[targetPlayerObjectId];
+        targetPlayer = player;
+        SetMovingTowardsTargetPlayer(player);
     }
 
     private void SwitchBehaviourStateLocally(int state)
@@ -150,15 +270,13 @@ public class EnforcerGhostAIServer : EnemyAI
                 break;
             }
 
-            case (int)States.Rambo:
+            case (int)States.SearchingForPlayers:
             {
-                LogDebug($"Switched to behaviour state {(int)States.Rambo}!");
+                LogDebug($"Switched to behaviour state {(int)States.SearchingForPlayers}!");
 
                 agentMaxSpeed = 3f;
                 agentMaxAcceleration = 15f;
                 openDoorSpeedMultiplier = 1f;
-
-                _escortee?.EscorteeBreakoff();
 
                 break;
             }
@@ -174,13 +292,16 @@ public class EnforcerGhostAIServer : EnemyAI
                 agent.enabled = false;
                 isEnemyDead = true;
                 
-                _escortee?.EscorteeBreakoff();
-                netcodeController.DropShotgunClientRpc(_ghostId, transform.position);
-                netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, EnforcerGhostAnimationController.IsDead, true);
+                Escortee?.EscorteeBreakoff();
+                netcodeController.DropShotgunClientRpc(ghostId, transform.position);
+                netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAnimationController.IsDead, true);
                 break;
             }
-                
         }
+        
+        if (currentBehaviourStateIndex == state) return;
+        previousBehaviourStateIndex = currentBehaviourStateIndex;
+        currentBehaviourStateIndex = state;
     }
     
     private bool CheckForPath(Vector3 position)
@@ -195,7 +316,7 @@ public class EnforcerGhostAIServer : EnemyAI
     private void InitializeConfigValues()
     {
         if (!IsServer) return;
-        netcodeController.InitializeConfigValuesClientRpc(_ghostId);
+        netcodeController.InitializeConfigValuesClientRpc(ghostId);
     }
     
     private void CalculateAgentSpeed()

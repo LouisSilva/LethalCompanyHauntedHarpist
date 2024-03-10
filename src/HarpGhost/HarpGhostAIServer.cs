@@ -178,7 +178,10 @@ public class HarpGhostAIServer : EnemyAI
                 {
                     TurnGhostEyesRed();
                     netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Upset, audioManager.upsetSfx.Length);
-                    SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
+                    
+                    if (_targetPosition != default) SwitchBehaviourStateLocally((int)States.InvestigatingTargetPosition);
+                    else SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
+                    
                 }
 
                 break;
@@ -186,25 +189,19 @@ public class HarpGhostAIServer : EnemyAI
 
             case (int)States.SearchingForPlayers: // harp ghost is angry and trying to find players to attack
             {
-                bool isRunning = _agentCurrentSpeed >= 3f;
-                if (animationController.GetBool(HarpGhostAnimationController.IsRunning) != isRunning && !_inStunAnimation)
-                    netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, isRunning);
+                RunAnimation();
                 break;
             }
 
             case (int)States.InvestigatingTargetPosition: // ghost is investigating last seen player pos
             {
-                bool isRunning = _agentCurrentSpeed >= 3f;
-                if (animationController.GetBool(HarpGhostAnimationController.IsRunning) != isRunning && !_inStunAnimation)
-                    netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, isRunning);
+                RunAnimation();
                 break;
             }
 
             case (int)States.ChasingTargetPlayer: // ghost is chasing player
             {
-                bool isRunning = _agentCurrentSpeed >= 3f;
-                if (animationController.GetBool(HarpGhostAnimationController.IsRunning) != isRunning && !_inStunAnimation)
-                    netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, isRunning);
+                RunAnimation();
                 break;
             }
 
@@ -646,7 +643,6 @@ public class HarpGhostAIServer : EnemyAI
         PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[targetPlayerObjectId];
         targetPlayer = player;
         SetMovingTowardsTargetPlayer(player);
-        LogDebug($"Now chasing {player.name}");
     }
 
     // Using custom player collision checker because the default one checks if the player is the owner of the enemy, and thats a no no for me
@@ -717,6 +713,7 @@ public class HarpGhostAIServer : EnemyAI
                 if (noiseID is (int)HarpGhostAudioManager.NoiseIds.Boombox or (int)HarpGhostAudioManager.NoiseIds.PlayersTalking or (int)HarpGhostAudioManager.NoiseIds.RadarBoosterPing)
                     noiseLoudness *= 2;
                 annoyanceLevel += noiseLoudness;
+                _targetPosition = noisePosition;
         
                 LogDebug($"Harp Ghost annoyance level: {annoyanceLevel}");
                 break;
@@ -756,6 +753,15 @@ public class HarpGhostAIServer : EnemyAI
 
         attackArea.size = newSize;
         attackArea.center = newCenter;
+    }
+    
+    private void RunAnimation()
+    {
+        if (!IsServer) return;
+        
+        bool isRunning = _agentCurrentSpeed >= 3f;
+        if (animationController.GetBool(HarpGhostAnimationController.IsRunning) != isRunning && !_inStunAnimation)
+            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, isRunning);
     }
     
     private void LogDebug(string msg)

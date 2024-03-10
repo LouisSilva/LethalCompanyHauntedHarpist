@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using BepInEx.Logging;
 using GameNetcodeStuff;
 using LethalCompanyHarpGhost.EnforcerGhost;
@@ -11,6 +13,7 @@ using UnityEngine.AI;
 
 namespace LethalCompanyHarpGhost.BagpipesGhost;
 
+[SuppressMessage("ReSharper", "RedundantDefaultMemberInitializer")]
 public class BagpipesGhostAIServer : EnemyAI, IEscortee
 {
     private ManualLogSource _mls;
@@ -22,23 +25,25 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     [Space(5f)]
     public AISearchRoutine roamMap;
     
-    private bool _agentIsMoving = false;
-    private bool _isIdleTimerRunning = false;
-    
     private float _agentCurrentSpeed;
-    private float _idleTimer;
+    private float _openDoorTimer = 0f;
     private const float EscortHorizontalBaseLength = 5f;
     private const float EscortRowSpacing = 3f;
     [SerializeField] private float agentMaxAcceleration = 200f;
     [SerializeField] private float agentMaxSpeed = 0.5f;
     
+    private bool _agentIsMoving = false;
+    private bool _chosenEscapeDoor = false;
     private bool _isNarrowPath = false;
     private bool _inStunAnimation = false;
+    private bool _openDoorTimerActivated = false;
     
     [SerializeField] private int numberOfEscorts = 3;
-
+    
     private Vector3 _agentLastPosition;
     private readonly List<Vector3> _escortAgentPathPoints = [];
+
+    private EntranceTeleport _escapeDoor;
 
     private RoundManager _roundManager;
     
@@ -54,7 +59,8 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     private enum States
     {
         PlayingMusicWhileEscorted,
-        RunningAway,
+        RunningToEscapeDoor,
+        RunningToEdgeOfOutsideMap,
         Dead
     }
 
@@ -86,13 +92,13 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
         InitializeConfigValues();
 
-        // GameObject debugCircle = new("Circle");
-        // debugCircle.transform.SetParent(transform, false);
-        // _lineRenderer = debugCircle.AddComponent<LineRenderer>();
-        // _lineRenderer.widthMultiplier = 0.1f;
-        // _lineRenderer.positionCount = 51;
-        // _lineRenderer.useWorldSpace = true;
-        // _lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+        GameObject debugCircle = new("Circle");
+        debugCircle.transform.SetParent(transform, false);
+        _lineRenderer = debugCircle.AddComponent<LineRenderer>();
+        _lineRenderer.widthMultiplier = 0.1f;
+        _lineRenderer.positionCount = 51;
+        _lineRenderer.useWorldSpace = true;
+        _lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
         
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsDead, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsStunned, false);
@@ -104,7 +110,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         if (HarpGhostPlugin.EnforcerGhostEnemyType.enemyPrefab == null)
         {
             _mls.LogError("Enforcer ghost prefab is null, making bagpipe ghost run away from players because he is not escorted");
-            SwitchBehaviourStateLocally((int)States.RunningAway);
+            SwitchBehaviourStateLocally((int)States.RunningToEscapeDoor);
         }
         else StartCoroutine(SpawnEscorts(() => { netcodeController.PlayBagpipesMusicClientRpc(_ghostId); }));
         
@@ -131,8 +137,6 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     {
         base.Update();
         if (!IsServer) return;
-
-        if (_isIdleTimerRunning) _idleTimer += Time.deltaTime;
         
         CalculateAgentSpeed();
         
@@ -156,12 +160,28 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 break;
             }
 
-            case (int)States.RunningAway:
+            case (int)States.RunningToEscapeDoor:
             {
-                bool isRunning = _agentCurrentSpeed >= 3f;
-                if (animationController.GetBool(BagpipesGhostAnimationController.IsRunning) != isRunning && !_inStunAnimation)
-                    netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsRunning, isRunning);
+                RunAnimation();
+                
+                if (_openDoorTimerActivated)
+                {
+                    _openDoorTimer += Time.deltaTime;
+                    if (_openDoorTimer > 1f && stunNormalizedTimer <= 0)
+                    {
+                        _openDoorTimerActivated = false;
+                        GoThroughEscapeDoor();
+                    }
+                }
+
                 break;
+            }
+
+            case (int)States.RunningToEdgeOfOutsideMap:
+            {
+               RunAnimation();
+
+               break;
             }
 
             case (int)States.Dead:
@@ -180,27 +200,39 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         {
             case (int)States.PlayingMusicWhileEscorted:
             {
-                _agentIsMoving = (transform.position - _agentLastPosition).magnitude > 0.05f;
-                if (!roamMap.inProgress) StartSearch(transform.position, roamMap);
+                // _agentIsMoving = (transform.position - _agentLastPosition).magnitude > 0.05f;
+                // if (!roamMap.inProgress) StartSearch(transform.position, roamMap);
 
-                // Starts the idle timer if the ghost isnt moving
-                if (!_agentIsMoving)
+                // // Starts the idle timer if the ghost isnt moving
+                // if (!_agentIsMoving)
+                // {
+                //     switch (_isIdleTimerRunning)
+                //     {
+                //         case true when _idleTimer > 5f:
+                //             LogDebug("Restarting search because ghost not moving");
+                //             StopSearch(roamMap);
+                //             StartSearch(transform.position, roamMap);
+                //             _isIdleTimerRunning = false;
+                //             _idleTimer = 0f;
+                //             break;
+                //         
+                //         case false:
+                //             _isIdleTimerRunning = true;
+                //             _idleTimer = 0f;
+                //             break;
+                //     }
+                // }
+
+                if (!moveTowardsDestination)
                 {
-                    switch (_isIdleTimerRunning)
-                    {
-                        case true when _idleTimer > 5f:
-                            LogDebug("Restarting search because ghost not moving");
-                            StopSearch(roamMap);
-                            StartSearch(transform.position, roamMap);
-                            _isIdleTimerRunning = false;
-                            _idleTimer = 0f;
-                            break;
-                        
-                        case false:
-                            _isIdleTimerRunning = true;
-                            _idleTimer = 0f;
-                            break;
-                    }
+                    SetDestinationToPosition(ChooseFarthestNodeFromPosition(transform.position).position);
+                    moveTowardsDestination = true;
+                }
+
+                // Check if the ghost has reached its destination
+                if (Vector3.Distance(transform.position, destination) <= 1)
+                {
+                    moveTowardsDestination = false; 
                 }
                 
                 _isNarrowPath = CheckForNarrowPassages();
@@ -212,81 +244,94 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 break;
             }
 
-            case (int)States.RunningAway:
+            case (int)States.RunningToEscapeDoor:
             {
                 if (roamMap.inProgress) StopSearch(roamMap);
+                if (!_chosenEscapeDoor) ChooseEscapeDoor();
+
+                // Check if the ghost has reached the exit door
+                if (Vector3.Distance(transform.position, _escapeDoor.exitPoint.position) <= 1 && !_openDoorTimerActivated)
+                {
+                    LogDebug("Reached escape door");
+                    moveTowardsDestination = false;
+                    _openDoorTimerActivated = true;
+                    _openDoorTimer = 0f;
+                }
+
+                break;
+            }
+
+            case (int)States.RunningToEdgeOfOutsideMap:
+            {
+                if (roamMap.inProgress) StopSearch(roamMap);
+                if (Vector3.Distance(transform.position, destination) <= 1)
+                {
+                    LogDebug("Reached outside escape node");
+                    moveTowardsDestination = false;
+                    ExitTheGameThroughOutsideNode();
+                }
+                
                 break;
             }
         }
     }
 
-    private void SwitchBehaviourStateLocally(int state)
+    private void GoThroughEscapeDoor()
     {
         if (!IsServer) return;
-        switch (state)
-        {
-            case (int)States.PlayingMusicWhileEscorted:
-            {
-                LogDebug($"Switched to behaviour state {(int)States.PlayingMusicWhileEscorted}!");
-                
-                agentMaxSpeed = 0.5f;
-                agentMaxAcceleration = 50f;
-                movingTowardsTargetPlayer = false;
-                openDoorSpeedMultiplier = 6;
-                _idleTimer = 0;
-                _isIdleTimerRunning = false;
 
-                break;
-            }
-
-            case (int)States.RunningAway:
-            {
-                LogDebug($"Switched to behaviour state {(int)States.RunningAway}!");
-                
-                agentMaxSpeed = 10f;
-                agentMaxAcceleration = 100f;
-                openDoorSpeedMultiplier = 6;
-                movingTowardsTargetPlayer = false;
-                _idleTimer = 0;
-                _isIdleTimerRunning = false;
-
-                RetireAllEscorts();
-                break;
-            }
-
-            case (int)States.Dead:
-            {
-                LogDebug($"Switched to behaviour state {(int)States.Dead}!");
-                
-                agentMaxSpeed = 0f;
-                agentMaxAcceleration = 0f;
-                movingTowardsTargetPlayer = false;
-                agent.speed = 0;
-                agent.enabled = false;
-                isEnemyDead = true;
-                _idleTimer = 0f;
-                _isIdleTimerRunning = false;
-                
-                netcodeController.DropBagpipesClientRpc(_ghostId, transform.position);
-                netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsDead, true);
-                RetireAllEscorts();
-                break;
-            }
-        }
+        isOutside = true;
+        allAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
+        serverPosition = _escapeDoor.entrancePoint.position;
+        transform.position = serverPosition;
+        
+        agent.Warp(serverPosition);
+        SyncPositionToClients();
+        SwitchBehaviourStateLocally((int)States.RunningToEdgeOfOutsideMap);
+        SetDestinationToPosition(ChooseFarthestNodeFromPosition(StartOfRound.Instance.middleOfShipNode.position).position);
     }
 
-    public void EscorteeBreakoff()
+    private void ExitTheGameThroughOutsideNode()
     {
-        RetireAllEscorts();
+        if(!IsServer) return;
+        
+        netcodeController.EnterDeathStateClientRpc(_ghostId);
+        KillEnemyClientRpc(false);
+        SwitchBehaviourStateLocally((int)States.Dead);
+    }
+
+    private void ChooseEscapeDoor()
+    {
+        if (!IsServer) return;
+        
+        _chosenEscapeDoor = true;
+        EntranceTeleport[] exits = FindObjectsOfType<EntranceTeleport>().Where(exit => exit != null && exit.exitPoint != null).ToArray();
+        Dictionary<EntranceTeleport, float> exitDistances = exits.ToDictionary(exit => exit, exit => Vector3.Distance(transform.position, exit.exitPoint.position));
+        
+        EntranceTeleport closestExit = exitDistances.Aggregate((l, r) => l.Value < r.Value ? l : r).Key;
+        _escapeDoor = closestExit;
+        
+        // Avoid the escape door being the main door if possible
+        if (closestExit.entranceId == 0)
+        {
+            if (Vector3.Distance(transform.position, closestExit.exitPoint.position) > 30f)
+            {
+                exitDistances.Remove(closestExit);
+                _escapeDoor = exitDistances.Aggregate((l, r) => l.Value < r.Value ? l : r).Key;
+            }
+        }
+        
+        SetDestinationToPosition(_escapeDoor.exitPoint.position);
     }
 
     // Makes the escorts enter rambo state and removes them from the escort list
     private void RetireAllEscorts()
     {
-        foreach (EnforcerGhostAIServer escort in _escorts)
+        if (!IsServer) return;
+        
+        for (int i=0;i<_escorts.Count;i++)
         {
-            escort.EnterRambo();
-            RemoveEscort(escort);
+            RemoveEscort(i);
         }
     }
 
@@ -345,24 +390,18 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         return leftBlocked || rightBlocked;
     }
 
-    private float CalculateEscortSpeed(Vector3 currentPosition, Vector3 targetPosition)
-    {
-        Vector3 directionToTarget = (targetPosition - currentPosition).normalized;
-        float angleDifference = Vector3.Angle(transform.forward, directionToTarget);
-        const float turnSpeedAdjustment = 0.5f;
-        return Mathf.Max(1, turnSpeedAdjustment * (180 - angleDifference) / 180);
-    }
-
     private void AddEscort(EnforcerGhostAIServer escort)
     {
         if (_escorts == null || _escorts.Contains(escort)) return;
+        escort.Escortee = this;
         _escorts.Add(escort);
     }
 
-    public void RemoveEscort(EnforcerGhostAIServer escort)
+    public void RemoveEscort(int indexOfEscort)
     {
-        if (escort == null || !_escorts.Contains(escort)) return;
-        _escorts.Remove(escort);
+        if (_escorts[indexOfEscort] == null) return;
+        _escorts[indexOfEscort].Escortee = null;
+        _escorts.RemoveAt(indexOfEscort);
     }
 
     private IEnumerator SpawnEscorts(Action callback = null)
@@ -403,7 +442,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
 
         if (currentBehaviourStateIndex == (int)States.PlayingMusicWhileEscorted)
         {
-            SwitchBehaviourStateLocally((int)States.RunningAway);
+            SwitchBehaviourStateLocally((int)States.RunningToEscapeDoor);
             RetireAllEscorts();
         }
     }
@@ -418,7 +457,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         if (enemyHP > 0)
         {
             netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Damage, audioManager.damageSfx.Length);
-            if (currentBehaviourStateIndex != (int)States.RunningAway) SwitchBehaviourStateLocally((int)States.RunningAway);
+            if (currentBehaviourStateIndex != (int)States.RunningToEscapeDoor) SwitchBehaviourStateLocally((int)States.RunningToEscapeDoor);
             return;
         }
         
@@ -426,6 +465,75 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         netcodeController.EnterDeathStateClientRpc(_ghostId);
         KillEnemyClientRpc(false);
         SwitchBehaviourStateLocally((int)States.Dead);
+    }
+    
+    private void SwitchBehaviourStateLocally(int state)
+    {
+        if (!IsServer) return;
+        switch (state)
+        {
+            case (int)States.PlayingMusicWhileEscorted:
+            {
+                LogDebug($"Switched to behaviour state {(int)States.PlayingMusicWhileEscorted}!");
+                
+                agentMaxSpeed = 0.5f;
+                agentMaxAcceleration = 50f;
+                movingTowardsTargetPlayer = false;
+                openDoorSpeedMultiplier = 6;
+
+                break;
+            }
+
+            case (int)States.RunningToEscapeDoor:
+            {
+                LogDebug($"Switched to behaviour state {(int)States.RunningToEscapeDoor}!");
+                
+                agentMaxSpeed = 10f;
+                agentMaxAcceleration = 30f;
+                openDoorSpeedMultiplier = 6;
+                movingTowardsTargetPlayer = false;
+
+                RetireAllEscorts();
+                netcodeController.StopBagpipesMusicClientRpc(_ghostId);
+                break;
+            }
+
+            case (int)States.RunningToEdgeOfOutsideMap:
+            {
+                LogDebug($"Switched to behaviour state {(int)States.RunningToEdgeOfOutsideMap}!");
+
+                agentMaxSpeed = 10f;
+                agentMaxAcceleration = 30f;
+                openDoorSpeedMultiplier = 6;
+                movingTowardsTargetPlayer = false;
+                
+                RetireAllEscorts();
+                netcodeController.StopBagpipesMusicClientRpc(_ghostId);
+                
+                break;
+            }
+
+            case (int)States.Dead:
+            {
+                LogDebug($"Switched to behaviour state {(int)States.Dead}!");
+                
+                agentMaxSpeed = 0f;
+                agentMaxAcceleration = 0f;
+                movingTowardsTargetPlayer = false;
+                agent.speed = 0;
+                agent.enabled = false;
+                isEnemyDead = true;
+                
+                netcodeController.DropBagpipesClientRpc(_ghostId, transform.position);
+                netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsDead, true);
+                RetireAllEscorts();
+                break;
+            }
+        }
+        
+        if (currentBehaviourStateIndex == state) return;
+        previousBehaviourStateIndex = currentBehaviourStateIndex;
+        currentBehaviourStateIndex = state;
     }
 
     private void DrawDebugCircleAtTargetNode()
@@ -445,6 +553,15 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
             _lineRenderer.SetPosition(i, new Vector3(x, y, z));
             angle += 360f / 50;
         }
+    }
+
+    private void RunAnimation()
+    {
+        if (!IsServer) return;
+        
+        bool isRunning = _agentCurrentSpeed >= 3f;
+        if (animationController.GetBool(BagpipesGhostAnimationController.IsRunning) != isRunning && !_inStunAnimation)
+            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsRunning, isRunning);
     }
     
     private void CalculateAgentSpeed()
@@ -471,6 +588,11 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         
         float accelerationAdjustment = Time.deltaTime;
         agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
+    }
+
+    public void EscorteeBreakoff()
+    {
+        RetireAllEscorts();
     }
     
     private void LogDebug(string logMessage)

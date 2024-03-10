@@ -250,6 +250,9 @@ namespace LethalCompanyHarpGhost
         public readonly ConfigEntry<float> HarpGhostAnnoyanceLevelDecayRate;
         public readonly ConfigEntry<float> HarpGhostAnnoyanceThreshold;
         public readonly ConfigEntry<float> HarpGhostMaxSearchRadius;
+        public readonly ConfigEntry<float> HarpGhostViewWidth;
+        public readonly ConfigEntry<float> HarpGhostViewRange;
+        public readonly ConfigEntry<float> HarpGhostProximityAwareness;
         public readonly ConfigEntry<bool> HarpGhostIsStunnable;
         public readonly ConfigEntry<bool> HarpGhostIsKillable;
         public readonly ConfigEntry<bool> HarpGhostCanHearPlayersWhenAngry;
