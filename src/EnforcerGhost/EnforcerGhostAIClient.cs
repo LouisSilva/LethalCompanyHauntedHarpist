@@ -1,15 +1,10 @@
 ﻿using BepInEx.Logging;
+using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Serialization;
 
 namespace LethalCompanyHarpGhost.EnforcerGhost;
-
-/*
-
-
-
-*/
 
 public class EnforcerGhostAIClient : MonoBehaviour
 {
@@ -21,9 +16,12 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private ShotgunItem _heldShotgun;
 
     private int _shotgunScrapValue;
+
+    private PlayerControllerB _targetPlayer;
     
     #pragma warning disable 0649
     [SerializeField] private Transform grabTarget;
+    [SerializeField] private Transform eye;
     
     [SerializeField] private EnforcerGhostNetcodeController netcodeController;
     [SerializeField] private EnforcerGhostAIServer enforcerGhostAIServer;
@@ -35,6 +33,11 @@ public class EnforcerGhostAIClient : MonoBehaviour
         netcodeController.OnSpawnShotgun += HandleSpawnShotgun;
         netcodeController.OnGrabShotgunPhaseTwo += HandleGrabShotgunPhaseTwo;
         netcodeController.OnDropShotgun += HandleDropShotgun;
+        netcodeController.OnShootGun += HandleShootShotgun;
+        netcodeController.OnChangeTargetPlayer += HandleChangeTargetPlayer;
+        netcodeController.OnIncreaseTargetPlayerFearLevel += HandleIncreaseTargetPlayerFearLevel;
+        netcodeController.OnUpdateShotgunShellsLoaded += HandleUpdateShotgunShellsLoaded;
+        netcodeController.OnChangeShotgunAnimationParameterBool += HandleChangeShotgunAnimationParameterBool;
     }
 
     private void OnDestroy()
@@ -43,11 +46,35 @@ public class EnforcerGhostAIClient : MonoBehaviour
         netcodeController.OnSpawnShotgun -= HandleSpawnShotgun;
         netcodeController.OnGrabShotgunPhaseTwo -= HandleGrabShotgunPhaseTwo;
         netcodeController.OnDropShotgun -= HandleDropShotgun;
+        netcodeController.OnShootGun -= HandleShootShotgun;
+        netcodeController.OnChangeTargetPlayer -= HandleChangeTargetPlayer;
+        netcodeController.OnIncreaseTargetPlayerFearLevel -= HandleIncreaseTargetPlayerFearLevel;
+        netcodeController.OnUpdateShotgunShellsLoaded -= HandleUpdateShotgunShellsLoaded;
+        netcodeController.OnChangeShotgunAnimationParameterBool -= HandleChangeShotgunAnimationParameterBool;
     }
 
     private void Start()
     {
         _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Enforcer Ghost AI {_ghostId} | Client");
+    }
+
+    private void HandleChangeShotgunAnimationParameterBool(string recievedGhostId, string animationName, bool value)
+    {
+        if (_ghostId != recievedGhostId) return;
+        _heldShotgun.gunAnimator.SetBool(animationName, value);
+    }
+
+    private void HandleUpdateShotgunShellsLoaded(string recievedGhostId, int shells)
+    {
+        if (_ghostId != recievedGhostId) return;
+        _heldShotgun.shellsLoaded = shells;
+    }
+
+    private void HandleShootShotgun(string recievedGhostId)
+    {
+        if (_ghostId != recievedGhostId) return;
+        LogDebug("In HandleShootShotgun");
+        _heldShotgun.ShootGun(_heldShotgun.transform.position, _heldShotgun.transform.forward);
     }
 
     private void HandleSpawnShotgun(string recievedGhostId, NetworkObjectReference shotgunObject, int shotgunScrapValue)
@@ -96,6 +123,42 @@ public class EnforcerGhostAIClient : MonoBehaviour
         _heldShotgun.isHeld = false;
         _heldShotgun.isHeldByEnemy = false;
         _heldShotgun = null;
+    }
+    
+    private void HandleIncreaseTargetPlayerFearLevel(string recievedGhostId)
+    {
+        if (_ghostId != recievedGhostId) return;
+        if (GameNetworkManager.Instance.localPlayerController != _targetPlayer) return;
+        
+        if (_targetPlayer == null)
+        {
+            return;
+        }
+        
+        if (_targetPlayer.HasLineOfSightToPosition(eye.position, 115f, 40, 3f))
+        {
+            _targetPlayer.JumpToFearLevel(0.7f);
+            _targetPlayer.IncreaseFearLevelOverTime(0.5f);;
+        }
+        
+        else if (Vector3.Distance(eye.transform.position, _targetPlayer.transform.position) < 3)
+        {
+            _targetPlayer.JumpToFearLevel(0.3f);
+            _targetPlayer.IncreaseFearLevelOverTime(0.3f);;
+        }
+    }
+    
+    private void HandleChangeTargetPlayer(string recievedGhostId, int targetPlayerObjectId)
+    {
+        if (_ghostId != recievedGhostId) return;
+        if (targetPlayerObjectId == -69420)
+        {
+            _targetPlayer = null;
+            return;
+        }
+        
+        PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[targetPlayerObjectId];
+        _targetPlayer = player;
     }
 
     private void HandleUpdateGhostIdentifier(string recievedGhostId)

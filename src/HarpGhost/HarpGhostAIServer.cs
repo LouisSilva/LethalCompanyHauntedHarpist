@@ -6,6 +6,7 @@ using BepInEx.Logging;
 using GameNetcodeStuff;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Serialization;
 
 namespace LethalCompanyHarpGhost.HarpGhost;
 
@@ -27,6 +28,12 @@ public class HarpGhostAIServer : EnemyAI
     [SerializeField] private float annoyanceThreshold = 8f;
     [SerializeField] private float maxSearchRadius = 100f;
     [SerializeField] private float attackCooldown = 2f;
+    [SerializeField] private float viewWidth = 135f;
+    [SerializeField] private int viewRange = 80;
+    [SerializeField] private int proximityAwareness = 3;
+    [SerializeField] private bool canHearPlayers = true;
+    [SerializeField] private bool friendlyFire = true;
+    
     private float _agentCurrentSpeed = 0f;
     private float _timeSinceHittingLocalPlayer = 0f;
     private float _hearNoiseCooldown = 0f;
@@ -34,7 +41,6 @@ public class HarpGhostAIServer : EnemyAI
     private bool _hasBegunInvestigating = false;
     private bool _inStunAnimation = false;
     private bool _hasTransitionedMaterial = false;
-    private bool _canHearPlayers = true;
     
     private Vector3 _targetPosition = default;
     private Vector3 _agentLastPosition = default;
@@ -67,6 +73,7 @@ public class HarpGhostAIServer : EnemyAI
         base.Start();
         if (!IsServer) return;
         
+        _ghostId = Guid.NewGuid().ToString();
         _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost AI {_ghostId} | Server");
         
         netcodeController = GetComponent<HarpGhostNetcodeController>();
@@ -84,7 +91,6 @@ public class HarpGhostAIServer : EnemyAI
         
         _roundManager = FindObjectOfType<RoundManager>();
         
-        _ghostId = Guid.NewGuid().ToString();
         netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
         
         UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
@@ -128,7 +134,11 @@ public class HarpGhostAIServer : EnemyAI
         annoyanceThreshold = HarpGhostConfig.Instance.HarpGhostAnnoyanceThreshold.Value;
         maxSearchRadius = HarpGhostConfig.Instance.HarpGhostMaxSearchRadius.Value;
         attackCooldown = HarpGhostConfig.Instance.HarpGhostAttackCooldown.Value;
-        _canHearPlayers = HarpGhostConfig.Instance.HarpGhostCanHearPlayersWhenAngry.Value;
+        canHearPlayers = HarpGhostConfig.Instance.HarpGhostCanHearPlayersWhenAngry.Value;
+        viewWidth = HarpGhostConfig.Instance.HarpGhostViewWidth.Value;
+        viewRange = HarpGhostConfig.Instance.HarpGhostViewRange.Value;
+        proximityAwareness = HarpGhostConfig.Instance.HarpGhostProximityAwareness.Value;
+        friendlyFire = HarpGhostConfig.Instance.HarpGhostFriendlyFire.Value;
         
         ExtendAttackAreaCollider();
     }
@@ -230,7 +240,7 @@ public class HarpGhostAIServer : EnemyAI
             {
                 if (roamMap.inProgress) StopSearch(roamMap);
                 
-                PlayerControllerB tempTargetPlayer = CheckLineOfSightForClosestPlayer(115f, 80, 2);
+                PlayerControllerB tempTargetPlayer = CheckLineOfSightForClosestPlayer(viewWidth, viewRange, Mathf.Clamp(proximityAwareness, -1, 2));
                 if (tempTargetPlayer != null)
                 {
                     SwitchBehaviourStateLocally((int)States.ChasingTargetPlayer);
@@ -264,7 +274,7 @@ public class HarpGhostAIServer : EnemyAI
                 if (searchForPlayers.inProgress) StopSearch(searchForPlayers);
 
                 // Check for player in LOS
-                PlayerControllerB tempTargetPlayer = CheckLineOfSightForClosestPlayer(135f, 80, 3);
+                PlayerControllerB tempTargetPlayer = CheckLineOfSightForClosestPlayer(viewWidth, viewRange, proximityAwareness);
                 if (tempTargetPlayer != null)
                 {
                     SwitchBehaviourStateLocally((int)States.ChasingTargetPlayer);
@@ -302,7 +312,7 @@ public class HarpGhostAIServer : EnemyAI
                 if (searchForPlayers.inProgress) StopSearch(searchForPlayers);
                 
                 // Check for players in LOS
-                PlayerControllerB[] playersInLineOfSight = GetAllPlayersInLineOfSight(110f, 80, eye, 2f,
+                PlayerControllerB[] playersInLineOfSight = GetAllPlayersInLineOfSight(viewWidth, viewRange, eye, proximityAwareness,
                     layerMask: StartOfRound.Instance.collidersAndRoomMaskAndDefault);
 
                 // Check if our target is in LOS
@@ -319,12 +329,11 @@ public class HarpGhostAIServer : EnemyAI
                     break;
                 }
                 
-                
                 // If our target wasn't found, switch target
                 if (!ourTargetFound)
                 {
                     // Extra check done to make sure a player is still in LOS
-                    PlayerControllerB playerControllerB = CheckLineOfSightForClosestPlayer(110f, 80, 3);
+                    PlayerControllerB playerControllerB = CheckLineOfSightForClosestPlayer(viewWidth, viewRange, proximityAwareness);
                     if (playerControllerB == null)
                     {
                         SwitchBehaviourStateLocally((int)States.InvestigatingTargetPosition);
@@ -491,6 +500,11 @@ public class HarpGhostAIServer : EnemyAI
         base.HitEnemy(force, playerWhoHit, playHitSFX);
         if (!IsServer) return;
         if (isEnemyDead) return;
+        if (!friendlyFire)
+        {
+            // Two seperate ifs because comparisons to null are expensive, so only do so if necessary
+            if (playerWhoHit == null) return;
+        }
         
         enemyHP -= force;
         if (enemyHP > 0)
@@ -550,7 +564,7 @@ public class HarpGhostAIServer : EnemyAI
         if (_hasTransitionedMaterial) return;
         
         _hasTransitionedMaterial = true;
-        netcodeController.TurnGhostEyesRed(_ghostId);
+        netcodeController.TurnGhostEyesRedClientRpc(_ghostId);
     }
 
     private void AttackPlayerIfClose() // Checks if the player is in the ghost's attack area and if so, attacks
@@ -640,8 +654,8 @@ public class HarpGhostAIServer : EnemyAI
     private void BeginChasingPlayer(int targetPlayerObjectId)
     {
         if (!IsServer) return;
+        netcodeController.ChangeTargetPlayerClientRpc(_ghostId, targetPlayerObjectId);
         PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[targetPlayerObjectId];
-        targetPlayer = player;
         SetMovingTowardsTargetPlayer(player);
     }
 
@@ -721,7 +735,7 @@ public class HarpGhostAIServer : EnemyAI
             
             case (int)States.SearchingForPlayers:
             {
-                if (timesNoisePlayedInOneSpot > 5 || !_canHearPlayers) return;
+                if (timesNoisePlayedInOneSpot > 5 || !canHearPlayers) return;
                 _hearNoiseCooldown = 0.1f;
                 float distanceToNoise = Vector3.Distance(transform.position, noisePosition);
                 float noiseThreshold = 8f * noiseLoudness;

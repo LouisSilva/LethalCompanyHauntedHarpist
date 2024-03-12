@@ -28,7 +28,7 @@ namespace LethalCompanyHarpGhost
     {
         public const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
         private const string ModName = "Lethal Company Harp Ghost Mod";
-        private const string ModVersion = "1.2.8";
+        private const string ModVersion = "1.2.9";
 
         private readonly Harmony _harmony = new(ModGuid);
         
@@ -127,7 +127,7 @@ namespace LethalCompanyHarpGhost
             Utilities.FixMixerGroups(EnforcerGhostEnemyType.enemyPrefab);
             RegisterEnemy(EnforcerGhostEnemyType, 0, HarpGhostConfig.Instance.HarpGhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
             
-            _harmony.PatchAll(typeof(ShotgunPatches));
+            // _harmony.PatchAll(typeof(ShotgunPatches));
         }
 
         private void SetupHarp()
@@ -243,6 +243,8 @@ namespace LethalCompanyHarpGhost
     {
         public readonly ConfigEntry<int> HarpGhostInitialHealth;
         public readonly ConfigEntry<int> HarpGhostAttackDamage;
+        public readonly ConfigEntry<int> HarpGhostViewRange;
+        public readonly ConfigEntry<int> HarpGhostProximityAwareness;
         public readonly ConfigEntry<float> HarpGhostAttackCooldown;
         public readonly ConfigEntry<float> HarpGhostAttackAreaLength;
         public readonly ConfigEntry<float> HarpGhostStunTimeMultiplier;
@@ -254,15 +256,44 @@ namespace LethalCompanyHarpGhost
         public readonly ConfigEntry<float> HarpGhostAnnoyanceThreshold;
         public readonly ConfigEntry<float> HarpGhostMaxSearchRadius;
         public readonly ConfigEntry<float> HarpGhostViewWidth;
-        public readonly ConfigEntry<float> HarpGhostViewRange;
-        public readonly ConfigEntry<float> HarpGhostProximityAwareness;
         public readonly ConfigEntry<bool> HarpGhostIsStunnable;
         public readonly ConfigEntry<bool> HarpGhostIsKillable;
         public readonly ConfigEntry<bool> HarpGhostCanHearPlayersWhenAngry;
         public readonly ConfigEntry<bool> HarpGhostCanSeeThroughFog;
+        public readonly ConfigEntry<bool> HarpGhostFriendlyFire;
 
         public readonly ConfigEntry<float> HarpGhostVoiceSfxVolume;
         public readonly ConfigEntry<float> HarpVolume;
+        public readonly ConfigEntry<bool> HarpBypassReverbZones;
+        public readonly ConfigEntry<float> HarpPitch;
+        public readonly ConfigEntry<float> HarpReverbZoneMix;
+        public readonly ConfigEntry<float> HarpDopplerLevel;
+        public readonly ConfigEntry<int> HarpSoundSpread;
+        public readonly ConfigEntry<int> HarpSoundMaxDistance;
+        public readonly ConfigEntry<bool> HarpAudioLowPassFilterEnabled;
+        public readonly ConfigEntry<int> HarpAudioLowPassFilterCutoffFrequency;
+        public readonly ConfigEntry<float> HarpAudioLowPassFilterLowpassResonanceQ;
+        public readonly ConfigEntry<bool> HarpAudioHighPassFilterEnabled;
+        public readonly ConfigEntry<int> HarpAudioHighPassFilterCutoffFrequency;
+        public readonly ConfigEntry<float> HarpAudioHighPassFilterHighpassResonanceQ;
+        public readonly ConfigEntry<bool> HarpAudioEchoFilterEnabled;
+        public readonly ConfigEntry<float> HarpAudioEchoFilterDelay;
+        public readonly ConfigEntry<float> HarpAudioEchoFilterDecayRatio;
+        public readonly ConfigEntry<float> HarpAudioEchoFilterDryMix;
+        public readonly ConfigEntry<float> HarpAudioEchoFilterWetMix;
+        public readonly ConfigEntry<bool> HarpAudioChorusFilterEnabled;
+        public readonly ConfigEntry<float> HarpAudioChorusFilterDryMix;
+        public readonly ConfigEntry<float> HarpAudioChorusFilterWetMix1;
+        public readonly ConfigEntry<float> HarpAudioChorusFilterWetMix2;
+        public readonly ConfigEntry<float> HarpAudioChorusFilterWetMix3;
+        public readonly ConfigEntry<float> HarpAudioChorusFilterDelay;
+        public readonly ConfigEntry<float> HarpAudioChorusFilterRate;
+        public readonly ConfigEntry<float> HarpAudioChorusFilterDepth;
+        public readonly ConfigEntry<bool> HarpOccludeAudioEnabled;
+        public readonly ConfigEntry<bool> HarpOccludeAudioUseReverbEnabled;
+        public readonly ConfigEntry<bool> HarpOccludeAudioOverridingLowPassEnabled;
+        public readonly ConfigEntry<int> HarpOccludeAudioLowPassOverride;
+        
 
         public readonly ConfigEntry<int> HarpGhostSpawnRate;
         public readonly ConfigEntry<int> MaxAmountOfHarpGhosts;
@@ -290,6 +321,13 @@ namespace LethalCompanyHarpGhost
                 "Killable",
                 true,
                 "Whether a Harp Ghost can be killed or not"
+            );
+            
+            HarpGhostFriendlyFire = cfg.Bind(
+                "General",
+                "Friendly Fire",
+                true,
+                "Whether a Harp Ghost can be killed by something other than a player e.g. an eyeless dog, mine etc"
             );
             
             HarpGhostIsStunnable= cfg.Bind(
@@ -346,6 +384,27 @@ namespace LethalCompanyHarpGhost
                 "Max Acceleration In Chase Mode",
                 50f,
                 "The max acceleration of the Harp Ghost in chase mode"
+            );
+            
+            HarpGhostViewWidth = cfg.Bind(
+                "General",
+                "View Width",
+                135f,
+                "The width in degrees of the Harp Ghost's view"
+            );
+            
+            HarpGhostViewRange = cfg.Bind(
+                "General",
+                "View Range",
+                80,
+                "The range in in-game units (a meter kind of) of the Harp Ghost's view"
+            );
+            
+            HarpGhostProximityAwareness = cfg.Bind(
+                "General",
+                "Proximity Awareness",
+                3,
+                "The area around the ghost in in-game units where it can detect players, regardless if the Harp Ghost has line of sight to the player. Set it to -1 to completely disable it. I recommend you do not touch this."
             );
             
             HarpGhostStunTimeMultiplier = cfg.Bind(
@@ -409,6 +468,209 @@ namespace LethalCompanyHarpGhost
                 "Harp Volume",
                 0.8f,
                 "The volume of the music played from the harp. Values are from 0-1"
+            );
+            
+            HarpPitch = cfg.Bind(
+                "Audio",
+                "Harp Pitch",
+                1f,
+                "The pitch of the music played from the harp. Values are from -3 to 3"
+            );
+            
+            HarpBypassReverbZones = cfg.Bind(
+                "Audio",
+                "Harp Bypass Reverb Zones",
+                false,
+                "For the following audio configs, if you don't know what you are doing then DO NOT touch them."
+            );
+            
+            HarpReverbZoneMix = cfg.Bind(
+                "Audio",
+                "Harp Reverb Zone Mix",
+                1f,
+                "Values are from 0 to 1.1"
+            );
+            
+            HarpDopplerLevel = cfg.Bind(
+                "Audio",
+                "Harp Doppler Level",
+                0.3f,
+                "Values are from 0 to 5"
+            );
+            
+            HarpSoundSpread = cfg.Bind(
+                "Audio",
+                "Harp Sound Spread",
+                80,
+                "Values are from 0 to 360"
+            );
+            
+            HarpSoundMaxDistance = cfg.Bind(
+                "Audio",
+                "Harp Sound Max Distance",
+                45,
+                "Values are from 0 to Infinity"
+            );
+            
+            HarpAudioLowPassFilterEnabled = cfg.Bind(
+                "Audio",
+                "Harp Audio Low Pass Filter Enabled",
+                false,
+                ""
+            );
+            
+            HarpAudioLowPassFilterCutoffFrequency = cfg.Bind(
+                "Audio",
+                "Harp Audio Low Pass Filter Cutoff Frequency",
+                1000,
+                "Values are from 10 to 22000"
+            );
+            
+            HarpAudioLowPassFilterLowpassResonanceQ = cfg.Bind(
+                "Audio",
+                "Harp Audio Low Pass Filter Lowpass Resonance Q",
+                1f,
+                ""
+            );
+            
+            HarpAudioHighPassFilterEnabled = cfg.Bind(
+                "Audio",
+                "Harp Audio High Pass Filter Enabled",
+                false,
+                ""
+            );
+            
+            HarpAudioHighPassFilterCutoffFrequency = cfg.Bind(
+                "Audio",
+                "Harp Audio High Pass Filter Cutoff Frequency",
+                600,
+                "Values are from 10 to 22000"
+            );
+            
+            HarpAudioHighPassFilterHighpassResonanceQ = cfg.Bind(
+                "Audio",
+                "Harp Audio High Pass Highpass Resonance Q",
+                1f,
+                ""
+            );
+            
+            HarpAudioEchoFilterEnabled = cfg.Bind(
+                "Audio",
+                "Harp Audio Echo Filter Enabled",
+                false,
+                ""
+            );
+            
+            HarpAudioEchoFilterDelay = cfg.Bind(
+                "Audio",
+                "Harp Audio Echo Filter Delay",
+                200f,
+                ""
+            );
+            
+            HarpAudioEchoFilterDecayRatio = cfg.Bind(
+                "Audio",
+                "Harp Audio Echo Filter Decay Ratio",
+                0.5f,
+                "Values are from 0 to 1"
+            );
+            
+            HarpAudioEchoFilterDryMix = cfg.Bind(
+                "Audio",
+                "Harp Audio Echo Filter Dry Mix",
+                1f,
+                ""
+            );
+            
+            HarpAudioEchoFilterWetMix = cfg.Bind(
+                "Audio",
+                "Harp Audio Echo Filter Wet Mix",
+                1f,
+                ""
+            );
+            
+            HarpAudioChorusFilterEnabled = cfg.Bind(
+                "Audio",
+                "Harp Audio Chorus Filter Enabled",
+                false,
+                ""
+            );
+            
+            HarpAudioChorusFilterDryMix = cfg.Bind(
+                "Audio",
+                "Harp Audio Chorus Filter Dry Mix",
+                0.5f,
+                ""
+            );
+            
+            HarpAudioChorusFilterWetMix1 = cfg.Bind(
+                "Audio",
+                "Harp Audio Chorus Filter Wet Mix 1",
+                0.5f,
+                ""
+            );
+            
+            HarpAudioChorusFilterWetMix2 = cfg.Bind(
+                "Audio",
+                "Harp Audio Chorus Filter Wet Mix 2",
+                0.5f,
+                ""
+            );
+            
+            HarpAudioChorusFilterWetMix3 = cfg.Bind(
+                "Audio",
+                "Harp Audio Chorus Filter Wet Mix 3",
+                0.5f,
+                ""
+            );
+            
+            HarpAudioChorusFilterDelay = cfg.Bind(
+                "Audio",
+                "Harp Audio Chorus Filter Delay",
+                40f,
+                ""
+            );
+            
+            HarpAudioChorusFilterRate = cfg.Bind(
+                "Audio",
+                "Harp Audio Chorus Filter Rate",
+                0.5f,
+                ""
+            );
+            
+            HarpAudioChorusFilterDepth = cfg.Bind(
+                "Audio",
+                "Harp Audio Chorus Filter Depth",
+                0.2f,
+                ""
+            );
+            
+            HarpOccludeAudioEnabled = cfg.Bind(
+                "Audio",
+                "Harp Occlude Audio Enabled",
+                true,
+                ""
+            );
+            
+            HarpOccludeAudioUseReverbEnabled = cfg.Bind(
+                "Audio",
+                "Harp Occlude Audio Use Reverb Enabled",
+                false,
+                ""
+            );
+            
+            HarpOccludeAudioOverridingLowPassEnabled = cfg.Bind(
+                "Audio",
+                "Harp Occlude Audio Overriding Low Pass Enabled",
+                false,
+                ""
+            );
+            
+            HarpOccludeAudioLowPassOverride = cfg.Bind(
+                "Audio",
+                "Harp Occlude Audio Low Pass Override",
+                20000,
+                ""
             );
             
             HarpGhostSpawnRate = cfg.Bind(

@@ -18,6 +18,12 @@ public class InstrumentBehaviour : PhysicsProp
 
     public AudioSource instrumentAudioSource;
     public AudioClip[] instrumentAudioClips;
+
+    [SerializeField] private AudioLowPassFilter instrumentAudioLowPassFilter;
+    [SerializeField] private AudioHighPassFilter instrumentAudioHighPassFilter;
+    [SerializeField] private AudioEchoFilter instrumentAudioEchoFilter;
+    [SerializeField] private AudioChorusFilter instrumentAudioChorusFilter;
+    [SerializeField] private OccludeAudio instrumentOccludeAudio;
     
     private RoundManager _roundManager;
     
@@ -62,6 +68,45 @@ public class InstrumentBehaviour : PhysicsProp
                 enemyInstrumentOffset = new ItemOffset(new Vector3(0f, -0.6f, 0.6f));
                 
                 instrumentAudioSource.volume = Mathf.Clamp(HarpGhostConfig.Default.HarpVolume.Value, 0f, 1f);
+                instrumentAudioSource.pitch = Mathf.Clamp(HarpGhostConfig.Default.HarpPitch.Value, -3f, 3f);
+                instrumentAudioSource.bypassReverbZones = HarpGhostConfig.Default.HarpBypassReverbZones.Value;
+                instrumentAudioSource.reverbZoneMix = Mathf.Clamp(HarpGhostConfig.Default.HarpReverbZoneMix.Value, 0f, 1.1f);
+                instrumentAudioSource.dopplerLevel = Mathf.Clamp(HarpGhostConfig.Default.HarpDopplerLevel.Value, 0f, 5f);
+                instrumentAudioSource.spread = Mathf.Clamp(HarpGhostConfig.Default.HarpSoundSpread.Value, 0, 360);
+                instrumentAudioSource.maxDistance = Mathf.Clamp(HarpGhostConfig.Default.HarpSoundMaxDistance.Value, 0, Mathf.Infinity);
+                
+                instrumentAudioLowPassFilter = GetComponent<AudioLowPassFilter>();
+                instrumentAudioLowPassFilter.enabled = HarpGhostConfig.Default.HarpAudioLowPassFilterEnabled.Value;
+                instrumentAudioLowPassFilter.cutoffFrequency = Mathf.Clamp(HarpGhostConfig.Default.HarpAudioLowPassFilterCutoffFrequency.Value, 10, 2200);
+                instrumentAudioLowPassFilter.lowpassResonanceQ = HarpGhostConfig.Default.HarpAudioLowPassFilterLowpassResonanceQ.Value;
+                
+                instrumentAudioHighPassFilter = GetComponent<AudioHighPassFilter>();
+                instrumentAudioHighPassFilter.enabled = HarpGhostConfig.Default.HarpAudioHighPassFilterEnabled.Value;
+                instrumentAudioHighPassFilter.cutoffFrequency = Mathf.Clamp(HarpGhostConfig.Default.HarpAudioHighPassFilterCutoffFrequency.Value, 10, 22000);
+                instrumentAudioHighPassFilter.highpassResonanceQ = HarpGhostConfig.Default.HarpAudioHighPassFilterHighpassResonanceQ.Value;
+                
+                instrumentAudioEchoFilter = GetComponent<AudioEchoFilter>();
+                instrumentAudioEchoFilter.enabled = HarpGhostConfig.Default.HarpAudioEchoFilterEnabled.Value;
+                instrumentAudioEchoFilter.delay = HarpGhostConfig.Default.HarpAudioEchoFilterDelay.Value;
+                instrumentAudioEchoFilter.decayRatio = Mathf.Clamp(HarpGhostConfig.Default.HarpAudioEchoFilterDecayRatio.Value, 0f, 1f);
+                instrumentAudioEchoFilter.dryMix = HarpGhostConfig.Default.HarpAudioEchoFilterDryMix.Value;
+                instrumentAudioEchoFilter.wetMix = HarpGhostConfig.Default.HarpAudioEchoFilterWetMix.Value;
+
+                instrumentAudioChorusFilter = GetComponent<AudioChorusFilter>();
+                instrumentAudioChorusFilter.enabled = HarpGhostConfig.Default.HarpAudioChorusFilterEnabled.Value;
+                instrumentAudioChorusFilter.dryMix = HarpGhostConfig.Default.HarpAudioChorusFilterDryMix.Value;
+                instrumentAudioChorusFilter.wetMix1 = HarpGhostConfig.Default.HarpAudioChorusFilterWetMix1.Value;
+                instrumentAudioChorusFilter.wetMix2 = HarpGhostConfig.Default.HarpAudioChorusFilterWetMix2.Value;
+                instrumentAudioChorusFilter.wetMix3 = HarpGhostConfig.Default.HarpAudioChorusFilterWetMix3.Value;
+                instrumentAudioChorusFilter.delay = HarpGhostConfig.Default.HarpAudioChorusFilterDelay.Value;
+                instrumentAudioChorusFilter.rate = HarpGhostConfig.Default.HarpAudioChorusFilterRate.Value;
+                instrumentAudioChorusFilter.depth = HarpGhostConfig.Default.HarpAudioChorusFilterDepth.Value;
+
+                instrumentOccludeAudio = GetComponent<OccludeAudio>();
+                instrumentOccludeAudio.enabled = HarpGhostConfig.Default.HarpOccludeAudioEnabled.Value;
+                instrumentOccludeAudio.useReverb = HarpGhostConfig.Default.HarpOccludeAudioUseReverbEnabled.Value;
+                instrumentOccludeAudio.overridingLowPass = HarpGhostConfig.Default.HarpOccludeAudioOverridingLowPassEnabled.Value;
+                instrumentOccludeAudio.lowPassOverride = HarpGhostConfig.Default.HarpOccludeAudioLowPassOverride.Value;
                 
                 break;
             case "Bagpipes":
@@ -78,13 +123,14 @@ public class InstrumentBehaviour : PhysicsProp
     public override void Start()
     {
         base.Start();
-        if (!IsOwner) return;
-
+        
         _instrumentId = Guid.NewGuid().ToString();
         _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Instrument {_instrumentId}");
         
         _roundManager = FindObjectOfType<RoundManager>();
         Random.InitState(FindObjectOfType<StartOfRound>().randomMapSeed - 10);
+        
+        if (!IsOwner) return;
         
         if (instrumentAudioSource == null)
         {
@@ -155,6 +201,7 @@ public class InstrumentBehaviour : PhysicsProp
     private void LogDebug(string logMessage)
     {
         #if DEBUG
+        if (!IsOwner) return;
         _mls.LogInfo(logMessage);
         #endif
     }
@@ -163,7 +210,6 @@ public class InstrumentBehaviour : PhysicsProp
     {
         base.ItemActivate(used, buttonDown);
         if (!IsOwner) return;
-        LogDebug("Instrument ItemActivate() called");
         switch (_isPlayingMusic)
         {
             case false:

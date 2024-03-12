@@ -23,6 +23,11 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     public event Action<string> OnGrabShotgun;
     public event Action<string> OnGrabShotgunPhaseTwo; 
     public event Action<string, Vector3> OnDropShotgun;
+    public event Action<string> OnIncreaseTargetPlayerFearLevel;
+    public event Action<string, int> OnChangeTargetPlayer;
+    public event Action<string> OnShootGun;
+    public event Action<string, int> OnUpdateShotgunShellsLoaded;
+    public event Action<string, string, bool> OnChangeShotgunAnimationParameterBool;
 
     private void Start()
     {
@@ -74,6 +79,30 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     {
         GrabShotgunPhaseTwoClientRpc(recievedGhostId);
     }
+    
+    [ClientRpc]
+    public void ChangeTargetPlayerClientRpc(string recievedGhostId, int playerClientId)
+    {
+        OnChangeTargetPlayer?.Invoke(recievedGhostId, playerClientId);
+    }
+    
+    [ClientRpc]
+    public void IncreaseTargetPlayerFearLevelClientRpc(string recievedGhostId)
+    {
+        OnIncreaseTargetPlayerFearLevel?.Invoke(recievedGhostId);
+    }
+
+    [ClientRpc]
+    public void UpdateShotgunShellsLoadedClientRpc(string recievedGhostId, int shells)
+    {
+        OnUpdateShotgunShellsLoaded?.Invoke(recievedGhostId, shells);
+    }
+
+    [ClientRpc]
+    public void ShotgunAnimatorSetBoolClientRpc(string recievedGhostId, string animationName, bool value)
+    {
+        OnChangeShotgunAnimationParameterBool?.Invoke(recievedGhostId, animationName, value);
+    }
 
     [ClientRpc]
     private void GrabShotgunPhaseTwoClientRpc(string recievedGhostId)
@@ -85,6 +114,13 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     public void DropShotgunClientRpc(string recievedGhostId, Vector3 targetPosition)
     {
         OnDropShotgun?.Invoke(recievedGhostId, targetPosition);
+    }
+
+    [ClientRpc]
+    public void ShootGunClientRpc(string recievedGhostId)
+    {
+        LogDebug("In the ShootGunClientRpc");
+        OnShootGun?.Invoke(recievedGhostId);
     }
     
     [ClientRpc]

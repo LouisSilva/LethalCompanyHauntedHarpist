@@ -100,7 +100,8 @@ public class HarpGhostNetcodeController : NetworkBehaviour
         OnEnterDeathState?.Invoke(recievedGhostId);
     }
 
-    public void TurnGhostEyesRed(string recievedGhostId)
+    [ClientRpc]
+    public void TurnGhostEyesRedClientRpc(string recievedGhostId)
     {
         OnGhostEyesTurnRed?.Invoke(recievedGhostId);
     }

@@ -49,6 +49,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     private RoundManager _roundManager;
 
     private InstrumentBehaviour _heldBagpipes;
+    private NetworkObjectReference _instrumentObjectRef;
     
     [Header("Controllers and Managers")]
     [Space(5f)]
@@ -109,6 +110,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         
         netcodeController.SpawnBagpipesServerRpc(_ghostId);
         netcodeController.GrabBagpipesClientRpc(_ghostId);
+        netcodeController.OnGrabBagpipes += HandleGrabBagpipes;
 
         if (HarpGhostPlugin.EnforcerGhostEnemyType.enemyPrefab == null)
         {
@@ -118,6 +120,12 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         else StartCoroutine(SpawnEscorts(() => { netcodeController.PlayBagpipesMusicClientRpc(_ghostId); }));
         
         _mls.LogInfo("Bagpipes Ghost Spawned");
+    }
+
+    public override void OnDestroy()
+    {
+        base.OnDestroy();
+        netcodeController.OnGrabBagpipes += HandleGrabBagpipes;
     }
 
     private void InitializeConfigValues()
@@ -310,8 +318,9 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         if (_currentlyRetiringAllEscorts) return;
 
         _currentlyRetiringAllEscorts = true;
-        for (int i=0;i<_escorts.Count;i++)
+        for (int i = _escorts.Count - 1; i >= 0; i--)
         {
+            LogDebug($"Retiring escort {_escorts[i].ghostId}");
             RemoveEscort(i);
         }
         _currentlyRetiringAllEscorts = false;
@@ -407,6 +416,14 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         yield return new WaitForSeconds(0.5f);
         callback.Invoke();
     }
+    
+    private void HandleGrabBagpipes(string recievedGhostId)
+    {
+        if (_ghostId != recievedGhostId) return;
+        if (_heldBagpipes != null) return;
+        if (!_instrumentObjectRef.TryGet(out NetworkObject networkObject)) return;
+        _heldBagpipes = networkObject.gameObject.GetComponent<InstrumentBehaviour>();
+    }
 
     public override void SetEnemyStunned(
         bool setToStunned,
@@ -433,6 +450,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         base.HitEnemy(force, playerWhoHit, playHitSFX);
         if (!IsServer) return;
         if (isEnemyDead) return;
+        if (playerWhoHit == null) return;
 
         enemyHP -= force;
         if (enemyHP > 0)
@@ -576,6 +594,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     public void EscorteeBreakoff()
     {
         RetireAllEscorts();
+        SwitchBehaviourStateLocally((int)States.RunningToEscapeDoor);
     }
     
     private void LogDebug(string logMessage)

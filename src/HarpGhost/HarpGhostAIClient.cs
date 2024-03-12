@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using BepInEx.Logging;
 using GameNetcodeStuff;
@@ -35,9 +35,8 @@ public class HarpGhostAIClient : MonoBehaviour
     [SerializeField] private MaterialPropertyBlock _propertyBlock;
     
     private bool _isTransitioningMaterial = false;
-    private bool _hasTransitionedMaterial = false;
     
-    private float _transitioningMaterialTimer= 0f;
+    private float _transitioningMaterialTimer = 0f;
     
     private static readonly int AlternativeColourFadeInTimer = Shader.PropertyToID("_AlternativeColourFadeInTimer");
     #pragma warning restore 0649
@@ -79,27 +78,6 @@ public class HarpGhostAIClient : MonoBehaviour
         InitializeConfigValues();
     }
 
-    private void Update()
-    {
-        if (_isTransitioningMaterial && !_hasTransitionedMaterial && enableGhostAngryModel)
-        {
-            _transitioningMaterialTimer += Time.deltaTime;
-            float transitionValue = Mathf.Clamp01(_transitioningMaterialTimer / 5f);
-            
-            rendererLeftEye.GetPropertyBlock(_propertyBlock);
-            rendererRightEye.GetPropertyBlock(_propertyBlock);
-            _propertyBlock.SetFloat(AlternativeColourFadeInTimer, transitionValue);
-            rendererLeftEye.SetPropertyBlock(_propertyBlock);
-            rendererRightEye.SetPropertyBlock(_propertyBlock);
-            
-            if (_transitioningMaterialTimer >= 5f)
-            {
-                _isTransitioningMaterial = false;
-                _hasTransitionedMaterial = true;
-            }
-        }
-    }
-
     private void InitializeConfigValues()
     {
         enableGhostAngryModel = HarpGhostConfig.Default.HarpGhostAngryEyesEnabled.Value;
@@ -113,8 +91,32 @@ public class HarpGhostAIClient : MonoBehaviour
     private void HandleGhostEyesTurnRed(string recievedGhostId)
     {
         if (_ghostId != recievedGhostId) return;
-        _transitioningMaterialTimer = 0;
+        if (enableGhostAngryModel && !_isTransitioningMaterial) StartCoroutine(GhostEyesTurnRed());
+    }
+
+    private IEnumerator GhostEyesTurnRed()
+    {
         _isTransitioningMaterial = true;
+        _transitioningMaterialTimer = 0;
+        while (true)
+        {
+            _transitioningMaterialTimer += Time.deltaTime;
+            float transitionValue = Mathf.Clamp01(_transitioningMaterialTimer / 5f);
+            
+            rendererLeftEye.GetPropertyBlock(_propertyBlock);
+            rendererRightEye.GetPropertyBlock(_propertyBlock);
+            _propertyBlock.SetFloat(AlternativeColourFadeInTimer, transitionValue);
+            rendererLeftEye.SetPropertyBlock(_propertyBlock);
+            rendererRightEye.SetPropertyBlock(_propertyBlock);
+            
+            if (_transitioningMaterialTimer >= 5f)
+            {
+                yield break;
+            }
+
+            LogDebug($"transition material timer: {_transitioningMaterialTimer}");
+            yield return new WaitForSeconds(0.01f);
+        }
     }
 
     private void HandleIncreaseTargetPlayerFearLevel(string recievedGhostId)
@@ -130,13 +132,13 @@ public class HarpGhostAIClient : MonoBehaviour
         if (_targetPlayer.HasLineOfSightToPosition(eye.position, 115f, 50, 3f))
         {
             _targetPlayer.JumpToFearLevel(1);
-            _targetPlayer.IncreaseFearLevelOverTime(0.8f);;
+            _targetPlayer.IncreaseFearLevelOverTime(0.8f);
         }
         
         else if (Vector3.Distance(eye.transform.position, _targetPlayer.transform.position) < 3)
         {
             _targetPlayer.JumpToFearLevel(0.6f);
-            _targetPlayer.IncreaseFearLevelOverTime(0.4f);;
+            _targetPlayer.IncreaseFearLevelOverTime(0.4f);
         }
     }
 
@@ -218,8 +220,8 @@ public class HarpGhostAIClient : MonoBehaviour
     
     private void LogDebug(string msg)
     {
-#if DEBUG
+        #if DEBUG
         _mls.LogInfo(msg);
-#endif
+        #endif
     }
 }

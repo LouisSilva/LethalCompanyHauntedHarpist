@@ -1,3 +1,13 @@
+## 1.2.9
+* Actually fixed the bug where only the host player would see the ghost's eyes turn red this time
+
+* Added the following configs:
+  * Harp Ghost's view width
+  * Harp Ghost's view range
+  * Harp Ghost's proximity awareness
+  * Whether the Harp Ghost can take damage from non-player entities
+  * An insane amount of audio setting configs for the harp. I'm not going to write them all down because there are loads (don't mess with them if you don't know what you are doing though)
+
 ## 1.2.8
 * Added the following configs:
     * Harp Ghost's max speed in chase mode

@@ -1,63 +1,75 @@
 ﻿using HarmonyLib;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Reflection.Emit;
 using LethalCompanyHarpGhost.BagpipesGhost;
+using UnityEngine;
 
 namespace LethalCompanyHarpGhost.EnforcerGhost;
 
+/*
 [HarmonyPatch(typeof(ShotgunItem))]
 public static class ShotgunPatches
 {
     [HarmonyPatch("ShootGun")]
     [SuppressMessage("ReSharper", "SuggestVarOrType_Elsewhere")]
-    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+    private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
     {
         var codes = new List<CodeInstruction>(instructions);
         int startIndex = -1;
-        Label returnLabel = new(); // This will be used for 'ret' jump
+        Label labelForNextIteration = ilGenerator.DefineLabel();  // We'll use this for breaking out of the loop.
 
-        // Find the instruction index for 'mainScript' and set up the return label from existing 'ret'
+        // Find the specific IL code lines that lead to mainScript's assignment and set startIndex
         for (int i = 0; i < codes.Count; i++)
         {
-            // This condition locates the 'ret' at the end of the method which is the target for a 'break'
-            if (codes[i].opcode == OpCodes.Ret && i > 0 && codes[i - 1].opcode == OpCodes.Add)
+            // Check if the opcode is Stloc_S and the operand is not null and is a LocalBuilder
+            if (codes[i].opcode == OpCodes.Stloc_S && codes[i].operand is LocalBuilder localBuilder)
             {
-                returnLabel = codes[i].labels[0]; // Assuming there's a label, otherwise, you need to create a new one.
-                continue; // Continue since we just want to assign label without breaking the loop.
-            }
-
-            if (codes[i].opcode == OpCodes.Stloc_S && codes[i].operand.ToString().Contains("mainScript"))
-            {
-                startIndex = i;
-                break; // Once we find our target, no need to continue the loop
+                // Now it's safe to check the LocalIndex because we know operand is a LocalBuilder
+                if (localBuilder.LocalIndex == 12)
+                {
+                    startIndex = i; // Found the index where mainScript is stored
+                    break;
+                }
             }
         }
 
-        if (startIndex != -1 && returnLabel != null)
+        int locationForLabel = -1;
+        for (int i = 0; i < codes.Count; i++)
+        {
+            if (codes[i].operand is LocalBuilder localBuilder && localBuilder.LocalIndex == 13 && codes[i].opcode == OpCodes.Ldloc_S)
+            {
+                locationForLabel = i;
+                break;
+            }
+        }
+
+        if (startIndex != -1 && locationForLabel != -1)
         {
             var injectedCodes = new List<CodeInstruction>
             {
-                // Check if mainScript is BagpipesGhostAIServer and jump out of loop if true
-                new CodeInstruction(OpCodes.Ldloc_S, codes[startIndex].operand), // Load mainScript local variable
-                new CodeInstruction(OpCodes.Isinst, typeof(BagpipesGhostAIServer)), // Check type
-                new CodeInstruction(OpCodes.Brtrue, returnLabel), // Break from loop
+                // Instructions to check if mainScript is an instance of BagpipesGhostAIServer and jump to end if true
+                new CodeInstruction(OpCodes.Ldloc_S, (byte)12),  // Load 'mainScript'
+                new CodeInstruction(OpCodes.Isinst, typeof(BagpipesGhostAIServer)),  // Check if it's an instance of BagpipesGhostAIServer
+                new CodeInstruction(OpCodes.Brtrue_S, labelForNextIteration),  // Break out of loop if true
 
-                // Check if mainScript is EnforcerGhostAIServer and jump out of loop if true
-                new CodeInstruction(OpCodes.Ldloc_S, codes[startIndex].operand), // Repeat load for next check
-                new CodeInstruction(OpCodes.Isinst, typeof(EnforcerGhostAIServer)), // Check type
-                new CodeInstruction(OpCodes.Brtrue, returnLabel), // Break from loop
+                // Repeat for EnforcerGhostAIServer
+                new CodeInstruction(OpCodes.Ldloc_S, (byte)12),  // Load 'mainScript' again for next check
+                new CodeInstruction(OpCodes.Isinst, typeof(EnforcerGhostAIServer)),  // Check if it's an instance of EnforcerGhostAIServer
+                new CodeInstruction(OpCodes.Brtrue_S, labelForNextIteration),  // Break out of loop if true
             };
 
             // Insert our new instructions right after setting 'mainScript'
             codes.InsertRange(startIndex + 1, injectedCodes);
+            codes[locationForLabel].labels.Add(labelForNextIteration);
         }
         else
         {
-            // Log or handle the error if necessary parts were not found
-            UnityEngine.Debug.LogError("Transpiler failed: Unable to find target index or return label.");
+            Debug.LogError("Transpiler failed: Unable to find the insertion point.");
         }
 
-        return codes;
+        return codes.AsEnumerable();
     }
 }
+*/

@@ -81,6 +81,7 @@ public class EnforcerGhostAnimationController : MonoBehaviour
         SetBool(_ghostId, IsDead, true);
         SetBool(_ghostId, IsRunning, false);
         SetBool(_ghostId, IsStunned, false);
+        SetBool(_ghostId, IsHoldingShotgun, false);
         Destroy(this);
     }
 
