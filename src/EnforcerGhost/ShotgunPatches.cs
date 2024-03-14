@@ -5,43 +5,48 @@ using UnityEngine;
 namespace LethalCompanyHarpGhost.EnforcerGhost;
 
 [HarmonyPatch(typeof(ShotgunItem))]
-public static class ShotgunPatches
+internal static class ShotgunPatches
 {
-    [HarmonyPatch("GrabItemFromEnemy")]
+    [HarmonyPatch(nameof(ShotgunItem.GrabItemFromEnemy))]
     [HarmonyPostfix]
-    private static void AddShotgunToRegistry(ShotgunItem ___instance, EnemyAI enemy)
+    private static void AddShotgunToRegistry(ShotgunItem __instance, EnemyAI enemy)
     {
         if (enemy is not EnforcerGhostAIServer) return;
-        if (!EnforcerGhostShotgunAnimationRegistry.IsShotgunInMap(___instance))
-            EnforcerGhostShotgunAnimationRegistry.AddShotgun(___instance);
+        if (!EnforcerGhostShotgunAnimationRegistry.IsShotgunInMap(__instance))
+            EnforcerGhostShotgunAnimationRegistry.AddShotgun(__instance);
     }
 
-    [HarmonyPatch("DiscardItemFromEnemy")]
+    [HarmonyPatch(nameof(ShotgunItem.DiscardItemFromEnemy))]
     [HarmonyPostfix]
-    private static void RemoveShotgunFromRegistry(ShotgunItem ___instance)
+    private static void RemoveShotgunFromRegistry(ShotgunItem __instance)
     {
-        if (EnforcerGhostShotgunAnimationRegistry.IsShotgunInMap(___instance))
-            EnforcerGhostShotgunAnimationRegistry.RemoveShotgun(___instance);
+        if (EnforcerGhostShotgunAnimationRegistry.IsShotgunInMap(__instance))
+            EnforcerGhostShotgunAnimationRegistry.RemoveShotgun(__instance);
     }
-    
-    [HarmonyPatch("LateUpdate")]
+}
+
+[HarmonyPatch(typeof(GrabbableObject))]
+internal static class GrabbableObjectPatches
+{
+    [HarmonyPatch(nameof(GrabbableObject.LateUpdate))]
     [HarmonyPostfix]
-    private static void DoCustomShotgunAnimation(ShotgunItem ___instance)
+    private static void DoCustomShotgunAnimation(GrabbableObject __instance)
     {
-        if (!___instance.isHeldByEnemy) return;
-        if (___instance.heldByEnemy is not EnforcerGhostAIServer) return;
+        if (__instance is not ShotgunItem shotgun) return;
+        if (!shotgun.isHeldByEnemy) return;
+        if (shotgun.heldByEnemy is not EnforcerGhostAIServer) return;
         
         // If current shotgun is not in the registry, then add it
-        if (!EnforcerGhostShotgunAnimationRegistry.IsShotgunInMap(___instance))
-            EnforcerGhostShotgunAnimationRegistry.AddShotgun(___instance);
+        if (!EnforcerGhostShotgunAnimationRegistry.IsShotgunInMap(shotgun))
+            EnforcerGhostShotgunAnimationRegistry.AddShotgun(shotgun);
         
         (CustomShotgunRotationAnimation, CustomShotgunRotationAnimation) shotgunAnimationTuple =
-            EnforcerGhostShotgunAnimationRegistry.GetShotgunRotationAnimation(___instance);
+            EnforcerGhostShotgunAnimationRegistry.GetShotgunRotationAnimation(shotgun);
 
-        if (EnforcerGhostShotgunAnimationRegistry.IsShotgunInAnimation(___instance))
+        if (EnforcerGhostShotgunAnimationRegistry.IsShotgunInAnimation(shotgun))
         {
-            ___instance.transform.localRotation *= shotgunAnimationTuple.Item1.CalculateUpdatedRotation();
-            EnforcerGhostShotgunAnimationRegistry.GetShotgunBarrelTransform(___instance).localRotation *=
+            shotgun.transform.localRotation *= shotgunAnimationTuple.Item1.CalculateUpdatedRotation();
+            EnforcerGhostShotgunAnimationRegistry.GetShotgunBarrelTransform(shotgun).localRotation *=
                 shotgunAnimationTuple.Item2.CalculateUpdatedRotation();
         }
         

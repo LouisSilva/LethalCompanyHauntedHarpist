@@ -10,7 +10,6 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using GameNetcodeStuff;
 using HarmonyLib;
-using LethalCompanyHarpGhost.EnforcerGhost;
 using UnityEngine;
 using LethalLib.Modules;
 using Unity.Collections;
@@ -24,6 +23,7 @@ namespace LethalCompanyHarpGhost
 {
     [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
     [BepInDependency(LethalLib.Plugin.ModGUID)]
+    [BepInDependency("linkoid-DissonanceLagFix-1.0.0", BepInDependency.DependencyFlags.SoftDependency)]
     public class HarpGhostPlugin : BaseUnityPlugin
     {
         public const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
@@ -63,6 +63,13 @@ namespace LethalCompanyHarpGhost
                 _mls.LogError("MainAssetBundle is null");
                 return;
             }
+            
+            // var original1 = AccessTools.Method(typeof(ShotgunItem), "GrabItemFromEnemy");
+            // var original2 = AccessTools.Method(typeof(ShotgunItem), "DiscardItemFromEnemy");
+            // var postfix1 = new HarmonyMethod(typeof(ShotgunPatches), "AddShotgunToRegistry");
+            // var postfix2 = new HarmonyMethod(typeof(ShotgunPatches), "RemoveShotgunFromRegistry");
+            // _harmony.Patch(original1, postfix: postfix1);
+            // _harmony.Patch(original2, postfix: postfix2);
             
             _harmony.PatchAll();
             HarpGhostConfig = new HarpGhostConfig(Config);
