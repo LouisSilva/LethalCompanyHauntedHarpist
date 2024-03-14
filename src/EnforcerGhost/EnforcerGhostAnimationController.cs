@@ -9,6 +9,10 @@ public class EnforcerGhostAnimationController : MonoBehaviour
     private ManualLogSource _mls;
     private string _ghostId;
     
+    private ShotgunItem _heldShotgun;
+    private Transform _shotgunBarrelTransform;
+    private NetworkObjectReference _shotgunObjectRef;
+    
     #pragma warning disable 0649
     [SerializeField] private Animator animator;
     [SerializeField] private EnforcerGhostNetcodeController netcodeController;
@@ -24,8 +28,7 @@ public class EnforcerGhostAnimationController : MonoBehaviour
     public static readonly int Recover = Animator.StringToHash("recover");
     public static readonly int Attack = Animator.StringToHash("attack");
     public static readonly int PickupShotgun = Animator.StringToHash("pickupShotgun");
-
-    private int _attackDamage = 35;
+    public static readonly int ReloadShotgun = Animator.StringToHash("reloadShotgun");
 
     private void Start()
     {
@@ -49,6 +52,7 @@ public class EnforcerGhostAnimationController : MonoBehaviour
         netcodeController.OnInitializeConfigValues += HandleInitializeConfigValues;
         netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
         netcodeController.OnGrabShotgun += HandleGrabShotgun;
+        netcodeController.OnGrabShotgunPhaseTwo += HandleGrabShotgunPhaseTwo;
     }
 
     private void OnDestroy()
@@ -60,6 +64,7 @@ public class EnforcerGhostAnimationController : MonoBehaviour
         netcodeController.OnInitializeConfigValues -= HandleInitializeConfigValues;
         netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
         netcodeController.OnGrabShotgun -= HandleGrabShotgun;
+        netcodeController.OnGrabShotgunPhaseTwo -= HandleGrabShotgunPhaseTwo;
     }
 
     private void HandleGrabShotgun(string recievedGhostId)
@@ -68,10 +73,17 @@ public class EnforcerGhostAnimationController : MonoBehaviour
         SetTrigger(_ghostId, PickupShotgun);
         SetBool(_ghostId, IsHoldingShotgun, true);
     }
-
-    private void HandleUpdateGhostIdentifier(string recievedGhostId)
+    
+    private void HandleGrabShotgunPhaseTwo(string recievedGhostId)
     {
-        _ghostId = recievedGhostId;
+        if (_ghostId != recievedGhostId) return;
+        if (_heldShotgun != null) return;
+        if (!_shotgunObjectRef.TryGet(out NetworkObject networkObject)) return;
+        _heldShotgun = networkObject.gameObject.GetComponent<ShotgunItem>();
+        _shotgunBarrelTransform = _heldShotgun.transform.Find("GunBarrel");
+
+        if (_shotgunBarrelTransform == null)
+            _mls.LogWarning("GunBarrel object not found, cannot do reload animation properly");
     }
 
     private void HandleOnEnterDeathState(string recievedGhostId)
@@ -88,13 +100,17 @@ public class EnforcerGhostAnimationController : MonoBehaviour
     private void HandleInitializeConfigValues(string recievedGhostId)
     {
         if (_ghostId != recievedGhostId) return;
-        _attackDamage = HarpGhostConfig.Instance.HarpGhostAttackDamage.Value;
+    }
+
+    private void OnAnimationEventStartReloadShotgun()
+    {
+        if (!NetworkManager.Singleton.IsClient || !netcodeController.IsOwner) return;
+        
     }
 
     private void OnAnimationEventPickupShotgun()
     {
         if (!NetworkManager.Singleton.IsClient || !netcodeController.IsOwner) return;
-        
         netcodeController.GrabShotgunPhaseTwoServerRpc(_ghostId);
     }
 
@@ -113,6 +129,11 @@ public class EnforcerGhostAnimationController : MonoBehaviour
     {
         if (_ghostId != recievedGhostId) return;
         animator.SetTrigger(parameter);
+    }
+    
+    private void HandleUpdateGhostIdentifier(string recievedGhostId)
+    {
+        _ghostId = recievedGhostId;
     }
     
     private void LogDebug(string msg)

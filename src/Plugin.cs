@@ -294,7 +294,6 @@ namespace LethalCompanyHarpGhost
         public readonly ConfigEntry<bool> HarpOccludeAudioOverridingLowPassEnabled;
         public readonly ConfigEntry<int> HarpOccludeAudioLowPassOverride;
         
-
         public readonly ConfigEntry<int> HarpGhostSpawnRate;
         public readonly ConfigEntry<int> MaxAmountOfHarpGhosts;
         public readonly ConfigEntry<int> HarpGhostPowerLevel;

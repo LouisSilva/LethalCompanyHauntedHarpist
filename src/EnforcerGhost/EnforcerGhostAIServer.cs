@@ -277,19 +277,22 @@ public class EnforcerGhostAIServer : EnemyAI
         _isReloading = true;
         _hasStartedReloadAnimation = true;
         _isCurrentlyShooting = false;
+        float previousSpeed = agentMaxSpeed;
+        agentMaxSpeed = 0f;
         
+        LogDebug("In reload coroutine");
         _heldShotgun.shellsLoaded = 2;
         netcodeController.UpdateShotgunShellsLoadedClientRpc(ghostId, 2);
+        netcodeController.DoAnimationClientRpc(ghostId, EnforcerGhostAnimationController.ReloadShotgun);
         
         // netcodeController.ShotgunAnimatorSetBoolClientRpc(ghostId, "Reloading", true);
         // yield return new WaitForSeconds(0.92f);
         // netcodeController.ShotgunAnimatorSetBoolClientRpc(ghostId, "Reloading", false);
-        // yield return new WaitForSeconds(0.3f);
+         yield return new WaitForSeconds(0.3f);
         
         _isReloading = false;
         _hasStartedReloadAnimation = false;
-        
-        yield break;
+        agentMaxSpeed = previousSpeed;
     }
 
     private IEnumerator ShootTargetPlayer()
@@ -330,7 +333,7 @@ public class EnforcerGhostAIServer : EnemyAI
             
             LogDebug($"dotProduct: {dotProduct}");
 
-            if (dotProduct > 0.85f)
+            if (dotProduct > 0.875f)
             {
                 StartCoroutine(ShootShotgun());
                 yield break;

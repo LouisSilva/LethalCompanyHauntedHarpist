@@ -1,4 +1,5 @@
 ﻿using BepInEx.Logging;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace LethalCompanyHarpGhost.EnforcerGhost;
@@ -7,6 +8,9 @@ public class EnforcerGhostAudioManager : MonoBehaviour
 {
     private ManualLogSource _mls;
     private string _ghostId;
+    
+    private ShotgunItem _heldShotgun;
+    private NetworkObjectReference _shotgunObjectRef;
     
     [Header("Audio")]
     [Space(5f)]
@@ -71,18 +75,7 @@ public class EnforcerGhostAudioManager : MonoBehaviour
         if (creatureSfxSource == null) _mls.LogError("creatureSfxSource is null");
         if (creatureVoiceSource == null) _mls.LogError("creatureVoiceSource is null");
         
-        if (damageSfx == null || damageSfx.Length == 0) _mls.LogError("DamageSfx is null or empty");
-        if (laughSfx == null || laughSfx.Length == 0) _mls.LogError("LaughSfx is null or empty");
-        if (stunSfx == null || stunSfx.Length == 0) _mls.LogError("StunSfx is null or empty");
-        if (upsetSfx == null || upsetSfx.Length == 0) _mls.LogError("UpsetSfx is null or empty");
         if (dieSfx == null) _mls.LogError("DieSfx is null");
-    }
-    
-    private void LogDebug(string msg)
-    {
-        #if DEBUG
-        _mls.LogInfo(msg);
-        #endif
     }
 
     private void OnEnable()
@@ -91,6 +84,7 @@ public class EnforcerGhostAudioManager : MonoBehaviour
         netcodeController.OnPlayCreatureVoice += PlayVoice;
         netcodeController.OnEnterDeathState += HandleOnEnterDeathState;
         netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
+        netcodeController.OnGrabShotgunPhaseTwo += HandleGrabShotgunPhaseTwo;
     }
 
     private void OnDestroy()
@@ -99,17 +93,15 @@ public class EnforcerGhostAudioManager : MonoBehaviour
         netcodeController.OnPlayCreatureVoice -= PlayVoice;
         netcodeController.OnEnterDeathState -= HandleOnEnterDeathState;
         netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
+        netcodeController.OnGrabShotgunPhaseTwo -= HandleGrabShotgunPhaseTwo;
     }
-
-    private void HandleUpdateGhostIdentifier(string recievedGhostId)
-    {
-        _ghostId = recievedGhostId;
-    }
-
-    private void HandleOnInitializeConfigValues(string recievedGhostId)
+    
+    private void HandleGrabShotgunPhaseTwo(string recievedGhostId)
     {
         if (_ghostId != recievedGhostId) return;
-        creatureVoiceSource.volume = HarpGhostConfig.Default.HarpGhostVoiceSfxVolume.Value;
+        if (_heldShotgun != null) return;
+        if (!_shotgunObjectRef.TryGet(out NetworkObject networkObject)) return;
+        _heldShotgun = networkObject.gameObject.GetComponent<ShotgunItem>();
     }
 
     private void HandleOnEnterDeathState(string recievedGhostId)
@@ -124,7 +116,6 @@ public class EnforcerGhostAudioManager : MonoBehaviour
     private void PlayVoice(string recievedGhostId, int typeIndex, int randomNum, bool interrupt = true)
     {
         if (_ghostId != recievedGhostId) return;
-        creatureVoiceSource.pitch = Random.Range(0.8f, 1.1f);
         
         AudioClip audioClip = typeIndex switch
         {
@@ -142,16 +133,42 @@ public class EnforcerGhostAudioManager : MonoBehaviour
             return;
         }
         
-        LogDebug($"Playing audio clip: {audioClip.name}");
+        PlayVoice(audioClip, interrupt);
+    }
+
+    private void PlayVoice(AudioClip clip, bool interrupt = true)
+    {
+        LogDebug($"Playing audio clip: {clip.name}");
         if (interrupt) creatureVoiceSource.Stop(true);
-        creatureVoiceSource.PlayOneShot(audioClip);
-        WalkieTalkie.TransmitOneShotAudio(creatureVoiceSource, audioClip, creatureVoiceSource.volume);
+        creatureVoiceSource.pitch = Random.Range(0.8f, 1.1f);
+        creatureVoiceSource.PlayOneShot(clip);
+        WalkieTalkie.TransmitOneShotAudio(creatureVoiceSource, clip, creatureVoiceSource.volume);
     }
     
-    private void PlaySfx(AudioClip clip, float volume = 1f)
+    private void PlaySfx(AudioClip clip, bool interrupt = true)
     {
-        creatureSfxSource.volume = volume;
+        LogDebug($"Playing audio clip: {clip.name}");
+        if (interrupt) creatureVoiceSource.Stop(true);
+        creatureSfxSource.pitch = Random.Range(0.8f, 1.1f);
         creatureSfxSource.PlayOneShot(clip);
-        WalkieTalkie.TransmitOneShotAudio(creatureSfxSource, clip, volume);
+        WalkieTalkie.TransmitOneShotAudio(creatureSfxSource, clip, creatureSfxSource.volume);
+    }
+    
+    private void HandleUpdateGhostIdentifier(string recievedGhostId)
+    {
+        _ghostId = recievedGhostId;
+    }
+
+    private void HandleOnInitializeConfigValues(string recievedGhostId)
+    {
+        if (_ghostId != recievedGhostId) return;
+        creatureVoiceSource.volume = HarpGhostConfig.Default.HarpGhostVoiceSfxVolume.Value;
+    }
+    
+    private void LogDebug(string msg)
+    {
+        #if DEBUG
+        _mls.LogInfo(msg);
+        #endif
     }
 }
