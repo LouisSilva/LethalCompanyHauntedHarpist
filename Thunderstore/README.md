@@ -26,6 +26,12 @@
 <p>Although luckily for the him, he is always escorted by his own Ethereal Enforcers.</p>
 </details>
 
-# Dissonance Lag Fix
+# Recommended Mods to Install
 
-It is highly recommended you install the [DissonanceLagFix](https://thunderstore.io/c/lethal-company/p/linkoid/DissonanceLagFix/) mod, which will reduce any potential lag caused when an instrument is played for the first time in a game
+## [DissonanceLagFix](https://thunderstore.io/c/lethal-company/p/linkoid/DissonanceLagFix/) 
+This mod reduces any potential lag that occurs when an instrument is played for the first time in a game, and generally helps improve performance for all mods.
+
+## [AsyncLoggers](https://thunderstore.io/c/lethal-company/p/mattymatty/AsyncLoggers/)
+This mod moves logs to their own thread, which significantly increases performance for modpacks.
+
+The Haunted Harpist mod does not log anything unless it's an error, but you should still install this mod because many other mods do spam the console, which reduces performance.

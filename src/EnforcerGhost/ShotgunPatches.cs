@@ -57,7 +57,7 @@ public class CustomShotgunRotationAnimation
 {
     private readonly Quaternion[] _rotations;
     private readonly float[] _keyframeTimes;
-    public bool IsInAnimation = false;
+    public bool IsInAnimation;
     private float _startTime;
     private int _currentKeyframeIndex;
 
@@ -106,66 +106,91 @@ public class CustomShotgunRotationAnimation
     }
 }
 
-// This basically allows me to "store" a bool variable in the ShotgunItem class which will determine if a shotgun is ongoing a custom animation
+// This class is for storing shotguns owned by an enforcer ghost to be able to apply animations to the shotgun
 public static class EnforcerGhostShotgunAnimationRegistry
 {
-    private static readonly Dictionary<ShotgunItem, CustomAnimationAndTransformPair> _shotgunToCustomAnimationMap = new();
+    private static readonly Dictionary<ShotgunItem, CustomShotgunAnimationController> ShotgunToCustomAnimationMap = new();
 
-    private class CustomAnimationAndTransformPair(
+    private class CustomShotgunAnimationController(
         Transform shotgunBarrelTransform, 
         CustomShotgunRotationAnimation customShotgunBarrelRotationAnimation,
-        CustomShotgunRotationAnimation customRootShotgunRotationAnimation)
+        CustomShotgunRotationAnimation customShotgunRootRotationAnimation)
     {
         public Transform ShotgunBarrelTransform { get; set; } = shotgunBarrelTransform;
         public CustomShotgunRotationAnimation ShotgunBarrelRotationAnimation { get; set; } = customShotgunBarrelRotationAnimation;
-        public CustomShotgunRotationAnimation RootShotgunRotationAnimation { get; set; } = customRootShotgunRotationAnimation;
+        public CustomShotgunRotationAnimation ShotgunRootRotationAnimation { get; set; } = customShotgunRootRotationAnimation;
     }
+
+    private static readonly float[] ShotgunRootKeyframeTimes = [0f, 0.3f, 2.11f, 2.3f];
+    private static readonly Vector3[] ShotgunRootEulerRotations = [
+        new Vector3(-173, 180, -90),
+        new Vector3(-140, 180, -90),
+        new Vector3(-140, 180, -90),
+        new Vector3(-173, 180, -90)
+    ];
+
+    private static readonly float[] ShotgunBarrelKeyframeTimes = [0f, 0.45f, 1.10f, 2.22f, 2.31f];
+    private static readonly Vector3[] ShotgunBarrelEulerRotations = [
+        new Vector3(0, 0, 0),
+        new Vector3(0, 0, 0),
+        new Vector3(0, -55, 0),
+        new Vector3(0, -55, 0),
+        new Vector3(0, 0, 0),
+    ];
     
     public static void AddShotgun(ShotgunItem shotgun)
     {
         if (shotgun == null) return;
-
+        if (IsShotgunInMap(shotgun)) return;
+        
         Transform shotgunBarrelTransform = shotgun.transform.Find("GunBarrel");
-        CustomShotgunRotationAnimation customShotgunBarrelRotationAnimation = new([new Vector3(0, 0, 0)], []);
-        CustomShotgunRotationAnimation customRootShotgunRotationAnimation = new([new Vector3(0, 0, 0)], []);
-        _shotgunToCustomAnimationMap[shotgun] = new CustomAnimationAndTransformPair(
-            shotgunBarrelTransform, 
-            customShotgunBarrelRotationAnimation, 
-            customRootShotgunRotationAnimation
+        CustomShotgunRotationAnimation customShotgunBarrelRotationAnimation = new(ShotgunBarrelEulerRotations, ShotgunBarrelKeyframeTimes);
+        CustomShotgunRotationAnimation customShotgunRootRotationAnimation = new(ShotgunRootEulerRotations, ShotgunRootKeyframeTimes);
+        ShotgunToCustomAnimationMap[shotgun] = new CustomShotgunAnimationController(
+            shotgunBarrelTransform,
+            customShotgunBarrelRotationAnimation,
+            customShotgunRootRotationAnimation
             );
     }
 
     public static void RemoveShotgun(ShotgunItem shotgun)
     {
-        if (IsShotgunInMap(shotgun)) _shotgunToCustomAnimationMap.Remove(shotgun);
+        if (IsShotgunInMap(shotgun)) ShotgunToCustomAnimationMap.Remove(shotgun);
     }
 
     public static (CustomShotgunRotationAnimation, CustomShotgunRotationAnimation) GetShotgunRotationAnimation(ShotgunItem shotgun)
     {
-        CustomAnimationAndTransformPair currentShotgun = _shotgunToCustomAnimationMap[shotgun];
-        return (currentShotgun.RootShotgunRotationAnimation, currentShotgun.ShotgunBarrelRotationAnimation);
+        CustomShotgunAnimationController currentShotgun = ShotgunToCustomAnimationMap[shotgun];
+        return (currentShotgun.ShotgunRootRotationAnimation, currentShotgun.ShotgunBarrelRotationAnimation);
     }
 
     public static Transform GetShotgunBarrelTransform(ShotgunItem shotgun)
     {
-        return _shotgunToCustomAnimationMap[shotgun].ShotgunBarrelTransform;
+        return ShotgunToCustomAnimationMap[shotgun].ShotgunBarrelTransform;
     }
 
     public static void StartShotgunAnimation(ShotgunItem shotgun)
     {
         if (!IsShotgunInMap(shotgun)) return;
-        _shotgunToCustomAnimationMap[shotgun].RootShotgunRotationAnimation.StartAnimation();
-        _shotgunToCustomAnimationMap[shotgun].ShotgunBarrelRotationAnimation.StartAnimation();
+        ShotgunToCustomAnimationMap[shotgun].ShotgunRootRotationAnimation.StartAnimation();
+        ShotgunToCustomAnimationMap[shotgun].ShotgunBarrelRotationAnimation.StartAnimation();
+    }
+    
+    public static void EndShotgunAnimation(ShotgunItem shotgun)
+    {
+        if (!IsShotgunInMap(shotgun)) return;
+        ShotgunToCustomAnimationMap[shotgun].ShotgunRootRotationAnimation.ResetAnimation();
+        ShotgunToCustomAnimationMap[shotgun].ShotgunBarrelRotationAnimation.ResetAnimation();
     }
 
     public static bool IsShotgunInAnimation(ShotgunItem shotgun)
     {
-        CustomAnimationAndTransformPair currentShotgun = _shotgunToCustomAnimationMap[shotgun];
-        return currentShotgun.RootShotgunRotationAnimation.IsInAnimation || currentShotgun.ShotgunBarrelRotationAnimation.IsInAnimation;
+        CustomShotgunAnimationController currentShotgun = ShotgunToCustomAnimationMap[shotgun];
+        return currentShotgun.ShotgunRootRotationAnimation.IsInAnimation || currentShotgun.ShotgunBarrelRotationAnimation.IsInAnimation;
     }
 
     public static bool IsShotgunInMap(ShotgunItem shotgun)
     {
-        return _shotgunToCustomAnimationMap.ContainsKey(shotgun);
+        return ShotgunToCustomAnimationMap.ContainsKey(shotgun);
     }
 }

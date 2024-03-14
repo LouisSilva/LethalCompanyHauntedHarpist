@@ -38,13 +38,6 @@ public class BagpipesGhostAnimationController : MonoBehaviour
         if (audioManager == null) _mls.LogError("audioManager is null");
     }
 
-    private void LogDebug(string msg)
-    {
-        #if DEBUG
-        _mls.LogInfo(msg);
-        #endif
-    }
-
     private void OnEnable()
     {
         netcodeController.OnDoAnimation += SetTrigger;
@@ -100,5 +93,12 @@ public class BagpipesGhostAnimationController : MonoBehaviour
     {
         if (_ghostId != recievedGhostId) return;
         animator.SetTrigger(parameter);
+    }
+    
+    private void LogDebug(string msg)
+    {
+        #if DEBUG
+        _mls?.LogInfo(msg);
+        #endif
     }
 }

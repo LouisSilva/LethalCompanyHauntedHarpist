@@ -10,7 +10,6 @@ public class EnforcerGhostAnimationController : MonoBehaviour
     private string _ghostId;
     
     private ShotgunItem _heldShotgun;
-    private Transform _shotgunBarrelTransform;
     private NetworkObjectReference _shotgunObjectRef;
     
     #pragma warning disable 0649
@@ -53,6 +52,7 @@ public class EnforcerGhostAnimationController : MonoBehaviour
         netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
         netcodeController.OnGrabShotgun += HandleGrabShotgun;
         netcodeController.OnGrabShotgunPhaseTwo += HandleGrabShotgunPhaseTwo;
+        netcodeController.OnDropShotgun += HandleDropShotgun;
     }
 
     private void OnDestroy()
@@ -65,6 +65,7 @@ public class EnforcerGhostAnimationController : MonoBehaviour
         netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
         netcodeController.OnGrabShotgun -= HandleGrabShotgun;
         netcodeController.OnGrabShotgunPhaseTwo -= HandleGrabShotgunPhaseTwo;
+        netcodeController.OnDropShotgun -= HandleDropShotgun;
     }
 
     private void HandleGrabShotgun(string recievedGhostId)
@@ -80,10 +81,12 @@ public class EnforcerGhostAnimationController : MonoBehaviour
         if (_heldShotgun != null) return;
         if (!_shotgunObjectRef.TryGet(out NetworkObject networkObject)) return;
         _heldShotgun = networkObject.gameObject.GetComponent<ShotgunItem>();
-        _shotgunBarrelTransform = _heldShotgun.transform.Find("GunBarrel");
-
-        if (_shotgunBarrelTransform == null)
-            _mls.LogWarning("GunBarrel object not found, cannot do reload animation properly");
+    }
+    
+    private void HandleDropShotgun(string recievedGhostId, Vector3 dropPosition)
+    {
+        if (_ghostId != recievedGhostId) return;
+        _heldShotgun = null;
     }
 
     private void HandleOnEnterDeathState(string recievedGhostId)
@@ -105,7 +108,13 @@ public class EnforcerGhostAnimationController : MonoBehaviour
     private void OnAnimationEventStartReloadShotgun()
     {
         if (!NetworkManager.Singleton.IsClient || !netcodeController.IsOwner) return;
-        
+        EnforcerGhostShotgunAnimationRegistry.StartShotgunAnimation(_heldShotgun);
+    }
+
+    private void OnAnimationEventEndReloadShotgun()
+    {
+        if (!NetworkManager.Singleton.IsClient || !netcodeController.IsOwner) return;
+        EnforcerGhostShotgunAnimationRegistry.EndShotgunAnimation(_heldShotgun);
     }
 
     private void OnAnimationEventPickupShotgun()
@@ -139,7 +148,7 @@ public class EnforcerGhostAnimationController : MonoBehaviour
     private void LogDebug(string msg)
     {
         #if DEBUG
-        _mls.LogInfo(msg);
+        _mls?.LogInfo(msg);
         #endif
     }
 }

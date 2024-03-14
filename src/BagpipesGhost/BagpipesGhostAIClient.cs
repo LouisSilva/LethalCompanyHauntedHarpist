@@ -115,7 +115,7 @@ public class BagpipesGhostAIClient : MonoBehaviour
     private void LogDebug(string msg)
     {
         #if DEBUG
-        _mls.LogInfo(msg);
+        _mls?.LogInfo(msg);
         #endif
     }
 

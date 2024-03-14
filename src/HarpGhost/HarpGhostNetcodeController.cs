@@ -39,13 +39,6 @@ public class HarpGhostNetcodeController : NetworkBehaviour
         if (harpGhostAIServer == null) _mls.LogError("harpGhostAI is null");
     }
 
-    private void LogDebug(string msg)
-    {
-        #if DEBUG
-        _mls.LogInfo(msg);
-        #endif
-    }
-
     [ClientRpc]
     public void SyncGhostIdentifierClientRpc(string recievedGhostId)
     {
@@ -178,5 +171,12 @@ public class HarpGhostNetcodeController : NetworkBehaviour
         int randomNum = UnityEngine.Random.Range(0, clipArrayLength);
         LogDebug($"Invoking OnPlayCreatureVoice | Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
         OnPlayCreatureVoice?.Invoke(recievedGhostId, typeIndex, randomNum, interrupt);
+    }
+    
+    private void LogDebug(string msg)
+    {
+        #if DEBUG
+        _mls?.LogInfo(msg);
+        #endif
     }
 }

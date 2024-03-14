@@ -78,13 +78,6 @@ public class HarpGhostAudioManager : MonoBehaviour
         if (upsetSfx == null || upsetSfx.Length == 0) _mls.LogError("UpsetSfx is null or empty");
         if (dieSfx == null) _mls.LogError("DieSfx is null");
     }
-    
-    private void LogDebug(string msg)
-    {
-        #if DEBUG
-        _mls.LogInfo(msg);
-        #endif
-    }
 
     private void OnEnable()
     {
@@ -154,5 +147,12 @@ public class HarpGhostAudioManager : MonoBehaviour
         creatureSfxSource.volume = volume;
         creatureSfxSource.PlayOneShot(clip);
         WalkieTalkie.TransmitOneShotAudio(creatureSfxSource, clip, volume);
+    }
+    
+    private void LogDebug(string msg)
+    {
+        #if DEBUG
+        _mls?.LogInfo(msg);
+        #endif
     }
 }

@@ -587,7 +587,7 @@ public class EnforcerGhostAIServer : EnemyAI
     private void LogDebug(string msg)
     {
         #if DEBUG
-        _mls.LogInfo(msg);
+        _mls?.LogInfo(msg);
         #endif
     }
     

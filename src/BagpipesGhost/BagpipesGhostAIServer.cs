@@ -600,7 +600,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     private void LogDebug(string logMessage)
     {
         #if DEBUG
-        _mls.LogInfo(logMessage);
+        _mls?.LogInfo(logMessage);
         #endif
     }
     

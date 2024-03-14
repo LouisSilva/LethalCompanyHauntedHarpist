@@ -40,13 +40,6 @@ public class HarpGhostAnimationController : MonoBehaviour
         if (audioManager == null) _mls.LogError("audioManager is null");
     }
 
-    private void LogDebug(string msg)
-    {
-        #if DEBUG
-        _mls.LogInfo(msg);
-        #endif
-    }
-
     private void OnEnable()
     {
         netcodeController.OnDoAnimation += SetTrigger;
@@ -125,5 +118,12 @@ public class HarpGhostAnimationController : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         netcodeController.DamageTargetPlayerServerRpc(_ghostId, damage, causeOfDeath);
+    }
+    
+    private void LogDebug(string msg)
+    {
+        #if DEBUG
+        _mls?.LogInfo(msg);
+        #endif
     }
 }
