@@ -330,8 +330,6 @@ public class EnforcerGhostAIServer : EnemyAI
             Vector3 directionToPlayer = targetPlayer.transform.position - _heldShotgun.transform.position;
             directionToPlayer.Normalize();
             float dotProduct = Vector3.Dot(_heldShotgun.transform.forward, directionToPlayer);
-            
-            LogDebug($"dotProduct: {dotProduct}");
 
             if (dotProduct > 0.875f)
             {

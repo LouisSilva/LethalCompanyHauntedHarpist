@@ -1,29 +1,10 @@
 ﻿using System.Collections.Generic;
+using BepInEx.Logging;
 using HarmonyLib;
 using UnityEngine;
+using Logger = BepInEx.Logging.Logger;
 
 namespace LethalCompanyHarpGhost.EnforcerGhost;
-
-[HarmonyPatch(typeof(ShotgunItem))]
-internal static class ShotgunPatches
-{
-    [HarmonyPatch(nameof(ShotgunItem.GrabItemFromEnemy))]
-    [HarmonyPostfix]
-    private static void AddShotgunToRegistry(ShotgunItem __instance, EnemyAI enemy)
-    {
-        if (enemy is not EnforcerGhostAIServer) return;
-        if (!EnforcerGhostShotgunAnimationRegistry.IsShotgunInMap(__instance))
-            EnforcerGhostShotgunAnimationRegistry.AddShotgun(__instance);
-    }
-
-    [HarmonyPatch(nameof(ShotgunItem.DiscardItemFromEnemy))]
-    [HarmonyPostfix]
-    private static void RemoveShotgunFromRegistry(ShotgunItem __instance)
-    {
-        if (EnforcerGhostShotgunAnimationRegistry.IsShotgunInMap(__instance))
-            EnforcerGhostShotgunAnimationRegistry.RemoveShotgun(__instance);
-    }
-}
 
 [HarmonyPatch(typeof(GrabbableObject))]
 internal static class GrabbableObjectPatches
@@ -52,6 +33,7 @@ internal static class GrabbableObjectPatches
         
         else
         {
+            Debug.Log("End of shotgun animation, resetting");
             shotgunAnimationTuple.Item1.ResetAnimation();
             shotgunAnimationTuple.Item2.ResetAnimation();
         }
@@ -114,8 +96,10 @@ public class CustomShotgunRotationAnimation
 // This class is for storing shotguns owned by an enforcer ghost to be able to apply animations to the shotgun
 public static class EnforcerGhostShotgunAnimationRegistry
 {
+    private static readonly ManualLogSource Mls =
+        Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid}| EnforcerGhostShotgunAnimationRegistry");
     private static readonly Dictionary<ShotgunItem, CustomShotgunAnimationController> ShotgunToCustomAnimationMap = new();
-
+    
     private class CustomShotgunAnimationController(
         Transform shotgunBarrelTransform, 
         CustomShotgunRotationAnimation customShotgunBarrelRotationAnimation,
@@ -126,7 +110,12 @@ public static class EnforcerGhostShotgunAnimationRegistry
         public CustomShotgunRotationAnimation ShotgunRootRotationAnimation { get; set; } = customShotgunRootRotationAnimation;
     }
 
-    private static readonly float[] ShotgunRootKeyframeTimes = [0f, 0.3f, 2.11f, 2.3f];
+    private static readonly float[] ShotgunRootKeyframeTimes = [
+        ConvertAnimTimeToSeconds("0:00"), 
+        ConvertAnimTimeToSeconds("0:30"), 
+        ConvertAnimTimeToSeconds("2:11"), 
+        ConvertAnimTimeToSeconds("2:30")
+    ];
     private static readonly Vector3[] ShotgunRootEulerRotations = [
         new Vector3(-173, 180, -90),
         new Vector3(-140, 180, -90),
@@ -134,7 +123,13 @@ public static class EnforcerGhostShotgunAnimationRegistry
         new Vector3(-173, 180, -90)
     ];
 
-    private static readonly float[] ShotgunBarrelKeyframeTimes = [0f, 0.45f, 1.10f, 2.22f, 2.31f];
+    private static readonly float[] ShotgunBarrelKeyframeTimes = [
+        ConvertAnimTimeToSeconds("0:00"), 
+        ConvertAnimTimeToSeconds("0:45"), 
+        ConvertAnimTimeToSeconds("1:10"), 
+        ConvertAnimTimeToSeconds("2:22"), 
+        ConvertAnimTimeToSeconds("2:31")
+    ];
     private static readonly Vector3[] ShotgunBarrelEulerRotations = [
         new Vector3(0, 0, 0),
         new Vector3(0, 0, 0),
@@ -142,10 +137,24 @@ public static class EnforcerGhostShotgunAnimationRegistry
         new Vector3(0, -55, 0),
         new Vector3(0, 0, 0),
     ];
+
+    private static float ConvertAnimTimeToSeconds(string animationTime, float frameRate = 60f)
+    {
+        string[] parts = animationTime.Split(":");
+
+        int seconds = int.Parse(parts[0]);
+        int frames = int.Parse(parts[1]);
+
+        return seconds + (frames / frameRate);
+    }
     
     public static void AddShotgun(ShotgunItem shotgun)
     {
-        if (shotgun == null) return;
+        if (shotgun == null)
+        {
+            Mls.LogError("Addshotgun: given shotgun is null");
+            return;
+        }
         if (IsShotgunInMap(shotgun)) return;
         
         Transform shotgunBarrelTransform = shotgun.transform.Find("GunBarrel");
@@ -196,6 +205,7 @@ public static class EnforcerGhostShotgunAnimationRegistry
 
     public static bool IsShotgunInMap(ShotgunItem shotgun)
     {
-        return ShotgunToCustomAnimationMap.ContainsKey(shotgun);
+        if (shotgun == null) Mls.LogError("Given shotgun is null");
+        return shotgun != null && ShotgunToCustomAnimationMap.ContainsKey(shotgun);
     }
 }

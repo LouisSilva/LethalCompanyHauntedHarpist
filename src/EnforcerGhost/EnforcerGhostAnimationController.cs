@@ -53,6 +53,7 @@ public class EnforcerGhostAnimationController : MonoBehaviour
         netcodeController.OnGrabShotgun += HandleGrabShotgun;
         netcodeController.OnGrabShotgunPhaseTwo += HandleGrabShotgunPhaseTwo;
         netcodeController.OnDropShotgun += HandleDropShotgun;
+        netcodeController.OnSpawnShotgun += HandleSpawnShotgun;
     }
 
     private void OnDestroy()
@@ -66,6 +67,13 @@ public class EnforcerGhostAnimationController : MonoBehaviour
         netcodeController.OnGrabShotgun -= HandleGrabShotgun;
         netcodeController.OnGrabShotgunPhaseTwo -= HandleGrabShotgunPhaseTwo;
         netcodeController.OnDropShotgun -= HandleDropShotgun;
+        netcodeController.OnSpawnShotgun -= HandleSpawnShotgun;
+    }
+    
+    private void HandleSpawnShotgun(string recievedGhostId, NetworkObjectReference shotgunObject, int shotgunScrapValue)
+    {
+        if (_ghostId != recievedGhostId) return;
+        _shotgunObjectRef = shotgunObject;
     }
 
     private void HandleGrabShotgun(string recievedGhostId)
@@ -79,13 +87,17 @@ public class EnforcerGhostAnimationController : MonoBehaviour
     {
         if (_ghostId != recievedGhostId) return;
         if (_heldShotgun != null) return;
+        LogDebug("In HandleGrabShotgunPhaseTwo method");
         if (!_shotgunObjectRef.TryGet(out NetworkObject networkObject)) return;
+        
         _heldShotgun = networkObject.gameObject.GetComponent<ShotgunItem>();
+        EnforcerGhostShotgunAnimationRegistry.AddShotgun(_heldShotgun);
     }
     
     private void HandleDropShotgun(string recievedGhostId, Vector3 dropPosition)
     {
         if (_ghostId != recievedGhostId) return;
+        EnforcerGhostShotgunAnimationRegistry.RemoveShotgun(_heldShotgun);
         _heldShotgun = null;
     }
 
@@ -107,19 +119,19 @@ public class EnforcerGhostAnimationController : MonoBehaviour
 
     private void OnAnimationEventStartReloadShotgun()
     {
-        if (!NetworkManager.Singleton.IsClient || !netcodeController.IsOwner) return;
+        LogDebug("In OnAnimationEventStartReloadShotgun");
         EnforcerGhostShotgunAnimationRegistry.StartShotgunAnimation(_heldShotgun);
     }
 
     private void OnAnimationEventEndReloadShotgun()
     {
-        if (!NetworkManager.Singleton.IsClient || !netcodeController.IsOwner) return;
+        LogDebug("In OnAnimationEventEndReloadShotgun");
         EnforcerGhostShotgunAnimationRegistry.EndShotgunAnimation(_heldShotgun);
     }
 
     private void OnAnimationEventPickupShotgun()
     {
-        if (!NetworkManager.Singleton.IsClient || !netcodeController.IsOwner) return;
+        LogDebug("In OnAnimationEventPickupShotgun");
         netcodeController.GrabShotgunPhaseTwoServerRpc(_ghostId);
     }
 
