@@ -26,9 +26,8 @@ internal static class GrabbableObjectPatches
 
         if (EnforcerGhostShotgunAnimationRegistry.IsShotgunInAnimation(shotgun))
         {
-            shotgun.transform.localRotation *= shotgunAnimationTuple.Item1.CalculateUpdatedRotation();
-            EnforcerGhostShotgunAnimationRegistry.GetShotgunBarrelTransform(shotgun).localRotation *=
-                shotgunAnimationTuple.Item2.CalculateUpdatedRotation();
+            shotgun.transform.rotation = shotgunAnimationTuple.Item1.CalculateUpdatedRotation();
+            EnforcerGhostShotgunAnimationRegistry.GetShotgunBarrelTransform(shotgun).localRotation = shotgunAnimationTuple.Item2.CalculateUpdatedRotation();
         }
         
         else
@@ -97,7 +96,7 @@ public class CustomShotgunRotationAnimation
 public static class EnforcerGhostShotgunAnimationRegistry
 {
     private static readonly ManualLogSource Mls =
-        Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid}| EnforcerGhostShotgunAnimationRegistry");
+        Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | EnforcerGhostShotgunAnimationRegistry");
     private static readonly Dictionary<ShotgunItem, CustomShotgunAnimationController> ShotgunToCustomAnimationMap = new();
     
     private class CustomShotgunAnimationController(
@@ -117,10 +116,10 @@ public static class EnforcerGhostShotgunAnimationRegistry
         ConvertAnimTimeToSeconds("2:30")
     ];
     private static readonly Vector3[] ShotgunRootEulerRotations = [
-        new Vector3(-173, 180, -90),
-        new Vector3(-140, 180, -90),
-        new Vector3(-140, 180, -90),
-        new Vector3(-173, 180, -90)
+        new Vector3(-180, 180, -90),
+        new Vector3(-147, 180, -90),
+        new Vector3(-147, 180, -90),
+        new Vector3(-180, 180, -90)
     ];
 
     private static readonly float[] ShotgunBarrelKeyframeTimes = [
@@ -152,7 +151,7 @@ public static class EnforcerGhostShotgunAnimationRegistry
     {
         if (shotgun == null)
         {
-            Mls.LogError("Addshotgun: given shotgun is null");
+            Mls.LogError("AddShotgun: given shotgun is null");
             return;
         }
         if (IsShotgunInMap(shotgun)) return;
