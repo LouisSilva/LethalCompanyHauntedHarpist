@@ -109,7 +109,6 @@ public class EnforcerGhostAIClient : MonoBehaviour
         if (_heldShotgun == null) return;
         _heldShotgun.parentObject = null;
         _heldShotgun.transform.SetParent(StartOfRound.Instance.propsContainer, true);
-        _heldShotgun.gunAnimator.SetBool(Reloading, false);
         _heldShotgun.itemProperties.positionOffset = new Vector3(0, 0.39f, 0);
         _heldShotgun.itemProperties.rotationOffset = new Vector3(-90.89f, -1.5f, 0f);
         _heldShotgun.EnablePhysics(true);

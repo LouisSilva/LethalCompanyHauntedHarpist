@@ -49,7 +49,9 @@ namespace LethalCompanyHarpGhost
         public static Item HarpItem;
         public static Item BagpipesItem;
         private static Item TubaItem;
+        
         public static GameObject ShotgunPrefab;
+        public static RuntimeAnimatorController CustomShotgunAnimator;
 
         private void Awake()
         {
@@ -63,13 +65,6 @@ namespace LethalCompanyHarpGhost
                 _mls.LogError("MainAssetBundle is null");
                 return;
             }
-            
-            // var original1 = AccessTools.Method(typeof(ShotgunItem), "GrabItemFromEnemy");
-            // var original2 = AccessTools.Method(typeof(ShotgunItem), "DiscardItemFromEnemy");
-            // var postfix1 = new HarmonyMethod(typeof(ShotgunPatches), "AddShotgunToRegistry");
-            // var postfix2 = new HarmonyMethod(typeof(ShotgunPatches), "RemoveShotgunFromRegistry");
-            // _harmony.Patch(original1, postfix: postfix1);
-            // _harmony.Patch(original2, postfix: postfix2);
             
             _harmony.PatchAll();
             HarpGhostConfig = new HarpGhostConfig(Config);
@@ -133,8 +128,9 @@ namespace LethalCompanyHarpGhost
             NetworkPrefabs.RegisterNetworkPrefab(EnforcerGhostEnemyType.enemyPrefab);
             Utilities.FixMixerGroups(EnforcerGhostEnemyType.enemyPrefab);
             RegisterEnemy(EnforcerGhostEnemyType, 0, HarpGhostConfig.Instance.HarpGhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
-            
-            // _harmony.PatchAll(typeof(ShotgunPatches));
+
+            CustomShotgunAnimator = Assets.MainAssetBundle.LoadAsset<RuntimeAnimatorController>("AnimatorShotgun");
+            if (CustomShotgunAnimator == null) _mls.LogError("custom shotgun animator is null");
         }
 
         private void SetupHarp()

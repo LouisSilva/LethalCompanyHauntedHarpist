@@ -1,210 +1,32 @@
-﻿using System.Collections.Generic;
-using BepInEx.Logging;
-using HarmonyLib;
+﻿using HarmonyLib;
 using UnityEngine;
-using Logger = BepInEx.Logging.Logger;
 
 namespace LethalCompanyHarpGhost.EnforcerGhost;
 
-[HarmonyPatch(typeof(GrabbableObject))]
-internal static class GrabbableObjectPatches
+[HarmonyPatch(typeof(ShotgunItem))]
+internal static class ShotgunPatches
 {
-    [HarmonyPatch(nameof(GrabbableObject.LateUpdate))]
+    private static RuntimeAnimatorController DefaultShotgunAnimationController;
+
+    [HarmonyPatch(nameof(ShotgunItem.Start))]
     [HarmonyPostfix]
-    private static void DoCustomShotgunAnimation(GrabbableObject __instance)
+    private static void GetDefaultShotgunAnimator(ShotgunItem __instance)
     {
-        if (__instance is not ShotgunItem shotgun) return;
-        if (!shotgun.isHeldByEnemy) return;
-        if (shotgun.heldByEnemy is not EnforcerGhostAIServer) return;
-        
-        // If current shotgun is not in the registry, then add it
-        if (!EnforcerGhostShotgunAnimationRegistry.IsShotgunInMap(shotgun))
-            EnforcerGhostShotgunAnimationRegistry.AddShotgun(shotgun);
-        
-        (CustomShotgunRotationAnimation, CustomShotgunRotationAnimation) shotgunAnimationTuple =
-            EnforcerGhostShotgunAnimationRegistry.GetShotgunRotationAnimation(shotgun);
-
-        if (EnforcerGhostShotgunAnimationRegistry.IsShotgunInAnimation(shotgun))
-        {
-            shotgun.transform.rotation = shotgunAnimationTuple.Item1.CalculateUpdatedRotation();
-            EnforcerGhostShotgunAnimationRegistry.GetShotgunBarrelTransform(shotgun).localRotation = shotgunAnimationTuple.Item2.CalculateUpdatedRotation();
-        }
-        
-        else
-        {
-            Debug.Log("End of shotgun animation, resetting");
-            shotgunAnimationTuple.Item1.ResetAnimation();
-            shotgunAnimationTuple.Item2.ResetAnimation();
-        }
-    }
-}
-
-public class CustomShotgunRotationAnimation
-{
-    private readonly Quaternion[] _rotations;
-    private readonly float[] _keyframeTimes;
-    public bool IsInAnimation;
-    private float _startTime;
-    private int _currentKeyframeIndex;
-
-    public CustomShotgunRotationAnimation(Vector3[] eulerRotations, float[] keyframeTimes)
-    {
-        _currentKeyframeIndex = 0;
-        _keyframeTimes = keyframeTimes;
-        
-        // Converts the euler rotations into Quaternions
-        _rotations = new Quaternion[eulerRotations.Length];
-        for (int i = 0; i < eulerRotations.Length; i++)
-            _rotations[i] = Quaternion.Euler(eulerRotations[i]);
-    }
-
-    public void StartAnimation()
-    {
-        IsInAnimation = true;
-        _startTime = Time.time;
-    }
-
-    public void ResetAnimation()
-    {
-        IsInAnimation = false;
-        _startTime = Time.time;
-        _currentKeyframeIndex = 0;
-    }
-
-    public Quaternion CalculateUpdatedRotation()
-    {
-        // Update keyframe index
-        while (_currentKeyframeIndex < _keyframeTimes.Length - 1 &&
-               Time.time - _startTime >= _keyframeTimes[_currentKeyframeIndex + 1])
-            _currentKeyframeIndex++;
-
-        if (_currentKeyframeIndex < _rotations.Length - 1)
-        {
-            float elapsedSinceKeyframe = Time.time - _startTime - _keyframeTimes[_currentKeyframeIndex];
-            float timeBetweenKeyframes = _keyframeTimes[_currentKeyframeIndex + 1] - _keyframeTimes[_currentKeyframeIndex];
-            float normalizedTime = elapsedSinceKeyframe / timeBetweenKeyframes;
-
-            return Quaternion.Lerp(_rotations[_currentKeyframeIndex], _rotations[_currentKeyframeIndex + 1], normalizedTime);
-        }
-        
-        // If there are no more keyframes or pausing in the current position
-        return _rotations[_currentKeyframeIndex];
-    }
-}
-
-// This class is for storing shotguns owned by an enforcer ghost to be able to apply animations to the shotgun
-public static class EnforcerGhostShotgunAnimationRegistry
-{
-    private static readonly ManualLogSource Mls =
-        Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | EnforcerGhostShotgunAnimationRegistry");
-    private static readonly Dictionary<ShotgunItem, CustomShotgunAnimationController> ShotgunToCustomAnimationMap = new();
-    
-    private class CustomShotgunAnimationController(
-        Transform shotgunBarrelTransform, 
-        CustomShotgunRotationAnimation customShotgunBarrelRotationAnimation,
-        CustomShotgunRotationAnimation customShotgunRootRotationAnimation)
-    {
-        public Transform ShotgunBarrelTransform { get; set; } = shotgunBarrelTransform;
-        public CustomShotgunRotationAnimation ShotgunBarrelRotationAnimation { get; set; } = customShotgunBarrelRotationAnimation;
-        public CustomShotgunRotationAnimation ShotgunRootRotationAnimation { get; set; } = customShotgunRootRotationAnimation;
-    }
-
-    private static readonly float[] ShotgunRootKeyframeTimes = [
-        ConvertAnimTimeToSeconds("0:00"), 
-        ConvertAnimTimeToSeconds("0:30"), 
-        ConvertAnimTimeToSeconds("2:11"), 
-        ConvertAnimTimeToSeconds("2:30")
-    ];
-    private static readonly Vector3[] ShotgunRootEulerRotations = [
-        new Vector3(-180, 180, -90),
-        new Vector3(-147, 180, -90),
-        new Vector3(-147, 180, -90),
-        new Vector3(-180, 180, -90)
-    ];
-
-    private static readonly float[] ShotgunBarrelKeyframeTimes = [
-        ConvertAnimTimeToSeconds("0:00"), 
-        ConvertAnimTimeToSeconds("0:45"), 
-        ConvertAnimTimeToSeconds("1:10"), 
-        ConvertAnimTimeToSeconds("2:22"), 
-        ConvertAnimTimeToSeconds("2:31")
-    ];
-    private static readonly Vector3[] ShotgunBarrelEulerRotations = [
-        new Vector3(0, 0, 0),
-        new Vector3(0, 0, 0),
-        new Vector3(0, -55, 0),
-        new Vector3(0, -55, 0),
-        new Vector3(0, 0, 0),
-    ];
-
-    private static float ConvertAnimTimeToSeconds(string animationTime, float frameRate = 60f)
-    {
-        string[] parts = animationTime.Split(":");
-
-        int seconds = int.Parse(parts[0]);
-        int frames = int.Parse(parts[1]);
-
-        return seconds + (frames / frameRate);
+        DefaultShotgunAnimationController = __instance.gunAnimator.runtimeAnimatorController;
     }
     
-    public static void AddShotgun(ShotgunItem shotgun)
+    [HarmonyPatch(nameof(ShotgunItem.GrabItemFromEnemy))]
+    [HarmonyPostfix]
+    private static void AddCustomAnimationController(ShotgunItem __instance)
     {
-        if (shotgun == null)
-        {
-            Mls.LogError("AddShotgun: given shotgun is null");
-            return;
-        }
-        if (IsShotgunInMap(shotgun)) return;
-        
-        Transform shotgunBarrelTransform = shotgun.transform.Find("GunBarrel");
-        CustomShotgunRotationAnimation customShotgunBarrelRotationAnimation = new(ShotgunBarrelEulerRotations, ShotgunBarrelKeyframeTimes);
-        CustomShotgunRotationAnimation customShotgunRootRotationAnimation = new(ShotgunRootEulerRotations, ShotgunRootKeyframeTimes);
-        ShotgunToCustomAnimationMap[shotgun] = new CustomShotgunAnimationController(
-            shotgunBarrelTransform,
-            customShotgunBarrelRotationAnimation,
-            customShotgunRootRotationAnimation
-            );
+        if (__instance.heldByEnemy is not EnforcerGhostAIServer) return;
+        __instance.gunAnimator.runtimeAnimatorController = HarpGhostPlugin.CustomShotgunAnimator;
     }
 
-    public static void RemoveShotgun(ShotgunItem shotgun)
+    [HarmonyPatch(nameof(ShotgunItem.DiscardItemFromEnemy))]
+    [HarmonyPostfix]
+    private static void RemoveCustomAnimationController(ShotgunItem __instance)
     {
-        if (IsShotgunInMap(shotgun)) ShotgunToCustomAnimationMap.Remove(shotgun);
-    }
-
-    public static (CustomShotgunRotationAnimation, CustomShotgunRotationAnimation) GetShotgunRotationAnimation(ShotgunItem shotgun)
-    {
-        CustomShotgunAnimationController currentShotgun = ShotgunToCustomAnimationMap[shotgun];
-        return (currentShotgun.ShotgunRootRotationAnimation, currentShotgun.ShotgunBarrelRotationAnimation);
-    }
-
-    public static Transform GetShotgunBarrelTransform(ShotgunItem shotgun)
-    {
-        return ShotgunToCustomAnimationMap[shotgun].ShotgunBarrelTransform;
-    }
-
-    public static void StartShotgunAnimation(ShotgunItem shotgun)
-    {
-        if (!IsShotgunInMap(shotgun)) return;
-        ShotgunToCustomAnimationMap[shotgun].ShotgunRootRotationAnimation.StartAnimation();
-        ShotgunToCustomAnimationMap[shotgun].ShotgunBarrelRotationAnimation.StartAnimation();
-    }
-    
-    public static void EndShotgunAnimation(ShotgunItem shotgun)
-    {
-        if (!IsShotgunInMap(shotgun)) return;
-        ShotgunToCustomAnimationMap[shotgun].ShotgunRootRotationAnimation.ResetAnimation();
-        ShotgunToCustomAnimationMap[shotgun].ShotgunBarrelRotationAnimation.ResetAnimation();
-    }
-
-    public static bool IsShotgunInAnimation(ShotgunItem shotgun)
-    {
-        CustomShotgunAnimationController currentShotgun = ShotgunToCustomAnimationMap[shotgun];
-        return currentShotgun.ShotgunRootRotationAnimation.IsInAnimation || currentShotgun.ShotgunBarrelRotationAnimation.IsInAnimation;
-    }
-
-    public static bool IsShotgunInMap(ShotgunItem shotgun)
-    {
-        if (shotgun == null) Mls.LogError("Given shotgun is null");
-        return shotgun != null && ShotgunToCustomAnimationMap.ContainsKey(shotgun);
+        __instance.gunAnimator.runtimeAnimatorController = DefaultShotgunAnimationController;
     }
 }

@@ -54,6 +54,7 @@ public class EnforcerGhostAnimationController : MonoBehaviour
         netcodeController.OnGrabShotgunPhaseTwo += HandleGrabShotgunPhaseTwo;
         netcodeController.OnDropShotgun += HandleDropShotgun;
         netcodeController.OnSpawnShotgun += HandleSpawnShotgun;
+        netcodeController.OnDoShotgunAnimation += HandleDoShotgunAnimation;
     }
 
     private void OnDestroy()
@@ -68,6 +69,7 @@ public class EnforcerGhostAnimationController : MonoBehaviour
         netcodeController.OnGrabShotgunPhaseTwo -= HandleGrabShotgunPhaseTwo;
         netcodeController.OnDropShotgun -= HandleDropShotgun;
         netcodeController.OnSpawnShotgun -= HandleSpawnShotgun;
+        netcodeController.OnDoShotgunAnimation -= HandleDoShotgunAnimation;
     }
     
     private void HandleSpawnShotgun(string recievedGhostId, NetworkObjectReference shotgunObject, int shotgunScrapValue)
@@ -91,14 +93,18 @@ public class EnforcerGhostAnimationController : MonoBehaviour
         if (!_shotgunObjectRef.TryGet(out NetworkObject networkObject)) return;
         
         _heldShotgun = networkObject.gameObject.GetComponent<ShotgunItem>();
-        EnforcerGhostShotgunAnimationRegistry.AddShotgun(_heldShotgun);
     }
     
     private void HandleDropShotgun(string recievedGhostId, Vector3 dropPosition)
     {
         if (_ghostId != recievedGhostId) return;
-        EnforcerGhostShotgunAnimationRegistry.RemoveShotgun(_heldShotgun);
         _heldShotgun = null;
+    }
+
+    private void HandleDoShotgunAnimation(string recievedGhostId, string animationId)
+    {
+        if (_ghostId != recievedGhostId) return;
+        _heldShotgun.gunAnimator.SetTrigger(animationId);
     }
 
     private void HandleOnEnterDeathState(string recievedGhostId)
@@ -120,13 +126,7 @@ public class EnforcerGhostAnimationController : MonoBehaviour
     private void OnAnimationEventStartReloadShotgun()
     {
         LogDebug("In OnAnimationEventStartReloadShotgun");
-        EnforcerGhostShotgunAnimationRegistry.StartShotgunAnimation(_heldShotgun);
-    }
-
-    private void OnAnimationEventEndReloadShotgun()
-    {
-        LogDebug("In OnAnimationEventEndReloadShotgun");
-        EnforcerGhostShotgunAnimationRegistry.EndShotgunAnimation(_heldShotgun);
+        netcodeController.DoShotgunAnimationServerRpc(_ghostId, "reload");
     }
 
     private void OnAnimationEventPickupShotgun()
