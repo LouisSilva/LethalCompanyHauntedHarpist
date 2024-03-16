@@ -142,6 +142,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         Vector3 position = transform.position;
         _agentCurrentSpeed = Mathf.Lerp(_agentCurrentSpeed, (position - _agentLastPosition).magnitude / Time.deltaTime, 0.75f);
         _agentLastPosition = position;
+        _agentIsMoving = _agentCurrentSpeed > 0f;
     }
 
     public override void Update()
@@ -281,10 +282,8 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     private void ExitTheGameThroughOutsideNode()
     {
         if(!IsServer) return;
-        
-        Destroy(_heldBagpipes);
-        netcodeController.DestroyHeldBagpipesClientRpc(_ghostId);
-        Destroy(this);
+        _heldBagpipes.NetworkObject.Despawn();
+        KillEnemyClientRpc(true);
     }
 
     private void ChooseEscapeDoor()
@@ -312,7 +311,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     }
 
     // Makes the escorts enter rambo state and removes them from the escort list
-    private void RetireAllEscorts()
+    private void RetireAllEscorts(PlayerControllerB targetPlayer = null)
     {
         if (!IsServer) return;
         if (_currentlyRetiringAllEscorts) return;
@@ -321,6 +320,11 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         for (int i = _escorts.Count - 1; i >= 0; i--)
         {
             LogDebug($"Retiring escort {_escorts[i].ghostId}");
+            if (targetPlayer != null)
+            {
+                _escorts[i].targetPlayer = targetPlayer;
+                _escorts[i].SwitchToBehaviourStateOnLocalClient(3);
+            }
             RemoveEscort(i);
         }
         _currentlyRetiringAllEscorts = false;
@@ -593,7 +597,12 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
 
     public void EscorteeBreakoff()
     {
-        RetireAllEscorts();
+        EscorteeBreakoff(null);
+    }
+
+    public void EscorteeBreakoff(PlayerControllerB targetPlayer)
+    {
+        RetireAllEscorts(targetPlayer);
         SwitchBehaviourStateLocally((int)States.RunningToEscapeDoor);
     }
     

@@ -6,27 +6,47 @@ namespace LethalCompanyHarpGhost.EnforcerGhost;
 [HarmonyPatch(typeof(ShotgunItem))]
 internal static class ShotgunPatches
 {
-    private static RuntimeAnimatorController DefaultShotgunAnimationController;
+    internal static RuntimeAnimatorController DefaultShotgunAnimationController;
 
     [HarmonyPatch(nameof(ShotgunItem.Start))]
     [HarmonyPostfix]
     private static void GetDefaultShotgunAnimator(ShotgunItem __instance)
     {
-        DefaultShotgunAnimationController = __instance.gunAnimator.runtimeAnimatorController;
+        if (DefaultShotgunAnimationController == null) DefaultShotgunAnimationController = __instance.gunAnimator.runtimeAnimatorController;
     }
-    
-    [HarmonyPatch(nameof(ShotgunItem.GrabItemFromEnemy))]
-    [HarmonyPostfix]
-    private static void AddCustomAnimationController(ShotgunItem __instance)
-    {
-        if (__instance.heldByEnemy is not EnforcerGhostAIServer) return;
-        __instance.gunAnimator.runtimeAnimatorController = HarpGhostPlugin.CustomShotgunAnimator;
-    }
+}
 
-    [HarmonyPatch(nameof(ShotgunItem.DiscardItemFromEnemy))]
+[HarmonyPatch(typeof(GrabbableObject))]
+internal static class GrabbableObjectPatches
+{
+    [HarmonyPatch(nameof(ShotgunItem.LateUpdate))]
     [HarmonyPostfix]
-    private static void RemoveCustomAnimationController(ShotgunItem __instance)
+    private static void UpdateItemOffsets(GrabbableObject __instance)
     {
-        __instance.gunAnimator.runtimeAnimatorController = DefaultShotgunAnimationController;
+        if (__instance is not ShotgunItem shotgun) return;
+        if (shotgun.heldByEnemy is not EnforcerGhostAIServer) return;
+        if (shotgun.parentObject != null)
+        {
+            Vector3 rotationOffset;
+            Vector3 positionOffset;
+            if (shotgun.heldByEnemy is EnforcerGhostAIServer && shotgun.isHeldByEnemy)
+            {
+                positionOffset = new Vector3(0, 0, 0);
+                rotationOffset = new Vector3(-180f, 180f, -90f);
+            }
+            else
+            {
+                rotationOffset = new Vector3(0, 0.39f, 0);
+                positionOffset = new Vector3(-90.89f, -1.5f, 0f);
+            }
+
+            shotgun.transform.rotation = shotgun.parentObject.rotation;
+            shotgun.transform.Rotate(rotationOffset);
+            shotgun.transform.position = shotgun.parentObject.position;
+            shotgun.transform.position += shotgun.parentObject.rotation * positionOffset;
+        }
+        
+        if (!(shotgun.radarIcon != null)) return;
+        shotgun.radarIcon.position = shotgun.transform.position;
     }
 }

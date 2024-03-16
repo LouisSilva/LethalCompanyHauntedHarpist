@@ -41,7 +41,7 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void DestroyHeldBagpipesClientRpc(string recievedGhostId)
+    public void DespawnHeldBagpipesClientRpc(string recievedGhostId)
     {
         OnDestroyBagpipes?.Invoke(recievedGhostId);
     }

@@ -27,7 +27,6 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     public event Action<string, int> OnChangeTargetPlayer;
     public event Action<string> OnShootGun;
     public event Action<string, int> OnUpdateShotgunShellsLoaded;
-    public event Action<string, string, bool> OnChangeShotgunAnimationParameterBool;
     public event Action<string, string> OnDoShotgunAnimation;
 
     private void Start()
@@ -109,12 +108,6 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     public void DoShotgunAnimationClientRpc(string recievedGhostId, string animationId)
     {
         OnDoShotgunAnimation?.Invoke(recievedGhostId, animationId);
-    }
-
-    [ClientRpc]
-    public void ShotgunAnimatorSetBoolClientRpc(string recievedGhostId, string animationName, bool value)
-    {
-        OnChangeShotgunAnimationParameterBool?.Invoke(recievedGhostId, animationName, value);
     }
 
     [ClientRpc]
