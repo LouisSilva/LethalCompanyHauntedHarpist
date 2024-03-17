@@ -24,6 +24,7 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     public event Action<string> OnPlayBagpipesMusic;
     public event Action<string> OnStopBagpipesMusic;
     public event Action<string> OnEnterDeathState;
+    public event Action<string> OnPlayTeleportVfx;
     public event Action<string, int, int, bool> OnPlayCreatureVoice;
 
     private void Start()
@@ -56,6 +57,12 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     public void DoAnimationClientRpc(string recievedGhostId, int animationId)
     {
         OnDoAnimation?.Invoke(recievedGhostId, animationId);
+    }
+
+    [ClientRpc]
+    public void PlayTeleportVfxClientRpc(string recievedGhostId)
+    {
+        OnPlayTeleportVfx?.Invoke(recievedGhostId);
     }
     
     [ClientRpc]

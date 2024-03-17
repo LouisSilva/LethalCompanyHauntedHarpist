@@ -1,5 +1,6 @@
 ﻿using BepInEx.Logging;
 using UnityEngine;
+using UnityEngine.VFX;
 
 namespace LethalCompanyHarpGhost.BagpipesGhost;
 
@@ -12,6 +13,8 @@ public class BagpipesGhostAnimationController : MonoBehaviour
     [SerializeField] private Animator animator;
     [SerializeField] private BagpipesGhostNetcodeController netcodeController;
     [SerializeField] private BagpipesGhostAudioManager audioManager;
+    
+    public VisualEffect teleportVfx;
     #pragma warning restore 0649
     
     public static readonly int IsRunning = Animator.StringToHash("isRunning");
@@ -45,6 +48,7 @@ public class BagpipesGhostAnimationController : MonoBehaviour
         netcodeController.OnEnterDeathState += HandleOnEnterDeathState;
         netcodeController.OnInitializeConfigValues += HandleInitializeConfigValues;
         netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
+        netcodeController.OnPlayTeleportVfx += HandlePlayTeleportVfx;
     }
 
     private void OnDestroy()
@@ -55,6 +59,7 @@ public class BagpipesGhostAnimationController : MonoBehaviour
         netcodeController.OnEnterDeathState -= HandleOnEnterDeathState;
         netcodeController.OnInitializeConfigValues -= HandleInitializeConfigValues;
         netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
+        netcodeController.OnPlayTeleportVfx -= HandlePlayTeleportVfx;
     }
 
     private void HandleUpdateGhostIdentifier(string recievedGhostId)
@@ -76,6 +81,12 @@ public class BagpipesGhostAnimationController : MonoBehaviour
     {
         if (_ghostId != recievedGhostId) return;
         _attackDamage = HarpGhostConfig.Instance.HarpGhostAttackDamage.Value;
+    }
+    
+    private void HandlePlayTeleportVfx(string recievedGhostId)
+    {
+        if (_ghostId != recievedGhostId) return;
+        teleportVfx.SendEvent("OnPlayTeleport");
     }
 
     private void SetBool(string recievedGhostId, int parameter, bool value)

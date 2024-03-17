@@ -50,14 +50,19 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
 
     private InstrumentBehaviour _heldBagpipes;
     private NetworkObjectReference _instrumentObjectRef;
+
+    private Coroutine _teleportCoroutine = null;
+    
+    #pragma warning disable 0649
+    [Header("Visual Effects")]
+    [Space(5f)]
+    private LineRenderer _lineRenderer;
     
     [Header("Controllers and Managers")]
     [Space(5f)]
-    #pragma warning disable 0649
     [SerializeField] private BagpipesGhostAudioManager audioManager;
     [SerializeField] private BagpipesGhostNetcodeController netcodeController;
     [SerializeField] private BagpipesGhostAnimationController animationController;
-    private LineRenderer _lineRenderer;
     #pragma warning restore 0649
 
     private enum States
@@ -256,9 +261,9 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 if (roamMap.inProgress) StopSearch(roamMap);
                 if (Vector3.Distance(transform.position, destination) <= 1)
                 {
-                    LogDebug("Reached outside escape node");
                     moveTowardsDestination = false;
-                    ExitTheGameThroughOutsideNode();
+                    if (_teleportCoroutine == null) 
+                        StartCoroutine(ExitTheGameThroughOutsideNode());
                 }
                 
                 break;
@@ -279,11 +284,19 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         SwitchBehaviourStateLocally((int)States.RunningToEdgeOfOutsideMap);
     }
 
-    private void ExitTheGameThroughOutsideNode()
+    private IEnumerator ExitTheGameThroughOutsideNode()
     {
-        if(!IsServer) return;
-        _heldBagpipes.NetworkObject.Despawn();
+        if(!IsServer) yield break;
+        LogDebug("Reached outside escape node");
+        
+        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, false);
+        netcodeController.PlayTeleportVfxClientRpc(_ghostId);
+        yield return new WaitForSeconds(0.5f);
+        
+        if (_heldBagpipes != null) _heldBagpipes.NetworkObject.Despawn();
         KillEnemyClientRpc(true);
+        _teleportCoroutine = null;
+        Destroy(this);
     }
 
     private void ChooseEscapeDoor()
@@ -438,7 +451,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         if (!IsServer) return;
         
         netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Stun, audioManager.stunSfx.Length);
-        netcodeController.DropBagpipesClientRpc(_ghostId, transform.position);
+        // netcodeController.DropBagpipesClientRpc(_ghostId, transform.position);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, true);
         netcodeController.DoAnimationClientRpc(_ghostId, BagpipesGhostAnimationController.Stunned);
         _inStunAnimation = true;

@@ -16,14 +16,11 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private int _shotgunScrapValue;
 
     private PlayerControllerB _targetPlayer;
-
-    private ParticleSystem _teleportBeamParticleSystem;
     
     #pragma warning disable 0649
     [Header("Transforms")]
     [Space(3f)]
     [SerializeField] private Transform grabTarget;
-    [SerializeField] private Transform teleportBeam;
     [SerializeField] private Transform eye;
     
     [Header("Audio")]
@@ -36,6 +33,13 @@ public class EnforcerGhostAIClient : MonoBehaviour
     public AudioClip[] stunSfx;
     public AudioClip[] upsetSfx;
     public AudioClip dieSfx;
+    
+    public AudioClip shotgunOpenBarrelSfx;
+    public AudioClip shotgunReloadSfx;
+    public AudioClip shotgunCloseBarrelSfx;
+    public AudioClip shotgunGrabShellSfx;
+    public AudioClip shotgunDropShellSfx;
+    public AudioClip grabShotgunSfx;
     
     [Space(5f)]
     [Header("Controllers")]
@@ -53,11 +57,11 @@ public class EnforcerGhostAIClient : MonoBehaviour
         Upset = 4
     }
 
-    private static readonly int IsRunning = Animator.StringToHash("isRunning");
-    private static readonly int IsStunned = Animator.StringToHash("isStunned");
-    private static readonly int IsDead = Animator.StringToHash("isDead");
-    private static readonly int IsHoldingShotgun = Animator.StringToHash("isHoldingShotgun");
-    private static readonly int Death = Animator.StringToHash("death");
+    public static readonly int IsRunning = Animator.StringToHash("isRunning");
+    public static readonly int IsStunned = Animator.StringToHash("isStunned");
+    public static readonly int IsDead = Animator.StringToHash("isDead");
+    public static readonly int IsHoldingShotgun = Animator.StringToHash("isHoldingShotgun");
+    public static readonly int Death = Animator.StringToHash("death");
     public static readonly int Stunned = Animator.StringToHash("stunned");
     public static readonly int Recover = Animator.StringToHash("recover");
     public static readonly int Attack = Animator.StringToHash("attack");
@@ -119,13 +123,12 @@ public class EnforcerGhostAIClient : MonoBehaviour
         if (creatureVoiceSource == null) _mls.LogError("creatureVoiceSource is null");
         
         if (dieSfx == null) _mls.LogError("DieSfx is null");
-
-        _teleportBeamParticleSystem =
-            Instantiate(HarpGhostPlugin.BeamOutParticle, teleportBeam.transform.position, Quaternion.identity);
-        _teleportBeamParticleSystem.transform.SetParent(teleportBeam.transform);
-        _teleportBeamParticleSystem.gameObject.SetActive(false);
-        _teleportBeamParticleSystem.gameObject.SetActive(true);
-        _teleportBeamParticleSystem.Play();
+        if (shotgunOpenBarrelSfx == null) _mls.LogError("ShotgunOpenBarrelSfx is null");
+        if (shotgunReloadSfx == null) _mls.LogError("ShotgunReloadSfx is null");
+        if (shotgunCloseBarrelSfx == null) _mls.LogError("ShotgunCloseBarrelSfx is null");
+        if (shotgunGrabShellSfx == null) _mls.LogError("ShotgunGrabShellSfx is null");
+        if (shotgunDropShellSfx == null) _mls.LogError("ShotgunDropShellSfx is null");
+        if (grabShotgunSfx == null) _mls.LogError("GrabShotgunSfx is null");
     }
 
     private void HandleUpdateShotgunShellsLoaded(string recievedGhostId, int shells)
@@ -176,6 +179,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
         _heldShotgun.grabbable = false;
         _heldShotgun.shellsLoaded = 2;
         _heldShotgun.GrabItemFromEnemy(enforcerGhostAIServer);
+        PlaySfx(grabShotgunSfx);
     }
     
     private void HandleDropShotgun(string recievedGhostId, Vector3 dropPosition)
@@ -252,15 +256,33 @@ public class EnforcerGhostAIClient : MonoBehaviour
     
     private void OnAnimationEventStartReloadShotgun()
     {
-        LogDebug("In OnAnimationEventStartReloadShotgun");
         netcodeController.DoShotgunAnimationServerRpc(_ghostId, "reload");
-        //_heldShotgun.gunAnimator.SetTrigger(Reload);
+        PlaySfx(shotgunDropShellSfx);
     }
 
     private void OnAnimationEventPickupShotgun()
     {
-        LogDebug("In OnAnimationEventPickupShotgun");
         netcodeController.GrabShotgunPhaseTwoServerRpc(_ghostId);
+    }
+
+    private void OnAnimationEventPlayShotgunOpenBarrelAudio()
+    {
+        PlaySfx(shotgunOpenBarrelSfx);
+    }
+
+    private void OnAnimationEventPlayShotgunReloadAudio()
+    {
+        PlaySfx(shotgunReloadSfx);
+    }
+
+    private void OnAnimationEventPlayShotgunCloseBarrelAudio()
+    {
+        PlaySfx(shotgunCloseBarrelSfx);
+    }
+
+    private void OnAnimationEventPlayShotgunGrabShellAudio()
+    {
+        PlaySfx(shotgunGrabShellSfx);
     }
     
     private void SetBool(string recievedGhostId, int parameter, bool value)
@@ -301,6 +323,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private void PlayVoice(AudioClip clip, bool interrupt = true)
     {
         LogDebug($"Playing audio clip: {clip.name}");
+        if (clip == null) return;
         if (interrupt) creatureVoiceSource.Stop(true);
         creatureVoiceSource.pitch = Random.Range(0.8f, 1.1f);
         creatureVoiceSource.PlayOneShot(clip);
@@ -310,8 +333,8 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private void PlaySfx(AudioClip clip, bool interrupt = true)
     {
         LogDebug($"Playing audio clip: {clip.name}");
+        if (clip == null) return;
         if (interrupt) creatureVoiceSource.Stop(true);
-        creatureSfxSource.pitch = Random.Range(0.8f, 1.1f);
         creatureSfxSource.PlayOneShot(clip);
         WalkieTalkie.TransmitOneShotAudio(creatureSfxSource, clip, creatureSfxSource.volume);
     }

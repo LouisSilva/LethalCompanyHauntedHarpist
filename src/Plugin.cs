@@ -53,8 +53,6 @@ namespace LethalCompanyHarpGhost
         public static GameObject ShotgunPrefab;
         public static RuntimeAnimatorController CustomShotgunAnimator;
 
-        public static ParticleSystem BeamOutParticle;
-
         private void Awake()
         {
             if (_instance == null) _instance = this;
@@ -203,16 +201,6 @@ namespace LethalCompanyHarpGhost
                 ShotgunPrefab = item.spawnPrefab;
                 break;
             }
-        }
-
-        [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.Start))]
-        [HarmonyPostfix]
-        private static void GetBeamOutParticleSystem(PlayerControllerB __instance)
-        {
-            if (BeamOutParticle != null) return;
-            
-            BeamOutParticle = __instance.beamOutParticle;
-            _mls.LogInfo($"emission module enabled: {BeamOutParticle.emission.enabled}");
         }
 
         private void LoadInstrumentAudioClipsAsync(string instrumentName, List<string> audioClipNames)

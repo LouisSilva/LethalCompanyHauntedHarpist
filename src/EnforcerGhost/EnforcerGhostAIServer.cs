@@ -44,7 +44,7 @@ public class EnforcerGhostAIServer : EnemyAI
     
     private RoundManager _roundManager;
     
-    [Header("Controllers and Managers")]
+    [Header("Controllers")]
     [Space(5f)]
     #pragma warning disable 0649
     [SerializeField] private EnforcerGhostNetcodeController netcodeController;
@@ -83,10 +83,10 @@ public class EnforcerGhostAIServer : EnemyAI
         
         UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
         InitializeConfigValues();
-        netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAnimationController.IsDead, false);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAnimationController.IsStunned, false);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAnimationController.IsRunning, false);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAnimationController.IsHoldingShotgun, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAIClient.IsDead, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAIClient.IsStunned, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAIClient.IsRunning, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAIClient.IsHoldingShotgun, false);
         
         netcodeController.SpawnShotgunServerRpc(ghostId);
         netcodeController.GrabShotgunClientRpc(ghostId);
@@ -115,14 +115,14 @@ public class EnforcerGhostAIServer : EnemyAI
         
         if (stunNormalizedTimer <= 0.0 && _inStunAnimation && !isEnemyDead)
         {
-            netcodeController.DoAnimationClientRpc(ghostId, EnforcerGhostAnimationController.Recover);
+            netcodeController.DoAnimationClientRpc(ghostId, EnforcerGhostAIClient.Recover);
             _inStunAnimation = false;
-            netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAnimationController.IsStunned, false);
+            netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAIClient.IsStunned, false);
         }
         
         if (StartOfRound.Instance.allPlayersDead)
         {
-            netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAnimationController.IsRunning, false);
+            netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAIClient.IsRunning, false);
             return;
         }
     }
@@ -275,7 +275,7 @@ public class EnforcerGhostAIServer : EnemyAI
         LogDebug("In reload coroutine");
         _heldShotgun.shellsLoaded = 2;
         netcodeController.UpdateShotgunShellsLoadedClientRpc(ghostId, 2);
-        netcodeController.DoAnimationClientRpc(ghostId, EnforcerGhostAnimationController.ReloadShotgun);
+        netcodeController.DoAnimationClientRpc(ghostId, EnforcerGhostAIClient.ReloadShotgun);
         
          yield return new WaitForSeconds(0.3f);
         agentMaxSpeed = previousSpeed;
@@ -463,7 +463,7 @@ public class EnforcerGhostAIServer : EnemyAI
                 
                 Escortee?.EscorteeBreakoff();
                 netcodeController.DropShotgunClientRpc(ghostId, transform.position);
-                netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAnimationController.IsDead, true);
+                netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAIClient.IsDead, true);
                 break;
             }
         }
