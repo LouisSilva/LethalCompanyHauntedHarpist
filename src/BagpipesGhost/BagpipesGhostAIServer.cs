@@ -31,6 +31,10 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     private const float EscortRowSpacing = 3f;
     [SerializeField] private float agentMaxAcceleration = 200f;
     [SerializeField] private float agentMaxSpeed = 0.5f;
+
+    [SerializeField] private float agentMaxAccelerationInEscapeMode = 30f;
+    [SerializeField] private float agentMaxSpeedInEscapeMode = 10f;
+    [SerializeField] private float openDoorSpeedMultiplierInEscapeMode = 6f;
     
     private bool _agentIsMoving = false;
     private bool _chosenEscapeDoor = false;
@@ -70,6 +74,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         PlayingMusicWhileEscorted,
         RunningToEscapeDoor,
         RunningToEdgeOfOutsideMap,
+        TeleportingOutOfMap,
         Dead
     }
 
@@ -100,14 +105,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         
         UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
         InitializeConfigValues();
-
-        // GameObject debugCircle = new("Circle");
-        // debugCircle.transform.SetParent(transform, false);
-        // _lineRenderer = debugCircle.AddComponent<LineRenderer>();
-        // _lineRenderer.widthMultiplier = 0.1f;
-        // _lineRenderer.positionCount = 51;
-        // _lineRenderer.useWorldSpace = true;
-        // _lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+        EnableEnemyMesh(true);
         
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsDead, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsStunned, false);
@@ -136,6 +134,13 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     private void InitializeConfigValues()
     {
         if (!IsServer) return;
+
+        enemyHP = BagpipeGhostConfig.Instance.BagpipeGhostInitialHealth.Value;
+        agentMaxSpeedInEscapeMode = BagpipeGhostConfig.Instance.BagpipeGhostMaxSpeedInEscapeMode.Value;
+        agentMaxAccelerationInEscapeMode = BagpipeGhostConfig.Instance.BagpipeGhostMaxAccelerationInEscapeMode.Value;
+        openDoorSpeedMultiplierInEscapeMode = BagpipeGhostConfig.Instance.BagpipeGhostDoorSpeedMultiplierInEscapeMode.Value;
+        numberOfEscorts = (int)Mathf.Clamp(BagpipeGhostConfig.Instance.BagpipeGhostNumberOfEscortsToSpawn.Value, 0, Mathf.Infinity);
+        
         netcodeController.InitializeConfigValuesClientRpc(_ghostId);
     }
 
@@ -199,6 +204,11 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                RunAnimation();
 
                break;
+            }
+
+            case (int)States.TeleportingOutOfMap:
+            {
+                break;
             }
 
             case (int)States.Dead:
@@ -268,6 +278,13 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 
                 break;
             }
+
+            case (int)States.TeleportingOutOfMap:
+            {
+                if (roamMap.inProgress) StopSearch(roamMap);
+
+                break;
+            }
         }
     }
 
@@ -289,11 +306,15 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         if(!IsServer) yield break;
         LogDebug("Reached outside escape node");
         
+        SwitchBehaviourStateLocally((int)States.TeleportingOutOfMap);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, false);
         netcodeController.PlayTeleportVfxClientRpc(_ghostId);
         yield return new WaitForSeconds(0.5f);
-        
+        EnableEnemyMesh(false);
+        netcodeController.SetMeshEnabledClientRpc(_ghostId, false);
         if (_heldBagpipes != null) _heldBagpipes.NetworkObject.Despawn();
+        
+        yield return new WaitForSeconds(5);
         KillEnemyClientRpc(true);
         _teleportCoroutine = null;
         Destroy(this);
@@ -354,6 +375,9 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 _escorts.RemoveAt(i);
                 continue;
             }
+            
+            // Check if the escort has finished its spawn animation before giving it orders
+            if (!_escorts[i].fullySpawned) continue;
             
             // Check if the bagpipe ghost is moving, if not then dont bother making the escorts do anything
             if (!_agentIsMoving && (transform.position - _escorts[i].transform.position).magnitude < EscortRowSpacing) continue;
@@ -449,6 +473,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     {
         base.SetEnemyStunned(setToStunned, setToStunTime, setStunnedByPlayer);
         if (!IsServer) return;
+        if (currentBehaviourStateIndex is (int)States.TeleportingOutOfMap or (int)States.Dead) return;
         
         netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Stun, audioManager.stunSfx.Length);
         // netcodeController.DropBagpipesClientRpc(_ghostId, transform.position);
@@ -467,6 +492,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         base.HitEnemy(force, playerWhoHit, playHitSFX);
         if (!IsServer) return;
         if (isEnemyDead) return;
+        if (currentBehaviourStateIndex is (int)States.TeleportingOutOfMap or (int)States.Dead) return;
         if (playerWhoHit == null) return;
 
         enemyHP -= force;
@@ -504,9 +530,9 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
             {
                 LogDebug($"Switched to behaviour state {(int)States.RunningToEscapeDoor}!");
                 
-                agentMaxSpeed = 10f;
-                agentMaxAcceleration = 30f;
-                openDoorSpeedMultiplier = 6;
+                agentMaxSpeed = agentMaxSpeedInEscapeMode;
+                agentMaxAcceleration = agentMaxAccelerationInEscapeMode;
+                openDoorSpeedMultiplier = openDoorSpeedMultiplierInEscapeMode;
                 movingTowardsTargetPlayer = false;
 
                 RetireAllEscorts();
@@ -518,9 +544,9 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
             {
                 LogDebug($"Switched to behaviour state {(int)States.RunningToEdgeOfOutsideMap}!");
 
-                agentMaxSpeed = 10f;
-                agentMaxAcceleration = 30f;
-                openDoorSpeedMultiplier = 6;
+                agentMaxSpeed = agentMaxSpeedInEscapeMode;
+                agentMaxAcceleration = agentMaxAccelerationInEscapeMode;
+                openDoorSpeedMultiplier = openDoorSpeedMultiplierInEscapeMode;
                 movingTowardsTargetPlayer = false;
                 
                 RetireAllEscorts();
@@ -528,6 +554,21 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 SetDestinationToPosition(ChooseFarthestNodeFromPosition(StartOfRound.Instance.middleOfShipNode.position, true).position);
                 netcodeController.StopBagpipesMusicClientRpc(_ghostId);
                 
+                break;
+            }
+
+            case (int)States.TeleportingOutOfMap:
+            {
+                LogDebug($"Switched to behaviour state {(int)States.TeleportingOutOfMap}!");
+
+                agentMaxSpeed = 1f;
+                agentMaxAcceleration = 0f;
+                movingTowardsTargetPlayer = false;
+                
+                RetireAllEscorts();
+                netcodeController.StopBagpipesMusicClientRpc(_ghostId);
+                Destroy(GetComponentInChildren<ScanNodeProperties>().gameObject);
+
                 break;
             }
 

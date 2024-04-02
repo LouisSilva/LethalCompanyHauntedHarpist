@@ -28,6 +28,8 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     public event Action<string> OnShootGun;
     public event Action<string, int> OnUpdateShotgunShellsLoaded;
     public event Action<string, string> OnDoShotgunAnimation;
+    public event Action<string, bool> OnSetMeshEnabled;
+    public event Action<string> OnPlayTeleportVfx;
 
     private void Start()
     {
@@ -35,6 +37,18 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
         
         enforcerGhostAIServer = GetComponent<EnforcerGhostAIServer>();
         if (enforcerGhostAIServer == null) _mls.LogError("enforcerGhostAI is null");
+    }
+    
+    [ClientRpc]
+    public void PlayTeleportVfxClientRpc(string recievedGhostId)
+    {
+        OnPlayTeleportVfx?.Invoke(recievedGhostId);
+    }
+
+    [ClientRpc]
+    public void SetMeshEnabledClientRpc(string recievedGhostId, bool meshEnabled)
+    {
+        OnSetMeshEnabled?.Invoke(recievedGhostId, meshEnabled);
     }
     
     [ClientRpc]
@@ -53,7 +67,7 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
             enforcerGhostAIServer.RoundManagerInstance.spawnedScrapContainer
             );
 
-        int shotgunScrapValue = UnityEngine.Random.Range(30, 90);
+        int shotgunScrapValue = UnityEngine.Random.Range(EnforcerGhostConfig.Instance.ShotgunMinValue.Value, EnforcerGhostConfig.Instance.ShotgunMaxValue.Value);
         shotgunObject.GetComponent<GrabbableObject>().fallTime = 0f;
         shotgunObject.GetComponent<GrabbableObject>().SetScrapValue(shotgunScrapValue);
         enforcerGhostAIServer.RoundManagerInstance.totalScrapValueInLevel += shotgunScrapValue;

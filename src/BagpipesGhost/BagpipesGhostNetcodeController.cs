@@ -26,6 +26,7 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     public event Action<string> OnEnterDeathState;
     public event Action<string> OnPlayTeleportVfx;
     public event Action<string, int, int, bool> OnPlayCreatureVoice;
+    public event Action<string, bool> OnSetMeshEnabled; 
 
     private void Start()
     {
@@ -33,6 +34,12 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
         
         bagpipesGhostAIServer = GetComponent<BagpipesGhostAIServer>();
         if (bagpipesGhostAIServer == null) _mls.LogError("bagpipesGhostAI is null");
+    }
+
+    [ClientRpc]
+    public void SetMeshEnabledClientRpc(string recievedGhostId, bool meshEnabled)
+    {
+        OnSetMeshEnabled?.Invoke(recievedGhostId, meshEnabled);
     }
     
     [ClientRpc]
@@ -104,7 +111,7 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
         InstrumentBehaviour bagpipesBehaviour = bagpipesObject.GetComponent<InstrumentBehaviour>();
         if (bagpipesBehaviour == null) _mls.LogError("bagpipesBehaviour is null");
 
-        int bagpipesScrapValue = UnityEngine.Random.Range(150, 300);
+        int bagpipesScrapValue = UnityEngine.Random.Range(BagpipeGhostConfig.Instance.BagpipesMinValue.Value, BagpipeGhostConfig.Instance.BagpipesMaxValue.Value);
         bagpipesObject.GetComponent<GrabbableObject>().fallTime = 0f;
         bagpipesObject.GetComponent<GrabbableObject>().SetScrapValue(bagpipesScrapValue);
         bagpipesGhostAIServer.RoundManagerInstance.totalScrapValueInLevel += bagpipesScrapValue;

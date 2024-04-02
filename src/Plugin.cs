@@ -41,6 +41,7 @@ namespace LethalCompanyHarpGhost
         private static readonly Dictionary<string, List<AudioClip>> _instrumentAudioClips = new();
         
         public static HarpGhostConfig HarpGhostConfig { get; internal set; }
+        public static BagpipeGhostConfig BagpipeGhostConfig { get; internal set; }
 
         private static EnemyType _harpGhostEnemyType;
         private static EnemyType _bagpipesGhostEnemyType;
@@ -68,6 +69,7 @@ namespace LethalCompanyHarpGhost
             
             _harmony.PatchAll();
             HarpGhostConfig = new HarpGhostConfig(Config);
+            BagpipeGhostConfig = new BagpipeGhostConfig(Config);
             
             SetupHarpGhost();
             SetupBagpipesGhost();
@@ -82,7 +84,7 @@ namespace LethalCompanyHarpGhost
             _mls.LogInfo($"Plugin {ModName} is loaded!");
         }
 
-        private void SetupHarpGhost()
+        private static void SetupHarpGhost()
         {
             _harpGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("HarpGhost");
             _harpGhostEnemyType.canDie = HarpGhostConfig.Instance.HarpGhostIsKillable.Value;
@@ -108,26 +110,52 @@ namespace LethalCompanyHarpGhost
                 );
         }
         
-        private void SetupBagpipesGhost()
+        private static void SetupBagpipesGhost()
         {
             _bagpipesGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("BagpipesGhost");
-            TerminalNode harpGhostTerminalNode = Assets.MainAssetBundle.LoadAsset<TerminalNode>("HarpGhostTN");
-            TerminalKeyword harpGhostTerminalKeyword = Assets.MainAssetBundle.LoadAsset<TerminalKeyword>("HarpGhostTK");
+            _bagpipesGhostEnemyType.canDie = BagpipeGhostConfig.Instance.BagpipeGhostIsKillable.Value;
+            _bagpipesGhostEnemyType.PowerLevel = BagpipeGhostConfig.Instance.BagpipeGhostPowerLevel.Value;
+            _bagpipesGhostEnemyType.canBeStunned = BagpipeGhostConfig.Instance.BagpipeGhostIsStunnable.Value;
+            _bagpipesGhostEnemyType.MaxCount = BagpipeGhostConfig.Instance.MaxAmountOfBagpipeGhosts.Value;
+            _bagpipesGhostEnemyType.stunTimeMultiplier = BagpipeGhostConfig.Instance.BagpipeGhostStunTimeMultiplier.Value;
+            _bagpipesGhostEnemyType.stunGameDifficultyMultiplier = BagpipeGhostConfig.Instance.BagpipeGhostStunGameDifficultyMultiplier.Value;
+                
+            TerminalNode bagpipeGhostTerminalNode = Assets.MainAssetBundle.LoadAsset<TerminalNode>("BagpipeGhostTN");
+            TerminalKeyword bagpipeGhostTerminalKeyword = Assets.MainAssetBundle.LoadAsset<TerminalKeyword>("BagpipeGhostTK");
             
             NetworkPrefabs.RegisterNetworkPrefab(_bagpipesGhostEnemyType.enemyPrefab);
             Utilities.FixMixerGroups(_bagpipesGhostEnemyType.enemyPrefab);
-            RegisterEnemy(_bagpipesGhostEnemyType, Mathf.Clamp(HarpGhostConfig.Instance.HarpGhostSpawnRate.Value, 0, 999), HarpGhostConfig.Instance.HarpGhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
+            RegisterEnemy(
+                _bagpipesGhostEnemyType, 
+                Mathf.Clamp(BagpipeGhostConfig.Instance.BagpipeGhostSpawnRate.Value, 0, 999), 
+                BagpipeGhostConfig.Instance.BagpipeGhostSpawnLevel.Value, 
+                SpawnType.Default, 
+                bagpipeGhostTerminalNode, 
+                bagpipeGhostTerminalKeyword);
         }
         
-        private void SetupEnforcerGhost()
+        private static void SetupEnforcerGhost()
         {
             EnforcerGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("EnforcerGhost");
-            TerminalNode harpGhostTerminalNode = Assets.MainAssetBundle.LoadAsset<TerminalNode>("HarpGhostTN");
-            TerminalKeyword harpGhostTerminalKeyword = Assets.MainAssetBundle.LoadAsset<TerminalKeyword>("HarpGhostTK");
+            EnforcerGhostEnemyType.canDie = EnforcerGhostConfig.Instance.EnforcerGhostIsKillable.Value;
+            EnforcerGhostEnemyType.PowerLevel = EnforcerGhostConfig.Instance.EnforcerGhostPowerLevel.Value;
+            EnforcerGhostEnemyType.canBeStunned = EnforcerGhostConfig.Instance.EnforcerGhostIsStunnable.Value;
+            EnforcerGhostEnemyType.MaxCount = EnforcerGhostConfig.Instance.MaxAmountOfEnforcerGhosts.Value;
+            EnforcerGhostEnemyType.stunTimeMultiplier = EnforcerGhostConfig.Instance.EnforcerGhostStunTimeMultiplier.Value;
+            EnforcerGhostEnemyType.stunGameDifficultyMultiplier = EnforcerGhostConfig.Instance.EnforcerGhostStunGameDifficultyMultiplier.Value;
+            
+            TerminalNode enforcerGhostTerminalNode = Assets.MainAssetBundle.LoadAsset<TerminalNode>("EnforcerGhostTN");
+            TerminalKeyword enforcerGhostTerminalKeyword = Assets.MainAssetBundle.LoadAsset<TerminalKeyword>("EnforcerGhostTK");
             
             NetworkPrefabs.RegisterNetworkPrefab(EnforcerGhostEnemyType.enemyPrefab);
             Utilities.FixMixerGroups(EnforcerGhostEnemyType.enemyPrefab);
-            RegisterEnemy(EnforcerGhostEnemyType, 0, HarpGhostConfig.Instance.HarpGhostSpawnLevel.Value, SpawnType.Default, harpGhostTerminalNode, harpGhostTerminalKeyword);
+            RegisterEnemy(
+                EnforcerGhostEnemyType, 
+                EnforcerGhostConfig.Instance.EnforcerGhostSpawnRate.Value, 
+                EnforcerGhostConfig.Instance.EnforcerGhostSpawnLevel.Value, 
+                SpawnType.Default, 
+                enforcerGhostTerminalNode, 
+                enforcerGhostTerminalKeyword);
 
             CustomShotgunAnimator = Assets.MainAssetBundle.LoadAsset<RuntimeAnimatorController>("AnimatorShotgun");
             if (CustomShotgunAnimator == null) _mls.LogError("custom shotgun animator is null");
@@ -407,13 +435,6 @@ namespace LethalCompanyHarpGhost
                 "Proximity Awareness",
                 3,
                 "The area around the ghost in in-game units where it can detect players, regardless if the Harp Ghost has line of sight to the player. Set it to -1 to completely disable it. I recommend you do not touch this."
-            );
-            
-            HarpGhostStunTimeMultiplier = cfg.Bind(
-                "General",
-                "Stun Time Multiplier",
-                1f,
-                "The multiplier for how long a Harp Ghost can be stunned"
             );
             
             HarpGhostDoorSpeedMultiplierInChaseMode = cfg.Bind(
@@ -794,10 +815,429 @@ namespace LethalCompanyHarpGhost
         }
     }
 
-    // public class BagpipeGhostConfig : SyncedInstance<BagpipeGhostConfig>
-    // {
-    //     public readonly ConfigEntry<bool> EnableBagpipePlayerBuffs;
-    // }
+    public class BagpipeGhostConfig : SyncedInstance<BagpipeGhostConfig>
+    {
+        public readonly ConfigEntry<int>BagpipeGhostInitialHealth;
+        public readonly ConfigEntry<float> BagpipeGhostStunTimeMultiplier;
+        public readonly ConfigEntry<float> BagpipeGhostDoorSpeedMultiplierInEscapeMode;
+        public readonly ConfigEntry<float> BagpipeGhostMaxAccelerationInEscapeMode;
+        public readonly ConfigEntry<float> BagpipeGhostMaxSpeedInEscapeMode;
+        public readonly ConfigEntry<float> BagpipeGhostStunGameDifficultyMultiplier;
+        public readonly ConfigEntry<bool> BagpipeGhostIsStunnable;
+        public readonly ConfigEntry<bool> BagpipeGhostIsKillable;
+
+        public readonly ConfigEntry<float> BagpipeGhostVoiceSfxVolume;
+        public readonly ConfigEntry<float> BagpipesVolume;
+        public readonly ConfigEntry<int> BagpipesSoundMaxDistance;
+        
+        public readonly ConfigEntry<int> BagpipeGhostSpawnRate;
+        public readonly ConfigEntry<int> MaxAmountOfBagpipeGhosts;
+        public readonly ConfigEntry<int> BagpipeGhostPowerLevel;
+        public readonly ConfigEntry<int> BagpipeGhostNumberOfEscortsToSpawn;
+        public readonly ConfigEntry<LevelTypes> BagpipeGhostSpawnLevel;
+        
+        public readonly ConfigEntry<int> BagpipesMinValue;
+        public readonly ConfigEntry<int> BagpipesMaxValue;
+
+        public BagpipeGhostConfig(ConfigFile cfg)
+        {
+            InitInstance(this);
+            
+            BagpipeGhostInitialHealth = cfg.Bind(
+                "General",
+                "Health",
+                6,
+                "The health when spawned"
+                );
+            
+            BagpipeGhostIsKillable = cfg.Bind(
+                "General",
+                "Killable",
+                true,
+                "Whether a Bagpipe Ghost can be killed or not"
+            );
+            
+            BagpipeGhostIsStunnable= cfg.Bind(
+                "General",
+                "Stunnable",
+                true,
+                "Whether a Bagpipe Ghost can be stunned or not"
+            );
+            
+            BagpipeGhostMaxSpeedInEscapeMode = cfg.Bind(
+                "General",
+                "Max Speed In Escape Mode",
+                10f,
+                "The max speed of the Bagpipe Ghost in escape mode"
+            );
+            
+            BagpipeGhostMaxAccelerationInEscapeMode = cfg.Bind(
+                "General",
+                "Max Acceleration In Escape Mode",
+                30f,
+                "The max acceleration of the Bagpipe Ghost in escape mode"
+            );
+            
+            BagpipeGhostStunTimeMultiplier = cfg.Bind(
+                "General",
+                "Stun Time Multiplier",
+                1f,
+                "The multiplier for how long a Bagpipe Ghost can be stunned"
+            );
+            
+            BagpipeGhostDoorSpeedMultiplierInEscapeMode = cfg.Bind(
+                "General",
+                "Door Speed Multiplier In Escape Mode",
+                6f,
+                "The door speed multiplier when the ghost is in escape mode"
+            );
+            
+            BagpipeGhostStunGameDifficultyMultiplier = cfg.Bind(
+                "General",
+                "Stun Game Difficulty Multiplier",
+                0f,
+                "Not sure what this does"
+            );
+            
+            BagpipeGhostVoiceSfxVolume = cfg.Bind(
+                "Audio",
+                "Voice Sound Effects Volume",
+                0.8f,
+                "The volume of the ghost's voice. Values are from 0-1"
+            );
+            
+            BagpipesVolume = cfg.Bind(
+                "Audio",
+                "Bagpipes Volume",
+                0.8f,
+                "The volume of the music played from the Bagpipes. Values are from 0-1"
+            );
+            
+            BagpipesSoundMaxDistance = cfg.Bind(
+                "Audio",
+                "Bagpipes Sound Max Distance",
+                65,
+                "Values are from 0 to Infinity"
+            );
+            
+            BagpipeGhostSpawnRate = cfg.Bind(
+                "Spawn Values",
+                "Spawn Value",
+                10,
+                "The weighted spawn rarity of the Bagpipe ghost"
+            );
+            
+            MaxAmountOfBagpipeGhosts = cfg.Bind(
+                "Spawn Values",
+                "Max Amount of Bagpipe Ghosts",
+                1,
+                "The maximum amount of Bagpipe ghosts that can spawn in a game"
+            );
+
+            BagpipeGhostNumberOfEscortsToSpawn = cfg.Bind(
+                "Spawn Values",
+                "Number of Escorts to Spawn",
+                3,
+                "The number of escorts to spawn when the ghost spawns"
+            );
+            
+            BagpipeGhostPowerLevel = cfg.Bind(
+                "Spawn Values",
+                "Power Level",
+                1,
+                "The power level of a Bagpipe Ghost"
+            );
+            
+            BagpipeGhostSpawnLevel = cfg.Bind(
+                "Spawn Values",
+                "Spawn Level",
+                LevelTypes.DineLevel,
+                "The LevelTypes that the ghost spawns in"
+            );
+            
+            BagpipesMinValue = cfg.Bind(
+                "Spawn Values",
+                "Bagpipes Minimum value",
+                150,
+                "The minimum value that the bagpipes can be set to"
+            );
+            
+            BagpipesMaxValue = cfg.Bind(
+                "Spawn Values",
+                "Bagpipes Maximum value",
+                300,
+                "The maximum value that the bagpipes can be set to"
+            );
+        }
+        
+        private static void RequestSync() {
+            if (!IsClient) return;
+
+            using FastBufferWriter stream = new(IntSize, Allocator.Temp);
+            MessageManager.SendNamedMessage($"{HarpGhostPlugin.ModGuid}_OnRequestConfigSync", 0uL, stream);
+        }
+
+        private static void OnRequestSync(ulong clientId, FastBufferReader _) {
+            if (!IsHost) return;
+
+            Debug.Log($"Config sync request received from client: {clientId}");
+
+            byte[] array = SerializeToBytes(Instance);
+            int value = array.Length;
+
+            using FastBufferWriter stream = new(value + IntSize, Allocator.Temp);
+
+            try {
+                stream.WriteValueSafe(in value);
+                stream.WriteBytesSafe(array);
+
+                MessageManager.SendNamedMessage($"{HarpGhostPlugin.ModGuid}_OnReceiveConfigSync", clientId, stream);
+            } catch(Exception e) {
+                Debug.Log($"Error occurred syncing config with client: {clientId}\n{e}");
+            }
+        }
+
+        private static void OnReceiveSync(ulong _, FastBufferReader reader) {
+            if (!reader.TryBeginRead(IntSize)) {
+                Debug.LogError("Config sync error: Could not begin reading buffer.");
+                return;
+            }
+
+            reader.ReadValueSafe(out int val);
+            if (!reader.TryBeginRead(val)) {
+                Debug.LogError("Config sync error: Host could not sync.");
+                return;
+            }
+
+            byte[] data = new byte[val];
+            reader.ReadBytesSafe(ref data, val);
+
+            SyncInstance(data);
+
+            Debug.Log("Successfully synced config with host.");
+        }
+        
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(PlayerControllerB), "ConnectClientToPlayerObject")]
+        public static void InitializeLocalPlayer() {
+            if (IsHost) {
+                MessageManager.RegisterNamedMessageHandler($"{HarpGhostPlugin.ModGuid}_OnRequestConfigSync", OnRequestSync);
+                Synced = true;
+
+                return;
+            }
+
+            Synced = false;
+            MessageManager.RegisterNamedMessageHandler($"{HarpGhostPlugin.ModGuid}_OnReceiveConfigSync", OnReceiveSync);
+            RequestSync();
+        }
+        
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(GameNetworkManager), "StartDisconnect")]
+        public static void PlayerLeave() {
+            RevertSync();
+        }
+    }
+    
+    public class EnforcerGhostConfig : SyncedInstance<EnforcerGhostConfig>
+    {
+        public readonly ConfigEntry<int> EnforcerGhostInitialHealth;
+        public readonly ConfigEntry<float> EnforcerGhostStunTimeMultiplier;
+        public readonly ConfigEntry<float> EnforcerGhostDoorSpeedMultiplierInChaseMode;
+        public readonly ConfigEntry<float> EnforcerGhostMaxAccelerationInChaseMode;
+        public readonly ConfigEntry<float> EnforcerGhostMaxSpeedInChaseMode;
+        public readonly ConfigEntry<float> EnforcerGhostStunGameDifficultyMultiplier;
+        public readonly ConfigEntry<bool> EnforcerGhostIsStunnable;
+        public readonly ConfigEntry<bool> EnforcerGhostIsKillable;
+
+        public readonly ConfigEntry<float> EnforcerGhostVoiceSfxVolume;
+        
+        public readonly ConfigEntry<int> EnforcerGhostSpawnRate;
+        public readonly ConfigEntry<int> MaxAmountOfEnforcerGhosts;
+        public readonly ConfigEntry<int> EnforcerGhostPowerLevel;
+        public readonly ConfigEntry<LevelTypes> EnforcerGhostSpawnLevel;
+        
+        public readonly ConfigEntry<int> ShotgunMinValue;
+        public readonly ConfigEntry<int> ShotgunMaxValue;
+
+        public EnforcerGhostConfig(ConfigFile cfg)
+        {
+            InitInstance(this);
+            
+            EnforcerGhostInitialHealth = cfg.Bind(
+                "General",
+                "Health",
+                6,
+                "The health when spawned"
+                );
+            
+            EnforcerGhostIsKillable = cfg.Bind(
+                "General",
+                "Killable",
+                true,
+                "Whether an Enforcer Ghost can be killed or not"
+            );
+            
+            EnforcerGhostIsStunnable= cfg.Bind(
+                "General",
+                "Stunnable",
+                true,
+                "Whether an Enforcer Ghost can be stunned or not"
+            );
+            
+            EnforcerGhostMaxSpeedInChaseMode = cfg.Bind(
+                "General",
+                "Max Speed In Chase Mode",
+                1.5f,
+                "The max speed of the Enforcere Ghost in chase mode"
+            );
+            
+            EnforcerGhostMaxAccelerationInChaseMode = cfg.Bind(
+                "General",
+                "Max Acceleration In Enforcer Mode",
+                15f,
+                "The max acceleration of the Enforcer Ghost in chase mode"
+            );
+            
+            EnforcerGhostStunTimeMultiplier = cfg.Bind(
+                "General",
+                "Stun Time Multiplier",
+                3f,
+                "The multiplier for how long a Enforcer Ghost can be stunned"
+            );
+            
+            EnforcerGhostDoorSpeedMultiplierInChaseMode = cfg.Bind(
+                "General",
+                "Door Speed Multiplier In Chase Mode",
+                1f,
+                "The door speed multiplier when the ghost is in chase mode"
+            );
+            
+            EnforcerGhostStunGameDifficultyMultiplier = cfg.Bind(
+                "General",
+                "Stun Game Difficulty Multiplier",
+                0f,
+                "Not sure what this does"
+            );
+            
+            EnforcerGhostVoiceSfxVolume = cfg.Bind(
+                "Audio",
+                "Voice Sound Effects Volume",
+                0.8f,
+                "The volume of the ghost's voice. Values are from 0-1"
+            );
+            
+            EnforcerGhostSpawnRate = cfg.Bind(
+                "Spawn Values",
+                "Spawn Value",
+                0,
+                "The weighted spawn rarity of the Enforcer ghost (can be changed, but isn't supposed to spawn by itself)"
+            );
+            
+            MaxAmountOfEnforcerGhosts = cfg.Bind(
+                "Spawn Values",
+                "Max Amount of Bagpipe Ghosts",
+                3,
+                "The maximum amount of Enforcer ghosts that can spawn in a game"
+            );
+            
+            EnforcerGhostPowerLevel = cfg.Bind(
+                "Spawn Values",
+                "Power Level",
+                1,
+                "The power level of a Enforcer Ghost"
+            );
+            
+            EnforcerGhostSpawnLevel = cfg.Bind(
+                "Spawn Values",
+                "Spawn Level",
+                LevelTypes.DineLevel,
+                "The LevelTypes that the ghost spawns in"
+            );
+            
+            ShotgunMinValue = cfg.Bind(
+                "Spawn Values",
+                "Shotgun Minimum value",
+                60,
+                "The minimum value that the shotgun spawned by an enforcer ghost can be set to"
+            );
+            
+            ShotgunMaxValue = cfg.Bind(
+                "Spawn Values",
+                "Shotgun Maximum value",
+                90,
+                "The maximum value that the shotgun spawned by an enforcer ghost can be set to"
+            );
+        }
+        
+        private static void RequestSync() {
+            if (!IsClient) return;
+
+            using FastBufferWriter stream = new(IntSize, Allocator.Temp);
+            MessageManager.SendNamedMessage($"{HarpGhostPlugin.ModGuid}_OnRequestConfigSync", 0uL, stream);
+        }
+
+        private static void OnRequestSync(ulong clientId, FastBufferReader _) {
+            if (!IsHost) return;
+
+            Debug.Log($"Config sync request received from client: {clientId}");
+
+            byte[] array = SerializeToBytes(Instance);
+            int value = array.Length;
+
+            using FastBufferWriter stream = new(value + IntSize, Allocator.Temp);
+
+            try {
+                stream.WriteValueSafe(in value);
+                stream.WriteBytesSafe(array);
+
+                MessageManager.SendNamedMessage($"{HarpGhostPlugin.ModGuid}_OnReceiveConfigSync", clientId, stream);
+            } catch(Exception e) {
+                Debug.Log($"Error occurred syncing config with client: {clientId}\n{e}");
+            }
+        }
+
+        private static void OnReceiveSync(ulong _, FastBufferReader reader) {
+            if (!reader.TryBeginRead(IntSize)) {
+                Debug.LogError("Config sync error: Could not begin reading buffer.");
+                return;
+            }
+
+            reader.ReadValueSafe(out int val);
+            if (!reader.TryBeginRead(val)) {
+                Debug.LogError("Config sync error: Host could not sync.");
+                return;
+            }
+
+            byte[] data = new byte[val];
+            reader.ReadBytesSafe(ref data, val);
+
+            SyncInstance(data);
+
+            Debug.Log("Successfully synced config with host.");
+        }
+        
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(PlayerControllerB), "ConnectClientToPlayerObject")]
+        public static void InitializeLocalPlayer() {
+            if (IsHost) {
+                MessageManager.RegisterNamedMessageHandler($"{HarpGhostPlugin.ModGuid}_OnRequestConfigSync", OnRequestSync);
+                Synced = true;
+
+                return;
+            }
+
+            Synced = false;
+            MessageManager.RegisterNamedMessageHandler($"{HarpGhostPlugin.ModGuid}_OnReceiveConfigSync", OnReceiveSync);
+            RequestSync();
+        }
+        
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(GameNetworkManager), "StartDisconnect")]
+        public static void PlayerLeave() {
+            RevertSync();
+        }
+    }
 
     // Got from https://lethal.wiki/dev/intermediate/custom-config-syncing
     [Serializable]

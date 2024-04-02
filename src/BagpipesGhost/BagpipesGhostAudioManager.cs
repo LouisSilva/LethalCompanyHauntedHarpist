@@ -103,7 +103,7 @@ public class BagpipesGhostAudioManager : MonoBehaviour
     private void HandleOnInitializeConfigValues(string recievedGhostId)
     {
         if (_ghostId != recievedGhostId) return;
-        creatureVoiceSource.volume = HarpGhostConfig.Default.HarpGhostVoiceSfxVolume.Value;
+        creatureVoiceSource.volume = BagpipeGhostConfig.Default.BagpipeGhostVoiceSfxVolume.Value;
     }
 
     private void HandleOnEnterDeathState(string recievedGhostId)

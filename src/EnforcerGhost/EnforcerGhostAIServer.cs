@@ -27,13 +27,13 @@ public class EnforcerGhostAIServer : EnemyAI
     private float _agentCurrentSpeed = 0f;
     private float _shootTimer = 0f;
     private float _realtimeStunTimer = 0f;
-    private float _timeSinceHittingLocalPlayer = 0f;
 
     private bool _hasBegunInvestigating = false;
     private bool _inStunAnimation = false;
     private bool _isCurrentlyShooting = false;
     private bool _isReloading = false;
     private bool _hasStartedReloadAnimation = false;
+    public bool fullySpawned = false;
     // private bool _canHearPlayers = false;
 
     private Vector3 _targetPosition = default;
@@ -87,9 +87,8 @@ public class EnforcerGhostAIServer : EnemyAI
         netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAIClient.IsStunned, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAIClient.IsRunning, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAIClient.IsHoldingShotgun, false);
-        
-        netcodeController.SpawnShotgunServerRpc(ghostId);
-        netcodeController.GrabShotgunClientRpc(ghostId);
+
+        StartCoroutine(SpawnAnimation());
         
         _mls.LogInfo("Enforcer Ghost Spawned");
     }
@@ -111,7 +110,6 @@ public class EnforcerGhostAIServer : EnemyAI
         
         _realtimeStunTimer -= Time.deltaTime;
         _shootTimer += Time.deltaTime;
-        _timeSinceHittingLocalPlayer += Time.deltaTime;
         
         if (stunNormalizedTimer <= 0.0 && _inStunAnimation && !isEnemyDead)
         {
@@ -263,6 +261,17 @@ public class EnforcerGhostAIServer : EnemyAI
         }
     }
 
+    private IEnumerator SpawnAnimation()
+    {
+        fullySpawned = false;
+        netcodeController.PlayTeleportVfxClientRpc(ghostId);
+        yield return new WaitForSeconds(0.75f);
+        netcodeController.SpawnShotgunServerRpc(ghostId);
+        netcodeController.GrabShotgunClientRpc(ghostId);
+        yield return new WaitForSeconds(2f);
+        fullySpawned = true;
+    }
+
     private IEnumerator ReloadShotgun()
     {
         if (!IsServer) yield break;
@@ -397,9 +406,9 @@ public class EnforcerGhostAIServer : EnemyAI
             {
                 LogDebug($"Switched to behaviour state {(int)States.SearchingForPlayers}!");
 
-                agentMaxSpeed = 2f;
-                agentMaxAcceleration = 15f;
-                openDoorSpeedMultiplier = 1f;
+                agentMaxSpeed = Mathf.Min(2f, EnforcerGhostConfig.Instance.EnforcerGhostMaxSpeedInChaseMode.Value);
+                agentMaxAcceleration = Mathf.Min(15f, EnforcerGhostConfig.Instance.EnforcerGhostMaxAccelerationInChaseMode.Value);
+                openDoorSpeedMultiplier = Mathf.Min(1f, EnforcerGhostConfig.Instance.EnforcerGhostDoorSpeedMultiplierInChaseMode.Value);
                 _isCurrentlyShooting = false;
                 movingTowardsTargetPlayer = false;
                 _hasBegunInvestigating = false;
@@ -414,9 +423,9 @@ public class EnforcerGhostAIServer : EnemyAI
             {
                 LogDebug($"Switched to behaviour state {(int)States.InvestigatingTargetPosition}!");
 
-                agentMaxSpeed = 2f;
-                agentMaxAcceleration = 15f;
-                openDoorSpeedMultiplier = 1f;
+                agentMaxSpeed = Mathf.Min(2f, EnforcerGhostConfig.Instance.EnforcerGhostMaxSpeedInChaseMode.Value);
+                agentMaxAcceleration = Mathf.Min(15f, EnforcerGhostConfig.Instance.EnforcerGhostMaxAccelerationInChaseMode.Value);
+                openDoorSpeedMultiplier = Mathf.Min(1f, EnforcerGhostConfig.Instance.EnforcerGhostDoorSpeedMultiplierInChaseMode.Value);
                 _isCurrentlyShooting = false;
                 moveTowardsDestination = true;
                 movingTowardsTargetPlayer = false;
@@ -431,9 +440,9 @@ public class EnforcerGhostAIServer : EnemyAI
             {
                 LogDebug($"Switched to behaviour state {(int)States.ShootingTargetPlayer}!");
 
-                agentMaxSpeed = 1f;
-                agentMaxAcceleration = 15f;
-                openDoorSpeedMultiplier = 1f;
+                agentMaxSpeed = EnforcerGhostConfig.Instance.EnforcerGhostMaxSpeedInChaseMode.Value;
+                agentMaxAcceleration = EnforcerGhostConfig.Instance.EnforcerGhostMaxAccelerationInChaseMode.Value;
+                openDoorSpeedMultiplier = EnforcerGhostConfig.Instance.EnforcerGhostDoorSpeedMultiplierInChaseMode.Value;
                 _isCurrentlyShooting = false;
                 movingTowardsTargetPlayer = true;
                 _hasBegunInvestigating = false;
@@ -480,8 +489,8 @@ public class EnforcerGhostAIServer : EnemyAI
         if (isEnemyDead) return;
         if (playerWhoHit == null) return;
 
-        enemyHP -= force;
         Escortee?.EscorteeBreakoff(playerWhoHit);
+        enemyHP -= force;
         if (enemyHP > 0)
         {
             return;
@@ -502,7 +511,7 @@ public class EnforcerGhostAIServer : EnemyAI
         if (!IsServer) return;
         
         _realtimeStunTimer = setToStunTime;
-        Escortee?.EscorteeBreakoff(setStunnedByPlayer);
+        Escortee?.EscorteeBreakoff(setStunnedByPlayer != null ? setStunnedByPlayer : null);
     }
 
     private void HandleGrabShotgunPhaseTwo(string recievedGhostId)
@@ -540,6 +549,9 @@ public class EnforcerGhostAIServer : EnemyAI
     private void InitializeConfigValues()
     {
         if (!IsServer) return;
+
+        enemyHP = EnforcerGhostConfig.Instance.EnforcerGhostInitialHealth.Value;
+        
         netcodeController.InitializeConfigValuesClientRpc(ghostId);
     }
 

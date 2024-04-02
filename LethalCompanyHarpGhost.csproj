@@ -9,6 +9,8 @@
         <LangVersion>latest</LangVersion>
         <Configurations>Debug;Release</Configurations>
         <DebugType>embedded</DebugType>
+        <PackageId>LethalCompanyHarpGhost</PackageId>
+        <Authors>Louis</Authors>
     </PropertyGroup>
 
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

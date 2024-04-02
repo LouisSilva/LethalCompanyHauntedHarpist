@@ -1,8 +1,9 @@
-﻿using BepInEx.Logging;
+﻿
+using BepInEx.Logging;
 using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.Serialization;
+using UnityEngine.VFX;
 
 namespace LethalCompanyHarpGhost.EnforcerGhost;
 
@@ -46,6 +47,8 @@ public class EnforcerGhostAIClient : MonoBehaviour
     [SerializeField] private EnforcerGhostNetcodeController netcodeController;
     [SerializeField] private EnforcerGhostAIServer enforcerGhostAIServer;
     [SerializeField] private Animator animator;
+    [SerializeField] private SkinnedMeshRenderer bodyRenderer;
+    [SerializeField] private VisualEffect teleportVfx;
     #pragma warning restore 0649
     
     private enum AudioClipTypes
@@ -85,6 +88,8 @@ public class EnforcerGhostAIClient : MonoBehaviour
         netcodeController.OnChangeAnimationParameterBool += SetBool;
         netcodeController.OnDoShotgunAnimation += HandleDoShotgunAnimation;
         netcodeController.OnGrabShotgun += HandleGrabShotgun;
+        netcodeController.OnSetMeshEnabled += HandleSetMeshEnabled;
+        netcodeController.OnPlayTeleportVfx += HandlePlayTeleportVfx;
 
         netcodeController.OnPlayCreatureVoice += PlayVoice;
     }
@@ -105,6 +110,8 @@ public class EnforcerGhostAIClient : MonoBehaviour
         netcodeController.OnChangeAnimationParameterBool -= SetBool;
         netcodeController.OnDoShotgunAnimation -= HandleDoShotgunAnimation;
         netcodeController.OnGrabShotgun -= HandleGrabShotgun;
+        netcodeController.OnSetMeshEnabled -= HandleSetMeshEnabled;
+        netcodeController.OnPlayTeleportVfx -= HandlePlayTeleportVfx;
         
         netcodeController.OnPlayCreatureVoice -= PlayVoice;
     }
@@ -129,6 +136,18 @@ public class EnforcerGhostAIClient : MonoBehaviour
         if (shotgunGrabShellSfx == null) _mls.LogError("ShotgunGrabShellSfx is null");
         if (shotgunDropShellSfx == null) _mls.LogError("ShotgunDropShellSfx is null");
         if (grabShotgunSfx == null) _mls.LogError("GrabShotgunSfx is null");
+    }
+    
+    private void HandlePlayTeleportVfx(string recievedGhostId)
+    {
+        if (_ghostId != recievedGhostId) return;
+        teleportVfx.SendEvent("OnPlayTeleport");
+    }
+    
+    private void HandleSetMeshEnabled(string recievedGhostId, bool meshEnabled)
+    {
+        if (_ghostId != recievedGhostId) return;
+        bodyRenderer.enabled = meshEnabled;
     }
 
     private void HandleUpdateShotgunShellsLoaded(string recievedGhostId, int shells)

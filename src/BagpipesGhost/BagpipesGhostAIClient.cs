@@ -17,6 +17,7 @@ public class BagpipesGhostAIClient : MonoBehaviour
     
     #pragma warning disable 0649
     [SerializeField] private Transform grabTarget;
+    [SerializeField] private SkinnedMeshRenderer renderer;
     
     [SerializeField] private BagpipesGhostNetcodeController netcodeController;
     #pragma warning restore 0649
@@ -31,6 +32,7 @@ public class BagpipesGhostAIClient : MonoBehaviour
         netcodeController.OnStopBagpipesMusic += HandleOnStopInstrumentMusic;
         netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
         netcodeController.OnDestroyBagpipes += HandleDestroyBagpipes;
+        netcodeController.OnSetMeshEnabled += HandleSetMeshEnabled;
     }
 
     private void OnDestroy()
@@ -42,11 +44,13 @@ public class BagpipesGhostAIClient : MonoBehaviour
         netcodeController.OnStopBagpipesMusic -= HandleOnStopInstrumentMusic;
         netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
         netcodeController.OnDestroyBagpipes -= HandleDestroyBagpipes;
+        netcodeController.OnSetMeshEnabled -= HandleSetMeshEnabled;
     }
 
     private void Start()
     {
         _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Bagpipes Ghost AI {_ghostId} | Client");
+        renderer.enabled = true;
     }
 
     private void HandleDestroyBagpipes(string recievedGhostId)
@@ -110,6 +114,12 @@ public class BagpipesGhostAIClient : MonoBehaviour
         if (_ghostId != recievedGhostId) return;
         _instrumentObjectRef = instrumentObject;
         _instrumentScrapValue = instrumentScrapValue;
+    }
+
+    private void HandleSetMeshEnabled(string recievedGhostId, bool meshEnabled)
+    {
+        if (_ghostId != recievedGhostId) return;
+        renderer.enabled = meshEnabled;
     }
     
     private void LogDebug(string msg)
