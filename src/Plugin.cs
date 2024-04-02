@@ -28,7 +28,7 @@ namespace LethalCompanyHarpGhost
     {
         public const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
         private const string ModName = "Lethal Company Harp Ghost Mod";
-        private const string ModVersion = "1.2.9";
+        private const string ModVersion = "1.3.0";
 
         private readonly Harmony _harmony = new(ModGuid);
         
@@ -42,6 +42,7 @@ namespace LethalCompanyHarpGhost
         
         public static HarpGhostConfig HarpGhostConfig { get; internal set; }
         public static BagpipeGhostConfig BagpipeGhostConfig { get; internal set; }
+        public static EnforcerGhostConfig EnforcerGhostConfig { get; internal set; }
 
         private static EnemyType _harpGhostEnemyType;
         private static EnemyType _bagpipesGhostEnemyType;
@@ -70,6 +71,7 @@ namespace LethalCompanyHarpGhost
             _harmony.PatchAll();
             HarpGhostConfig = new HarpGhostConfig(Config);
             BagpipeGhostConfig = new BagpipeGhostConfig(Config);
+            EnforcerGhostConfig = new EnforcerGhostConfig(Config);
             
             SetupHarpGhost();
             SetupBagpipesGhost();
@@ -923,7 +925,7 @@ namespace LethalCompanyHarpGhost
             BagpipeGhostSpawnRate = cfg.Bind(
                 "Spawn Values",
                 "Spawn Value",
-                10,
+                0,
                 "The weighted spawn rarity of the Bagpipe ghost"
             );
             
@@ -958,14 +960,14 @@ namespace LethalCompanyHarpGhost
             BagpipesMinValue = cfg.Bind(
                 "Spawn Values",
                 "Bagpipes Minimum value",
-                150,
+                225,
                 "The minimum value that the bagpipes can be set to"
             );
             
             BagpipesMaxValue = cfg.Bind(
                 "Spawn Values",
                 "Bagpipes Maximum value",
-                300,
+                380,
                 "The maximum value that the bagpipes can be set to"
             );
         }

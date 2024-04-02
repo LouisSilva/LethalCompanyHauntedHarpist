@@ -1,3 +1,6 @@
+# 1.3.0 Phantom Piper & Ethereal Enforcer BETA
+* See readme for more details
+
 ## 1.2.9
 * Actually fixed the bug where only the host player would see the ghost's eyes turn red this time
 

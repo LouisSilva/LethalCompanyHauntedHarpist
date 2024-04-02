@@ -4,27 +4,30 @@
 
 <p>Dealing with the angry ghost may prove difficult, but it is worth it to obtain the harp.</p>
 
-## Bestiary Info
+# (BETA) The Phantom Piper & Ethereal Enforcer
+## WARNING: 
+**These enemies are in beta, which means they may have bugs and aren't fully completed yet. It is not recommended to use them for normal play-throughs**
 
-<details>
-  <summary>Spoiler warning</summary>
-<br>
-<p>The ethereal entity known as the Haunted Harpist is categorized as a spectral presence of uncertain origin. Its form is reminiscent of the classic depiction of a phantom, lacking distinct humanoid features and attire, with an outline that shrouds its core in mystery. Its most notable characteristic is the ancient harp it perpetually clutches, strumming melodies that echo through the desolate halls of the mansion it inhabits.</p>
+## Short Description
+The Phantom Piper plays the bagpipes.
 
-<p>If disturbed by excessive noise or a deliberate attempt to disrupt its eerie concerto, the Haunted Harpist will abandon its harmonious routine and become a relentless pursuer. For explorers encountering the Haunted Harpist, it is recommended to move with stealth and avoid interrupting its performance.</p>
-  
-</details>
+Unlike the Haunted Harpist, the Phantom Piper is scared of players and will run away, bagpipes in hand, when provoked.
 
-## Next Big Update
-<details>
-  <summary>Spoiler warning</summary>
-<br>
-<p>The next ghost to be added to the game is called the Phantom Piper. The Phantom Piper plays the bagpipes.</p>
+Although luckily for the him, he is always escorted by his own Ethereal Enforcers.
 
-<p>Unlike the Haunted Harpist, the Phantom Piper is scared of players and will run away, bagpipes in hand, when provoked.</p>
+## Information
 
-<p>Although luckily for the him, he is always escorted by his own Ethereal Enforcers.</p>
-</details>
+To get the Phantom Piper to spawn, all you need to do is increase the spawn value, which is zero by default.
+
+The Ethereal Enforcers are spawned by the Phantom Piper, so leave their spawn values alone.
+
+## Todo Before Final Version
+
+- Make custom Ethereal Enforcer sound effects.
+- Make the bagpipes give a buff to all players that can hear the music if being played by another player.
+- Make the Ethereal Enforcer spawn animation not terrible
+- Increase the length of the Phantom Piper teleport effect
+- Fix any bugs
 
 # Recommended Mods to Install
 
@@ -35,3 +38,8 @@ This mod reduces any potential lag that occurs when an instrument is played for 
 This mod moves logs to their own thread, which significantly increases performance for modpacks.
 
 The Haunted Harpist mod does not log anything unless it's an error, but you should still install this mod because many other mods do spam the console, which reduces performance.
+
+## Acknowledgements
+
+- [Hamnuii](https://github.com/Hamunii) For the [Example Enemy](https://lethal.wiki/dev/apis/lethallib/custom-enemies/overview) enemy modding tutorial
+- [Bagpipes Mesh](https://sketchfab.com/3d-models/bagpipes-mesh-free-to-download-48214a76a8694f64be9fe75225a51a57) by [torquemod](https://sketchfab.com/torquemod) -- License: [Attribution 4.0](https://creativecommons.org/licenses/by/4.0/)

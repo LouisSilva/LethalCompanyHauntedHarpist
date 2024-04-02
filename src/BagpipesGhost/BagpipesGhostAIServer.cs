@@ -310,9 +310,9 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, false);
         netcodeController.PlayTeleportVfxClientRpc(_ghostId);
         yield return new WaitForSeconds(0.5f);
+        if (_heldBagpipes != null) _heldBagpipes.NetworkObject.Despawn();
         EnableEnemyMesh(false);
         netcodeController.SetMeshEnabledClientRpc(_ghostId, false);
-        if (_heldBagpipes != null) _heldBagpipes.NetworkObject.Despawn();
         
         yield return new WaitForSeconds(5);
         KillEnemyClientRpc(true);

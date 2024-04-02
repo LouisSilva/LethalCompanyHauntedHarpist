@@ -1,6 +1,6 @@
 {
     "name": "Haunted_Harpist",
-    "version_number": "1.2.9",
+    "version_number": "1.3.0",
     "website_url": "https://github.com/LouisSilva/LethalCompanyHarpGhost/",
     "description": "Adds a new enemy - The Haunted Harpist - to the game",
     "dependencies": [
