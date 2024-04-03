@@ -10,6 +10,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using GameNetcodeStuff;
 using HarmonyLib;
+using JetBrains.Annotations;
 using UnityEngine;
 using LethalLib.Modules;
 using Unity.Collections;
@@ -252,6 +253,19 @@ namespace LethalCompanyHarpGhost
             if (_instrumentAudioClips.ContainsKey(instrumentName) && index < _instrumentAudioClips[instrumentName].Count)
                 return _instrumentAudioClips[instrumentName][index];
             return null;
+        }
+
+        private static Dictionary<string, int> CustomLevelRaritiesStringToDictionary(string raritiesString)
+        {
+            string[] raritiesArray = raritiesString.Trim().Split(",");
+            Dictionary<string, int> raritiesDictionary = new();
+            foreach (string rarityEntry in raritiesArray)
+            {
+                string[] rarity = rarityEntry.Trim().Split(":");
+                raritiesDictionary[rarity[0]] = int.Parse(rarity[1]);
+            }
+
+            return raritiesDictionary;
         }
 
         private static void InitializeNetworkStuff()
@@ -903,7 +917,7 @@ namespace LethalCompanyHarpGhost
             
             BagpipeGhostVoiceSfxVolume = cfg.Bind(
                 "Ghost Audio",
-                "Voice Sound Effects Volume",
+                "Phantom Piper Voice Sound Effects Volume",
                 0.8f,
                 "The volume of the Phantom Piper's voice. Values are from 0-1"
             );
