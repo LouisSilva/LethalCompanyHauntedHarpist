@@ -1,3 +1,6 @@
+## 1.3.1
+* Fixed bug where when a Phantom Piper or Ethereal Enforcer was provoked, unless the enforcer's could see the player, they would not agro onto them
+
 # 1.3.0 Phantom Piper & Ethereal Enforcer BETA
 * See readme for more details
 

@@ -6,6 +6,7 @@ using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Serialization;
 
 // TODO: Add "Fat Boi" config which allows people to make the enforcer ghost unable to fly across gaps because they are too fat
 
@@ -36,7 +37,7 @@ public class EnforcerGhostAIServer : EnemyAI
     public bool fullySpawned = false;
     // private bool _canHearPlayers = false;
 
-    private Vector3 _targetPosition = default;
+    [HideInInspector] public Vector3 targetPosition = default;
     private Vector3 _agentLastPosition = default;
 
     private ShotgunItem _heldShotgun;
@@ -51,7 +52,7 @@ public class EnforcerGhostAIServer : EnemyAI
     [HideInInspector] public IEscortee Escortee { private get; set; }
     #pragma warning restore 0649
 
-    private enum States
+    [HideInInspector] public enum States
     {
         Escorting = 0,
         SearchingForPlayers = 1,
@@ -156,12 +157,12 @@ public class EnforcerGhostAIServer : EnemyAI
                 
                 if (!searchForPlayers.inProgress)
                 {
-                    if (_targetPosition != default)
+                    if (targetPosition != default)
                     {
-                        if (CheckForPath(_targetPosition))
+                        if (CheckForPath(targetPosition))
                         {
                             searchForPlayers.searchWidth = 30f;
-                            StartSearch(_targetPosition, searchForPlayers);
+                            StartSearch(targetPosition, searchForPlayers);
                             break;
                         }
                     }
@@ -191,10 +192,10 @@ public class EnforcerGhostAIServer : EnemyAI
                 // begin investigating if not already
                 if (!_hasBegunInvestigating) 
                 {
-                    if (_targetPosition == default) SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
+                    if (targetPosition == default) SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
                     else
                     {
-                        if (!SetDestinationToPosition(_targetPosition, true))
+                        if (!SetDestinationToPosition(targetPosition, true))
                         {
                             SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
                             break;
@@ -204,7 +205,7 @@ public class EnforcerGhostAIServer : EnemyAI
                 }
 
                 // If player isnt in LOS and ghost has reached the player's last known position, then switch to state 1
-                if (Vector3.Distance(transform.position, _targetPosition) <= 1)
+                if (Vector3.Distance(transform.position, targetPosition) <= 1)
                 {
                     SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
                     break;
@@ -227,7 +228,7 @@ public class EnforcerGhostAIServer : EnemyAI
                 BeginChasingPlayer((int)playerControllerB.playerClientId);
                 
                 // _targetPosition is the last seen position of a player before they went out of view
-                _targetPosition = targetPlayer.transform.position;
+                targetPosition = targetPlayer.transform.position;
                 netcodeController.IncreaseTargetPlayerFearLevelClientRpc(ghostId);
                 
                 AimAtPosition(targetPlayer.transform.position);
@@ -397,7 +398,7 @@ public class EnforcerGhostAIServer : EnemyAI
                 _isCurrentlyShooting = false;
                 _shootTimer = 0f;
                 _hasBegunInvestigating = false;
-                _targetPosition = default;
+                targetPosition = default;
 
                 break;
             }
@@ -412,7 +413,7 @@ public class EnforcerGhostAIServer : EnemyAI
                 _isCurrentlyShooting = false;
                 movingTowardsTargetPlayer = false;
                 _hasBegunInvestigating = false;
-                _targetPosition = default;
+                targetPosition = default;
                 
                 Escortee?.EscorteeBreakoff();
 
@@ -446,7 +447,7 @@ public class EnforcerGhostAIServer : EnemyAI
                 _isCurrentlyShooting = false;
                 movingTowardsTargetPlayer = true;
                 _hasBegunInvestigating = false;
-                _targetPosition = default;
+                targetPosition = default;
 
                 Escortee?.EscorteeBreakoff();
                 
@@ -466,7 +467,7 @@ public class EnforcerGhostAIServer : EnemyAI
                 _isCurrentlyShooting = false;
                 _isReloading = false;
                 _hasStartedReloadAnimation = false;
-                _targetPosition = default;
+                targetPosition = default;
                 _hasBegunInvestigating = false;
                 moveTowardsDestination = false;
                 

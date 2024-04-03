@@ -345,7 +345,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     }
 
     // Makes the escorts enter rambo state and removes them from the escort list
-    private void RetireAllEscorts(PlayerControllerB targetPlayer = null)
+    private void RetireAllEscorts(PlayerControllerB targetPlayerToSet = null)
     {
         if (!IsServer) return;
         if (_currentlyRetiringAllEscorts) return;
@@ -354,10 +354,11 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         for (int i = _escorts.Count - 1; i >= 0; i--)
         {
             LogDebug($"Retiring escort {_escorts[i].ghostId}");
-            if (targetPlayer != null)
+            if (targetPlayerToSet != null)
             {
-                _escorts[i].targetPlayer = targetPlayer;
-                _escorts[i].SwitchToBehaviourStateOnLocalClient(3);
+                _escorts[i].targetPlayer = targetPlayerToSet;
+                _escorts[i].targetPosition = targetPlayerToSet.transform.position;
+                _escorts[i].SwitchToBehaviourStateOnLocalClient((int)EnforcerGhostAIServer.States.InvestigatingTargetPosition);
             }
             RemoveEscort(i);
         }
