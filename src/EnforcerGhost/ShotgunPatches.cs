@@ -25,27 +25,17 @@ internal static class GrabbableObjectPatches
     {
         if (__instance is not ShotgunItem shotgun) return;
         if (shotgun.heldByEnemy is not EnforcerGhostAIServer) return;
-        if (shotgun.parentObject != null)
-        {
-            Vector3 rotationOffset;
-            Vector3 positionOffset;
-            if (shotgun.heldByEnemy is EnforcerGhostAIServer && shotgun.isHeldByEnemy)
-            {
-                positionOffset = new Vector3(0, 0, 0);
-                rotationOffset = new Vector3(-180f, 180f, -90f);
-            }
-            else
-            {
-                rotationOffset = new Vector3(0, 0.39f, 0);
-                positionOffset = new Vector3(-90.89f, -1.5f, 0f);
-            }
-
-            shotgun.transform.rotation = shotgun.parentObject.rotation;
-            shotgun.transform.Rotate(rotationOffset);
-            shotgun.transform.position = shotgun.parentObject.position;
-            shotgun.transform.position += shotgun.parentObject.rotation * positionOffset;
-        }
+        if (shotgun.parentObject == null) return;
+        if (shotgun.heldByEnemy is not EnforcerGhostAIServer || !shotgun.isHeldByEnemy) return;
         
+        Vector3 positionOffset = new(0, 0, 0);
+        Vector3 rotationOffset = new(-180f, 180f, -90f);
+                
+        shotgun.transform.rotation = shotgun.parentObject.rotation;
+        shotgun.transform.Rotate(rotationOffset);
+        shotgun.transform.position = shotgun.parentObject.position;
+        shotgun.transform.position += shotgun.parentObject.rotation * positionOffset;
+                
         if (!(shotgun.radarIcon != null)) return;
         shotgun.radarIcon.position = shotgun.transform.position;
     }

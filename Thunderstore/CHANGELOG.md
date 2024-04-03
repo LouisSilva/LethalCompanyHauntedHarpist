@@ -1,3 +1,8 @@
+## 1.3.2
+* Fixed the bagpipes rotation when a player is holding them
+* Fixed bug where the shotguns dropped by the Ethereal Enforcer didnt work
+* Added AsyncLoggers as a **soft** dependency. Not because this mod needs it but like the DissonanceLagFix mod, its just free fps for no cost
+
 ## 1.3.1
 * Fixed bug where when a Phantom Piper or Ethereal Enforcer was provoked, unless the enforcer's could see the player, they would not agro onto them
 * Fixed the messed up config (I **really** suggest you delete your config so it can regenerate)

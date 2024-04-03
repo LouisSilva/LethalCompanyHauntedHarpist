@@ -10,7 +10,6 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using GameNetcodeStuff;
 using HarmonyLib;
-using JetBrains.Annotations;
 using UnityEngine;
 using LethalLib.Modules;
 using Unity.Collections;
@@ -25,11 +24,12 @@ namespace LethalCompanyHarpGhost
     [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
     [BepInDependency(LethalLib.Plugin.ModGUID)]
     [BepInDependency("linkoid-DissonanceLagFix-1.0.0", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("mattymatty-AsyncLoggers-1.6.1", BepInDependency.DependencyFlags.SoftDependency)]
     public class HarpGhostPlugin : BaseUnityPlugin
     {
         public const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
         private const string ModName = "Lethal Company Harp Ghost Mod";
-        private const string ModVersion = "1.3.1";
+        private const string ModVersion = "1.3.2";
 
         private readonly Harmony _harmony = new(ModGuid);
         
