@@ -41,5 +41,6 @@ The Haunted Harpist mod does not log anything unless it's an error, but you shou
 
 ## Acknowledgements
 
-- [Hamnuii](https://github.com/Hamunii) For the [Example Enemy](https://lethal.wiki/dev/apis/lethallib/custom-enemies/overview) enemy modding tutorial
+- [Evaisa](https://github.com/EvaisaDev) for [LethalLib](https://github.com/EvaisaDev/LethalLib), the [Unity Template](https://github.com/EvaisaDev/LethalCompanyUnityTemplate) and the [Netcode Patcher](https://github.com/EvaisaDev/UnityNetcodePatcher)
+- [Hamunii](https://github.com/Hamunii) for the [Example Enemy](https://lethal.wiki/dev/apis/lethallib/custom-enemies/overview) enemy modding tutorial
 - [Bagpipes Mesh](https://sketchfab.com/3d-models/bagpipes-mesh-free-to-download-48214a76a8694f64be9fe75225a51a57) by [torquemod](https://sketchfab.com/torquemod) -- License: [Attribution 4.0](https://creativecommons.org/licenses/by/4.0/)
