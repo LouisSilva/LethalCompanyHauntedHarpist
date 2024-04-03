@@ -153,7 +153,7 @@ namespace LethalCompanyHarpGhost
             Utilities.FixMixerGroups(EnforcerGhostEnemyType.enemyPrefab);
             RegisterEnemy(
                 EnforcerGhostEnemyType, 
-                EnforcerGhostConfig.Instance.EnforcerGhostSpawnRate.Value, 
+                Mathf.Clamp(EnforcerGhostConfig.Instance.EnforcerGhostSpawnRate.Value, 0, 999), 
                 EnforcerGhostConfig.Instance.EnforcerGhostSpawnLevel.Value, 
                 SpawnType.Default, 
                 enforcerGhostTerminalNode, 
@@ -342,409 +342,409 @@ namespace LethalCompanyHarpGhost
             InitInstance(this);
             
             HarpGhostInitialHealth = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Health",
-                3,
+                4,
                 "The health when spawned"
                 );
             
             HarpGhostIsKillable = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Killable",
                 true,
-                "Whether a Harp Ghost can be killed or not"
+                "Whether the Haunted Harpist can be killed or not"
             );
             
             HarpGhostFriendlyFire = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Friendly Fire",
                 true,
-                "Whether a Harp Ghost can be killed by something other than a player e.g. an eyeless dog, mine etc"
+                "Whether the Haunted Harpist can be killed by something other than a player e.g. an eyeless dog, mine etc"
             );
             
             HarpGhostIsStunnable= cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Stunnable",
                 true,
-                "Whether a Harp Ghost can be stunned or not"
+                "Whether the Haunted Harpist can be stunned or not"
             );
             
             HarpGhostCanHearPlayersWhenAngry = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Can Hear Players When Angry",
                 true,
-                "Whether a Harp Ghost can hear players to aid its search when angry"
+                "Whether the Haunted Harpist can hear players to aid its search when angry"
             );
             
             HarpGhostCanSeeThroughFog = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Can See Through Fog",
                 false,
-                "Whether a Harp Ghost can see through fog"
+                "Whether the Haunted Harpist can see through fog"
             );
             
             HarpGhostAttackDamage = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Attack Damage",
                 45,
-                "The attack damage of the Harp Ghost"
+                "The attack damage of the Haunted Harpist"
             );
             
             HarpGhostAttackCooldown = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Attack Cooldown",
                 2f,
-                "The max speed of the Harp Ghost in chase mode. Note that new attacks interrupt the audio and animation of the previous attack, therefore putting this value too low will make the attacks look and sound very jagged."
+                "The max speed of the Haunted Harpist in chase mode. Note that new attacks interrupt the audio and animation of the previous attack, therefore putting this value too low will make the attacks look and sound very jagged."
             );
             
             HarpGhostAttackAreaLength = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Attack Area Length",
                 1f,
-                "The length of the Harp Ghost's attack area in the Z dimension (in in-game meters)"
+                "The length of the Haunted Harpist's attack area in the Z dimension (in in-game meters)"
             );
             
             HarpGhostMaxSpeedInChaseMode = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Max Speed In Chase Mode",
                 8f,
-                "The max speed of the Harp Ghost in chase mode"
+                "The max speed of the Haunted Harpist in chase mode"
             );
             
             HarpGhostMaxAccelerationInChaseMode = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Max Acceleration In Chase Mode",
                 50f,
-                "The max acceleration of the Harp Ghost in chase mode"
+                "The max acceleration of the Haunted Harpist in chase mode"
             );
             
             HarpGhostViewWidth = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "View Width",
                 135f,
-                "The width in degrees of the Harp Ghost's view"
+                "The width in degrees of the Haunted Harpist's view"
             );
             
             HarpGhostViewRange = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "View Range",
                 80,
-                "The range in in-game units (a meter kind of) of the Harp Ghost's view"
+                "The range in in-game units (a meter kind of) of the Haunted Harpist's view"
             );
             
             HarpGhostProximityAwareness = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Proximity Awareness",
                 3,
-                "The area around the ghost in in-game units where it can detect players, regardless if the Harp Ghost has line of sight to the player. Set it to -1 to completely disable it. I recommend you do not touch this."
+                "The area around the Haunted Harpist in in-game units where it can detect players, regardless if the ghost has line of sight to the player. Set it to -1 to completely disable it. I recommend you do not touch this."
             );
             
             HarpGhostDoorSpeedMultiplierInChaseMode = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Max Door Speed Multiplier",
                 6f,
-                "The MAXIMUM multiplier for how long it takes a Harp Ghost to open a door (maximum because the value changes depending on how angry the ghost is, there is no global value)"
+                "The MAXIMUM multiplier for how long it takes the Haunted Harpist to open a door (maximum because the value changes depending on how angry the ghost is, there is no global value)"
             );
             
             HarpGhostStunTimeMultiplier = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Stun Time Multiplier",
                 1f,
-                "The multiplier for how long a Harp Ghost can be stunned"
+                "The multiplier for how long a Haunted Harpist can be stunned"
             );
             
             HarpGhostStunGameDifficultyMultiplier = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Stun Game Difficulty Multiplier",
                 0f,
                 "Not sure what this does"
             );
             
             HarpGhostAnnoyanceLevelDecayRate = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Annoyance Level Decay Rate",
                 0.3f,
-                "The decay rate of the ghost's annoyance level (due to noises) over time"
+                "The decay rate of the Haunted Harpist's annoyance level (due to noises) over time"
             );
             
             HarpGhostAnnoyanceThreshold = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Annoyance Level Threshold",
                 8f,
-                "The threshold of how annoyed the ghost has to be (from noise) to get angry"
+                "The threshold of how annoyed the Haunted Harpist has to be (from noise) to get angry"
             );
             
             HarpGhostMaxSearchRadius = cfg.Bind(
-                "General",
+                "Haunted Harpist General",
                 "Max Search Radius",
                 100f,
-                "The maximum distance the ghost will go to search for a player"
+                "The maximum distance the Haunted Harpist will go to search for a player"
             );
             
             HarpGhostVoiceSfxVolume = cfg.Bind(
-                "Audio",
-                "Voice Sound Effects Volume",
+                "Ghost Audio",
+                "Haunted Harpist Voice Sound Effects Volume",
                 0.8f,
-                "The volume of the ghost's voice. Values are from 0-1"
+                "The volume of the Haunted Harpist's voice. Values are from 0-1"
             );
 
             HarpVolume = cfg.Bind(
-                "Audio",
+                "Instrument Audio",
                 "Harp Volume",
                 0.8f,
                 "The volume of the music played from the harp. Values are from 0-1"
             );
             
             HarpPitch = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Pitch",
                 1f,
                 "The pitch of the music played from the harp. Values are from -3 to 3"
             );
             
             HarpBypassReverbZones = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Bypass Reverb Zones",
                 false,
                 "For the following audio configs, if you don't know what you are doing then DO NOT touch them."
             );
             
             HarpReverbZoneMix = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Reverb Zone Mix",
                 1f,
                 "Values are from 0 to 1.1"
             );
             
             HarpDopplerLevel = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Doppler Level",
                 0.3f,
                 "Values are from 0 to 5"
             );
             
             HarpSoundSpread = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Sound Spread",
                 80,
                 "Values are from 0 to 360"
             );
             
             HarpSoundMaxDistance = cfg.Bind(
-                "Audio",
+                "Instrument Audio",
                 "Harp Sound Max Distance",
                 45,
                 "Values are from 0 to Infinity"
             );
             
             HarpAudioLowPassFilterEnabled = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio Low Pass Filter Enabled",
                 false,
                 ""
             );
             
             HarpAudioLowPassFilterCutoffFrequency = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio Low Pass Filter Cutoff Frequency",
                 1000,
                 "Values are from 10 to 22000"
             );
             
             HarpAudioLowPassFilterLowpassResonanceQ = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio Low Pass Filter Lowpass Resonance Q",
                 1f,
                 ""
             );
             
             HarpAudioHighPassFilterEnabled = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio High Pass Filter Enabled",
                 false,
                 ""
             );
             
             HarpAudioHighPassFilterCutoffFrequency = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio High Pass Filter Cutoff Frequency",
                 600,
                 "Values are from 10 to 22000"
             );
             
             HarpAudioHighPassFilterHighpassResonanceQ = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio High Pass Highpass Resonance Q",
                 1f,
                 ""
             );
             
             HarpAudioEchoFilterEnabled = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio Echo Filter Enabled",
                 false,
                 ""
             );
             
             HarpAudioEchoFilterDelay = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio Echo Filter Delay",
                 200f,
                 ""
             );
             
             HarpAudioEchoFilterDecayRatio = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio Echo Filter Decay Ratio",
                 0.5f,
                 "Values are from 0 to 1"
             );
             
             HarpAudioEchoFilterDryMix = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio Echo Filter Dry Mix",
                 1f,
                 ""
             );
             
             HarpAudioEchoFilterWetMix = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio Echo Filter Wet Mix",
                 1f,
                 ""
             );
             
             HarpAudioChorusFilterEnabled = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio Chorus Filter Enabled",
                 false,
                 ""
             );
             
             HarpAudioChorusFilterDryMix = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio Chorus Filter Dry Mix",
                 0.5f,
                 ""
             );
             
             HarpAudioChorusFilterWetMix1 = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio Chorus Filter Wet Mix 1",
                 0.5f,
                 ""
             );
             
             HarpAudioChorusFilterWetMix2 = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio Chorus Filter Wet Mix 2",
                 0.5f,
                 ""
             );
             
             HarpAudioChorusFilterWetMix3 = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio Chorus Filter Wet Mix 3",
                 0.5f,
                 ""
             );
             
             HarpAudioChorusFilterDelay = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio Chorus Filter Delay",
                 40f,
                 ""
             );
             
             HarpAudioChorusFilterRate = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio Chorus Filter Rate",
                 0.5f,
                 ""
             );
             
             HarpAudioChorusFilterDepth = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Audio Chorus Filter Depth",
                 0.2f,
                 ""
             );
             
             HarpOccludeAudioEnabled = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Occlude Audio Enabled",
                 true,
                 ""
             );
             
             HarpOccludeAudioUseReverbEnabled = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Occlude Audio Use Reverb Enabled",
                 false,
                 ""
             );
             
             HarpOccludeAudioOverridingLowPassEnabled = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Occlude Audio Overriding Low Pass Enabled",
                 false,
                 ""
             );
             
             HarpOccludeAudioLowPassOverride = cfg.Bind(
-                "Audio",
+                "Harp - Advanced Audio Settings",
                 "Harp Occlude Audio Low Pass Override",
                 20000,
                 ""
             );
             
             HarpGhostSpawnRate = cfg.Bind(
-                "Spawn Values",
-                "Spawn Value",
+                "Ghost Spawn Values",
+                "Haunted Harpist Spawn Value",
                 40,
-                "The weighted spawn rarity of the harp ghost"
+                "The weighted spawn rarity of the Haunted Harpist"
             );
             
             MaxAmountOfHarpGhosts = cfg.Bind(
-                "Spawn Values",
-                "Max Amount of Harp Ghosts",
+                "Ghost Spawn Values",
+                "Max Amount of Haunted Harpists",
                 2,
-                "The maximum amount of harp ghosts that can spawn in a game"
+                "The maximum amount of Haunted Harpist's that can spawn in a game"
             );
             
             HarpGhostPowerLevel = cfg.Bind(
-                "Spawn Values",
+                "Haunted Harpist General",
                 "Power Level",
                 1,
-                "The power level of a Harp Ghost"
+                "The power level of the Haunted Harpist"
             );
             
             HarpGhostSpawnLevel = cfg.Bind(
-                "Spawn Values",
-                "Spawn Level",
+                "Ghost Spawn Values",
+                "Haunted Harpist Spawn Level",
                 LevelTypes.DineLevel,
-                "The LevelTypes that the ghost spawns in"
+                "The LevelTypes that the Haunted Harpist spawns in"
             );
             
             HarpMinValue = cfg.Bind(
-                "Spawn Values",
+                "Item Spawn Values",
                 "Harp Minimum value",
                 150,
                 "The minimum value that the harp can be set to"
             );
             
             HarpMaxValue = cfg.Bind(
-                "Spawn Values",
+                "Item Spawn Values",
                 "Harp Maximum value",
                 300,
                 "The maximum value that the harp can be set to"
             );
 
             HarpGhostAngryEyesEnabled = cfg.Bind(
-                "Cosmetics",
+                "Haunted Harpist General",
                 "Angry Eyes Enabled",
                 true,
-                "Whether the Harp Ghost's eyes turn red when angry"
+                "Whether the Haunted Harpist's eyes turn red when angry"
             );
         }
 
@@ -846,126 +846,126 @@ namespace LethalCompanyHarpGhost
             InitInstance(this);
             
             BagpipeGhostInitialHealth = cfg.Bind(
-                "General",
+                "Phantom Piper General",
                 "Health",
                 6,
-                "The health when spawned"
+                "The health of the Phantom Piper when spawned"
                 );
             
             BagpipeGhostIsKillable = cfg.Bind(
-                "General",
+                "Phantom Piper General",
                 "Killable",
                 true,
-                "Whether a Bagpipe Ghost can be killed or not"
+                "Whether a Phantom Piper can be killed or not"
             );
             
             BagpipeGhostIsStunnable= cfg.Bind(
-                "General",
+                "Phantom Piper General",
                 "Stunnable",
                 true,
-                "Whether a Bagpipe Ghost can be stunned or not"
+                "Whether a Phantom Piper can be stunned or not"
             );
             
             BagpipeGhostMaxSpeedInEscapeMode = cfg.Bind(
-                "General",
+                "Phantom Piper General",
                 "Max Speed In Escape Mode",
                 10f,
-                "The max speed of the Bagpipe Ghost in escape mode"
+                "The max speed of the Phantom Piper in escape mode"
             );
             
             BagpipeGhostMaxAccelerationInEscapeMode = cfg.Bind(
-                "General",
+                "Phantom Piper General",
                 "Max Acceleration In Escape Mode",
                 30f,
-                "The max acceleration of the Bagpipe Ghost in escape mode"
+                "The max acceleration of the Phantom Piper in escape mode"
             );
             
             BagpipeGhostStunTimeMultiplier = cfg.Bind(
-                "General",
+                "Phantom Piper General",
                 "Stun Time Multiplier",
                 1f,
-                "The multiplier for how long a Bagpipe Ghost can be stunned"
+                "The multiplier for how long a Phantom Piper can be stunned"
             );
             
             BagpipeGhostDoorSpeedMultiplierInEscapeMode = cfg.Bind(
-                "General",
+                "Phantom Piper General",
                 "Door Speed Multiplier In Escape Mode",
                 6f,
-                "The door speed multiplier when the ghost is in escape mode"
+                "The door speed multiplier when the Phantom Piper is in escape mode"
             );
             
             BagpipeGhostStunGameDifficultyMultiplier = cfg.Bind(
-                "General",
+                "Phantom Piper General",
                 "Stun Game Difficulty Multiplier",
                 0f,
                 "Not sure what this does"
             );
             
             BagpipeGhostVoiceSfxVolume = cfg.Bind(
-                "Audio",
+                "Ghost Audio",
                 "Voice Sound Effects Volume",
                 0.8f,
-                "The volume of the ghost's voice. Values are from 0-1"
+                "The volume of the Phantom Piper's voice. Values are from 0-1"
             );
             
             BagpipesVolume = cfg.Bind(
-                "Audio",
+                "Instrument Audio",
                 "Bagpipes Volume",
                 0.8f,
                 "The volume of the music played from the Bagpipes. Values are from 0-1"
             );
             
             BagpipesSoundMaxDistance = cfg.Bind(
-                "Audio",
+                "Instrument Audio",
                 "Bagpipes Sound Max Distance",
                 65,
                 "Values are from 0 to Infinity"
             );
             
             BagpipeGhostSpawnRate = cfg.Bind(
-                "Spawn Values",
-                "Spawn Value",
+                "Ghost Spawn Values",
+                "Phantom Piper Spawn Value",
                 0,
-                "The weighted spawn rarity of the Bagpipe ghost"
+                "The weighted spawn rarity of the Phantom Piper"
             );
             
             MaxAmountOfBagpipeGhosts = cfg.Bind(
-                "Spawn Values",
-                "Max Amount of Bagpipe Ghosts",
+                "Ghost Spawn Values",
+                "Max Amount of Phantom Piper Ghosts",
                 1,
-                "The maximum amount of Bagpipe ghosts that can spawn in a game"
+                "The maximum amount of Phantom Piper that can spawn in a game"
             );
 
             BagpipeGhostNumberOfEscortsToSpawn = cfg.Bind(
-                "Spawn Values",
+                "Phantom Piper General",
                 "Number of Escorts to Spawn",
                 3,
-                "The number of escorts to spawn when the ghost spawns"
+                "The number of escorts to spawn when the Phantom Piper spawns"
             );
             
             BagpipeGhostPowerLevel = cfg.Bind(
-                "Spawn Values",
+                "Phantom Piper General",
                 "Power Level",
                 1,
-                "The power level of a Bagpipe Ghost"
+                "The power level of a Phantom Piper"
             );
             
             BagpipeGhostSpawnLevel = cfg.Bind(
-                "Spawn Values",
-                "Spawn Level",
+                "Ghost Spawn Values",
+                "Phantom Piper Spawn Level",
                 LevelTypes.DineLevel,
-                "The LevelTypes that the ghost spawns in"
+                "The LevelTypes that the Phantom Piper spawns in"
             );
             
             BagpipesMinValue = cfg.Bind(
-                "Spawn Values",
+                "Item Spawn Values",
                 "Bagpipes Minimum value",
                 225,
                 "The minimum value that the bagpipes can be set to"
             );
             
             BagpipesMaxValue = cfg.Bind(
-                "Spawn Values",
+                "Item Spawn Values",
                 "Bagpipes Maximum value",
                 380,
                 "The maximum value that the bagpipes can be set to"
@@ -1067,105 +1067,105 @@ namespace LethalCompanyHarpGhost
             InitInstance(this);
             
             EnforcerGhostInitialHealth = cfg.Bind(
-                "General",
+                "Ethereal Enforcer General",
                 "Health",
                 6,
-                "The health when spawned"
+                "The health of an Enforcer ghost when spawned"
                 );
             
             EnforcerGhostIsKillable = cfg.Bind(
-                "General",
+                "Ethereal Enforcer General",
                 "Killable",
                 true,
                 "Whether an Enforcer Ghost can be killed or not"
             );
             
             EnforcerGhostIsStunnable= cfg.Bind(
-                "General",
+                "Ethereal Enforcer General",
                 "Stunnable",
                 true,
                 "Whether an Enforcer Ghost can be stunned or not"
             );
             
             EnforcerGhostMaxSpeedInChaseMode = cfg.Bind(
-                "General",
+                "Ethereal Enforcer General",
                 "Max Speed In Chase Mode",
                 1.5f,
-                "The max speed of the Enforcere Ghost in chase mode"
+                "The max speed of the Enforcer Ghost in chase mode"
             );
             
             EnforcerGhostMaxAccelerationInChaseMode = cfg.Bind(
-                "General",
-                "Max Acceleration In Enforcer Mode",
+                "Ethereal Enforcer General",
+                "Max Acceleration In Chase Mode",
                 15f,
                 "The max acceleration of the Enforcer Ghost in chase mode"
             );
             
             EnforcerGhostStunTimeMultiplier = cfg.Bind(
-                "General",
+                "Ethereal Enforcer General",
                 "Stun Time Multiplier",
                 3f,
                 "The multiplier for how long a Enforcer Ghost can be stunned"
             );
             
             EnforcerGhostDoorSpeedMultiplierInChaseMode = cfg.Bind(
-                "General",
+                "Ethereal Enforcer General",
                 "Door Speed Multiplier In Chase Mode",
                 1f,
-                "The door speed multiplier when the ghost is in chase mode"
+                "The door speed multiplier when the Enforcer ghost is in chase mode"
             );
             
             EnforcerGhostStunGameDifficultyMultiplier = cfg.Bind(
-                "General",
+                "Ethereal Enforcer General",
                 "Stun Game Difficulty Multiplier",
                 0f,
                 "Not sure what this does"
             );
             
             EnforcerGhostVoiceSfxVolume = cfg.Bind(
-                "Audio",
-                "Voice Sound Effects Volume",
+                "Ghost Audio",
+                "Enforcer Ghost Voice Sound Effects Volume",
                 0.8f,
-                "The volume of the ghost's voice. Values are from 0-1"
+                "The volume of the Enforcer ghost's voice. Values are from 0-1"
             );
             
             EnforcerGhostSpawnRate = cfg.Bind(
-                "Spawn Values",
-                "Spawn Value",
+                "Ghost Spawn Values",
+                "Ethereal Enforcer Spawn Value",
                 0,
                 "The weighted spawn rarity of the Enforcer ghost (can be changed, but isn't supposed to spawn by itself)"
             );
             
             MaxAmountOfEnforcerGhosts = cfg.Bind(
-                "Spawn Values",
-                "Max Amount of Bagpipe Ghosts",
+                "Ghost Spawn Values",
+                "Max Amount of Enforcer Ghosts",
                 3,
                 "The maximum amount of Enforcer ghosts that can spawn in a game"
             );
             
             EnforcerGhostPowerLevel = cfg.Bind(
-                "Spawn Values",
+                "Ethereal Enforcer General",
                 "Power Level",
                 1,
                 "The power level of a Enforcer Ghost"
             );
             
             EnforcerGhostSpawnLevel = cfg.Bind(
-                "Spawn Values",
+                "Ghost Spawn Values",
                 "Spawn Level",
                 LevelTypes.DineLevel,
-                "The LevelTypes that the ghost spawns in"
+                "The LevelTypes that the Enforcer ghost spawns in"
             );
             
             ShotgunMinValue = cfg.Bind(
-                "Spawn Values",
+                "Item Spawn Values",
                 "Shotgun Minimum value",
                 60,
                 "The minimum value that the shotgun spawned by an enforcer ghost can be set to"
             );
             
             ShotgunMaxValue = cfg.Bind(
-                "Spawn Values",
+                "Item Spawn Values",
                 "Shotgun Maximum value",
                 90,
                 "The maximum value that the shotgun spawned by an enforcer ghost can be set to"
