@@ -1,3 +1,10 @@
+## 1.3.3
+* Ethereal Enforcer now has a delay between seeing a player, and shooting them
+* The Ethereal Enforcer's reload time is now longer
+* The Ethereal Enforcer's turn speed is now slower, and customizable
+* The Phantom Piper and Ethereal Enforcer now have a few extra sound effects
+* The bagpipes now disappear properly when the Phantom Piper manages to escape out the map
+
 ## 1.3.2
 * Fixed the bagpipes rotation when a player is holding them
 * Fixed bug where the shotguns dropped by the Ethereal Enforcer didnt work

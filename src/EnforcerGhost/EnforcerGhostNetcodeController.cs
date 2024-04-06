@@ -21,8 +21,10 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     public event Action<string, int, int, bool> OnPlayCreatureVoice;
     public event Action<string, NetworkObjectReference, int> OnSpawnShotgun;
     public event Action<string> OnGrabShotgun;
-    public event Action<string> OnGrabShotgunPhaseTwo; 
+    public event Action<string> OnGrabShotgunPhaseTwo;
+    public event Action<string> OnGrabShotgunAfterStun; 
     public event Action<string, Vector3> OnDropShotgun;
+    public event Action<string, Vector3> OnDropShotgunWhenStunned;
     public event Action<string> OnIncreaseTargetPlayerFearLevel;
     public event Action<string, int> OnChangeTargetPlayer;
     public event Action<string> OnShootGun;
@@ -37,6 +39,18 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
         
         enforcerGhostAIServer = GetComponent<EnforcerGhostAIServer>();
         if (enforcerGhostAIServer == null) _mls.LogError("enforcerGhostAI is null");
+    }
+
+    [ClientRpc]
+    public void DropShotgunForStunClientRpc(string recievedGhostId, Vector3 dropPosition)
+    {
+        OnDropShotgunWhenStunned?.Invoke(recievedGhostId, dropPosition);
+    }
+
+    [ClientRpc]
+    public void GrabShotgunAfterStunClientRpc(string recievedGhostId)
+    {
+        OnGrabShotgunAfterStun?.Invoke(recievedGhostId);
     }
     
     [ClientRpc]

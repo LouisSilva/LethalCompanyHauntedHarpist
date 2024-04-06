@@ -15,7 +15,10 @@ public class BagpipesGhostAudioManager : MonoBehaviour
     [SerializeField] private AudioSource creatureVoiceSource;
     [SerializeField] private AudioSource creatureSfxSource;
     #pragma warning restore 0649
-    
+
+    public AudioClip[] longLaughSfx;
+    public AudioClip[] shockedSfx;
+    public AudioClip[] tauntSfx;
     public AudioClip[] damageSfx;
     public AudioClip[] laughSfx;
     public AudioClip[] stunSfx;
@@ -28,13 +31,16 @@ public class BagpipesGhostAudioManager : MonoBehaviour
     [SerializeField] private BagpipesGhostNetcodeController netcodeController;
     #pragma warning restore 0649
 
-    private enum AudioClipTypes
+    public enum AudioClipTypes
     {
         Death = 0,
         Damage = 1,
         Laugh = 2,
         Stun = 3,
-        Upset = 4
+        Upset = 4,
+        LongLaugh = 5,
+        Shocked = 6,
+        Taunt = 7,
     }
     
     public enum NoiseIds
@@ -127,6 +133,9 @@ public class BagpipesGhostAudioManager : MonoBehaviour
             (int)AudioClipTypes.Laugh => laughSfx[randomNum],
             (int)AudioClipTypes.Stun => stunSfx[randomNum],
             (int)AudioClipTypes.Upset => upsetSfx[randomNum],
+            (int)AudioClipTypes.LongLaugh => longLaughSfx[randomNum],
+            (int)AudioClipTypes.Shocked => shockedSfx[randomNum],
+            (int)AudioClipTypes.Taunt => tauntSfx[randomNum],
             _ => null
         };
 

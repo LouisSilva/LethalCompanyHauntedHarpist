@@ -56,6 +56,7 @@ public class BagpipesGhostAIClient : MonoBehaviour
     private void HandleDestroyBagpipes(string recievedGhostId)
     {
         if (_ghostId != recievedGhostId) return;
+        if (_heldInstrument != null) Destroy(_heldInstrument.gameObject);
         _heldInstrument = null;
     }
 

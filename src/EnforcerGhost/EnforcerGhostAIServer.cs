@@ -6,7 +6,6 @@ using GameNetcodeStuff;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.Serialization;
 
 // TODO: Add "Fat Boi" config which allows people to make the enforcer ghost unable to fly across gaps because they are too fat
 
@@ -25,6 +24,8 @@ public class EnforcerGhostAIServer : EnemyAI
     [SerializeField] private float agentMaxAcceleration = 50f;
     [SerializeField] private float agentMaxSpeed = 0.8f;
     [SerializeField] private float maxSearchRadius = 60f;
+    [SerializeField] private float shootDelay = 3f;
+    [SerializeField] private float reloadTime = 5f;
     private float _agentCurrentSpeed = 0f;
     private float _shootTimer = 0f;
     private float _realtimeStunTimer = 0f;
@@ -43,12 +44,11 @@ public class EnforcerGhostAIServer : EnemyAI
     private ShotgunItem _heldShotgun;
     private NetworkObjectReference _shotgunObjectRef;
     
-    private RoundManager _roundManager;
-    
     [Header("Controllers")]
     [Space(5f)]
     #pragma warning disable 0649
     [SerializeField] private EnforcerGhostNetcodeController netcodeController;
+    
     [HideInInspector] public IEscortee Escortee { private get; set; }
     #pragma warning restore 0649
 
@@ -75,8 +75,6 @@ public class EnforcerGhostAIServer : EnemyAI
         agent = GetComponent<NavMeshAgent>();
         if (agent == null) _mls.LogError("NavMeshAgent component not found on " + name);
         agent.enabled = true;
-        
-        _roundManager = FindObjectOfType<RoundManager>();
         
         netcodeController.SyncGhostIdentifierClientRpc(ghostId);
         netcodeController.OnGrabShotgunPhaseTwo += HandleGrabShotgunPhaseTwo;
@@ -110,11 +108,11 @@ public class EnforcerGhostAIServer : EnemyAI
         CalculateAgentSpeed();
         
         _realtimeStunTimer -= Time.deltaTime;
-        _shootTimer += Time.deltaTime;
+        _shootTimer -= Time.deltaTime;
         
         if (stunNormalizedTimer <= 0.0 && _inStunAnimation && !isEnemyDead)
         {
-            netcodeController.DoAnimationClientRpc(ghostId, EnforcerGhostAIClient.Recover);
+            //netcodeController.DoAnimationClientRpc(ghostId, EnforcerGhostAIClient.Recover);
             _inStunAnimation = false;
             netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAIClient.IsStunned, false);
         }
@@ -245,11 +243,11 @@ public class EnforcerGhostAIServer : EnemyAI
                     movingTowardsTargetPlayer = true;
                 }
 
-                if (!_inStunAnimation && !_isCurrentlyShooting && !_isReloading && _shootTimer > 2f)
+                if (!_inStunAnimation && !_isCurrentlyShooting && !_isReloading && _shootTimer <= 0)
                 {
                     StartCoroutine(ShootTargetPlayer());
                 }
-                    
+                
                 break;
             }
 
@@ -266,6 +264,7 @@ public class EnforcerGhostAIServer : EnemyAI
     {
         fullySpawned = false;
         netcodeController.PlayTeleportVfxClientRpc(ghostId);
+        netcodeController.PlayCreatureVoiceClientRpc(ghostId, (int)EnforcerGhostAIClient.AudioClipTypes.Spawn, 1, false);
         yield return new WaitForSeconds(0.75f);
         netcodeController.SpawnShotgunServerRpc(ghostId);
         netcodeController.GrabShotgunClientRpc(ghostId);
@@ -287,9 +286,9 @@ public class EnforcerGhostAIServer : EnemyAI
         netcodeController.UpdateShotgunShellsLoadedClientRpc(ghostId, 2);
         netcodeController.DoAnimationClientRpc(ghostId, EnforcerGhostAIClient.ReloadShotgun);
         
-         yield return new WaitForSeconds(0.3f);
+         yield return new WaitForSeconds(reloadTime - 0.3f);
         agentMaxSpeed = previousSpeed;
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(reloadTime);
         _isReloading = false;
         _hasStartedReloadAnimation = false;
     }
@@ -351,7 +350,7 @@ public class EnforcerGhostAIServer : EnemyAI
         if (!IsServer) yield break;
         LogDebug("In the shoot shotgun method");
         netcodeController.ShootGunClientRpc(ghostId);
-        _shootTimer = 0;
+        _shootTimer = shootDelay;
         
         yield return new WaitForSeconds(0.3f);
         _isCurrentlyShooting = false;
@@ -396,7 +395,7 @@ public class EnforcerGhostAIServer : EnemyAI
                 movingTowardsTargetPlayer = false;
                 openDoorSpeedMultiplier = 4f;
                 _isCurrentlyShooting = false;
-                _shootTimer = 0f;
+                _shootTimer = shootDelay;
                 _hasBegunInvestigating = false;
                 targetPosition = default;
 
@@ -414,6 +413,7 @@ public class EnforcerGhostAIServer : EnemyAI
                 movingTowardsTargetPlayer = false;
                 _hasBegunInvestigating = false;
                 targetPosition = default;
+                _shootTimer = shootDelay;
                 
                 Escortee?.EscorteeBreakoff();
 
@@ -431,6 +431,7 @@ public class EnforcerGhostAIServer : EnemyAI
                 moveTowardsDestination = true;
                 movingTowardsTargetPlayer = false;
                 _hasBegunInvestigating = false;
+                _shootTimer = shootDelay;
 
                 Escortee?.EscorteeBreakoff();
                 
@@ -447,6 +448,7 @@ public class EnforcerGhostAIServer : EnemyAI
                 _isCurrentlyShooting = false;
                 movingTowardsTargetPlayer = true;
                 _hasBegunInvestigating = false;
+                _shootTimer = shootDelay;
                 targetPosition = default;
 
                 Escortee?.EscorteeBreakoff();
@@ -494,13 +496,15 @@ public class EnforcerGhostAIServer : EnemyAI
         enemyHP -= force;
         if (enemyHP > 0)
         {
-            return;
+            netcodeController.PlayCreatureVoiceClientRpc(ghostId, (int)EnforcerGhostAIClient.AudioClipTypes.Damage, 4);
         }
-        
-        // Ghost is dead
-        netcodeController.EnterDeathStateClientRpc(ghostId);
-        KillEnemyClientRpc(false);
-        SwitchBehaviourStateLocally((int)States.Dead);
+        else
+        {
+            // Ghost is dead
+            netcodeController.EnterDeathStateClientRpc(ghostId);
+            KillEnemyClientRpc(false);
+            SwitchBehaviourStateLocally((int)States.Dead);
+        }
     }
 
     public override void SetEnemyStunned(
@@ -510,7 +514,13 @@ public class EnforcerGhostAIServer : EnemyAI
     {
         base.SetEnemyStunned(setToStunned, setToStunTime, setStunnedByPlayer);
         if (!IsServer) return;
+        if (currentBehaviourStateIndex is (int)States.Dead || isEnemyDead) return;
         
+        netcodeController.PlayCreatureVoiceClientRpc(ghostId, (int)EnforcerGhostAIClient.AudioClipTypes.Stun, 1);
+        // netcodeController.DropShotgunForStun(ghostId, transform.position);
+        // netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, HarpGhostAnimationController.IsStunned, true);
+        // netcodeController.DoAnimationClientRpc(ghostId, HarpGhostAnimationController.Stunned);
+        _inStunAnimation = true;
         _realtimeStunTimer = setToStunTime;
         Escortee?.EscorteeBreakoff(setStunnedByPlayer != null ? setStunnedByPlayer : null);
     }
@@ -552,6 +562,10 @@ public class EnforcerGhostAIServer : EnemyAI
         if (!IsServer) return;
 
         enemyHP = EnforcerGhostConfig.Instance.EnforcerGhostInitialHealth.Value;
+        shootDelay = EnforcerGhostConfig.Instance.EnforcerGhostShootDelay.Value;
+        agent.angularSpeed = EnforcerGhostConfig.Instance.EnforcerGhostTurnSpeed.Value;
+
+        _shootTimer = shootDelay;
         
         netcodeController.InitializeConfigValuesClientRpc(ghostId);
     }

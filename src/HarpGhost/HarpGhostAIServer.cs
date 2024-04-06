@@ -6,7 +6,6 @@ using BepInEx.Logging;
 using GameNetcodeStuff;
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.Serialization;
 
 namespace LethalCompanyHarpGhost.HarpGhost;
 

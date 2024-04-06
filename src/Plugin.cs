@@ -1065,8 +1065,12 @@ namespace LethalCompanyHarpGhost
         public readonly ConfigEntry<float> EnforcerGhostStunGameDifficultyMultiplier;
         public readonly ConfigEntry<bool> EnforcerGhostIsStunnable;
         public readonly ConfigEntry<bool> EnforcerGhostIsKillable;
+        public readonly ConfigEntry<float> EnforcerGhostTurnSpeed;
+        public readonly ConfigEntry<float> EnforcerGhostReloadTime;
+        public readonly ConfigEntry<float> EnforcerGhostShootDelay;
 
         public readonly ConfigEntry<float> EnforcerGhostVoiceSfxVolume;
+        public readonly ConfigEntry<float> EnforcerGhostSfxVolume;
         
         public readonly ConfigEntry<int> EnforcerGhostSpawnRate;
         public readonly ConfigEntry<int> MaxAmountOfEnforcerGhosts;
@@ -1114,6 +1118,27 @@ namespace LethalCompanyHarpGhost
                 15f,
                 "The max acceleration of the Enforcer Ghost in chase mode"
             );
+
+            EnforcerGhostTurnSpeed = cfg.Bind(
+                "Ethereal Enforcer General",
+                "Turn Speed",
+                75f,
+                "The turn speed of the Enforcer Ghost"
+            );
+            
+            EnforcerGhostShootDelay = cfg.Bind(
+                "Ethereal Enforcer General",
+                "Shoot Delay",
+                2f,
+                "The delay which dictates how long it takes for an Enforcer Ghost to shoot you after it notices you"
+            );
+            
+            // EnforcerGhostReloadTime = cfg.Bind(
+            //     "Ethereal Enforcer General",
+            //     "Reload TIme",
+            //     5f,
+            //     "The time it takes for an enforcer ghost to reload"
+            // );
             
             EnforcerGhostStunTimeMultiplier = cfg.Bind(
                 "Ethereal Enforcer General",
@@ -1141,6 +1166,13 @@ namespace LethalCompanyHarpGhost
                 "Enforcer Ghost Voice Sound Effects Volume",
                 0.8f,
                 "The volume of the Enforcer ghost's voice. Values are from 0-1"
+            );
+            
+            EnforcerGhostSfxVolume = cfg.Bind(
+                "Ghost Audio",
+                "Enforcer Ghost Sound Effects Volume",
+                0.8f,
+                "The volume of the Enforcer ghost's sound effects (e.g. shotgun noises, teleport noises etc). Values are from 0-1"
             );
             
             EnforcerGhostSpawnRate = cfg.Bind(
