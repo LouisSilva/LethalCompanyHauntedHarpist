@@ -131,7 +131,7 @@ public class EnforcerGhostAIServer : EnemyAI
             return;
         }
 
-        if (shieldBehaviourEnabled && _shieldRecoverTimer <= 0 && !_isShieldEnabled)
+        if (shieldBehaviourEnabled && _shieldRecoverTimer <= 0 && !_isShieldEnabled && currentBehaviourStateIndex is (int)States.Escorting or (int)States.SearchingForPlayers or (int)States.InvestigatingTargetPosition)
         {
             LogDebug("Enabling shield through timer");
             _isShieldEnabled = true;

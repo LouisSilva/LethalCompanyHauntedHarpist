@@ -940,7 +940,7 @@ namespace LethalCompanyHarpGhost
                 "Ghost Spawn Values",
                 "Phantom Piper Spawn Value",
                 5,
-                "The weighted spawn rarity of the Phantom Piper"
+                "The weighted spawn rarity of the Phantom Piper."
             );
             
             MaxAmountOfBagpipeGhosts = cfg.Bind(

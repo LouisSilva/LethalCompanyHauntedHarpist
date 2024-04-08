@@ -111,7 +111,7 @@ public class InstrumentBehaviour : PhysicsProp
                 break;
             case "Bagpipes":
                 playerInstrumentOffset = new ItemOffset(new Vector3(-0.24f, 0.15f, 0.07f), new Vector3(-5f, 15f, -105f));
-                enemyInstrumentOffset = new ItemOffset(new Vector3(0.5f, 0.45f, 0.7f), new Vector3(0, 90, 0));
+                enemyInstrumentOffset = new ItemOffset(new Vector3(0.5f, -0.25f, 0.4f), new Vector3(0, 90, 0));
                 
                 instrumentAudioSource.volume = Mathf.Clamp(BagpipeGhostConfig.Default.BagpipesVolume.Value, 0f, 1f);
                 instrumentAudioSource.maxDistance = Mathf.Clamp(BagpipeGhostConfig.Default.BagpipesSoundMaxDistance.Value, 0, Mathf.Infinity);

@@ -65,9 +65,9 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     
     [Header("Controllers and Managers")]
     [Space(5f)]
-    [SerializeField] private BagpipesGhostAudioManager audioManager;
+    //[SerializeField] private BagpipesGhostAudioManager audioManager;
     [SerializeField] private BagpipesGhostNetcodeController netcodeController;
-    [SerializeField] private BagpipesGhostAnimationController animationController;
+    [SerializeField] private Animator animator;
     #pragma warning restore 0649
 
     private enum States
@@ -93,12 +93,6 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         if (agent == null) _mls.LogError("NavMeshAgent component not found on " + name);
         agent.enabled = true;
         
-        audioManager = GetComponent<BagpipesGhostAudioManager>();
-        if (audioManager == null) _mls.LogError("Audio Manger is null");
-
-        animationController = GetComponent<BagpipesGhostAnimationController>();
-        if (animationController == null) _mls.LogError("Animation Controller is null");
-        
         _ghostId = Guid.NewGuid().ToString();
         netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
         
@@ -106,9 +100,9 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         InitializeConfigValues();
         EnableEnemyMesh(true);
         
-        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsDead, false);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsStunned, false);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsRunning, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAIClient.IsDead, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAIClient.IsStunned, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAIClient.IsRunning, false);
         
         netcodeController.SpawnBagpipesServerRpc(_ghostId);
         netcodeController.GrabBagpipesClientRpc(_ghostId);
@@ -164,14 +158,14 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         
         if (stunNormalizedTimer <= 0.0 && _inStunAnimation && !isEnemyDead)
         {
-            netcodeController.DoAnimationClientRpc(_ghostId, BagpipesGhostAnimationController.Recover);
+            netcodeController.DoAnimationClientRpc(_ghostId, BagpipesGhostAIClient.Recover);
             _inStunAnimation = false;
-            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsStunned, false);
+            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAIClient.IsStunned, false);
         }
         
         if (StartOfRound.Instance.allPlayersDead)
         {
-            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsRunning, false);
+            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAIClient.IsRunning, false);
             return;
         }
 
@@ -260,7 +254,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                     if (!_tauntSfxPlayed)
                     {
                         _tauntSfxPlayed = true;
-                        netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)BagpipesGhostAudioManager.AudioClipTypes.Taunt, audioManager.tauntSfx.Length, false);
+                        netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)BagpipesGhostAIClient.AudioClipTypes.Taunt, 3, false);
                     }
                     
                     // Check if the ghost has reached the exit door
@@ -322,8 +316,8 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         SwitchBehaviourStateLocally((int)States.TeleportingOutOfMap);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, false);
         netcodeController.PlayTeleportVfxClientRpc(_ghostId);
-        StartCoroutine(PlaySfxAfterTime(0.3f, (int)BagpipesGhostAudioManager.AudioClipTypes.LongLaugh,
-            audioManager.longLaughSfx.Length, false));
+        StartCoroutine(PlaySfxAfterTime(0.3f, (int)BagpipesGhostAIClient.AudioClipTypes.LongLaugh,
+            2, false));
         yield return new WaitForSeconds(0.5f);
         netcodeController.DespawnHeldBagpipesClientRpc(_ghostId);
         EnableEnemyMesh(false);
@@ -491,17 +485,17 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         if (!IsServer) return;
         if (currentBehaviourStateIndex is (int)States.TeleportingOutOfMap or (int)States.Dead) return;
         
-        netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Stun, audioManager.stunSfx.Length);
+        netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Stun, 2);
         // netcodeController.DropBagpipesClientRpc(_ghostId, transform.position);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, true);
-        netcodeController.DoAnimationClientRpc(_ghostId, BagpipesGhostAnimationController.Stunned);
+        netcodeController.DoAnimationClientRpc(_ghostId, BagpipesGhostAIClient.Stunned);
         _inStunAnimation = true;
 
         if (currentBehaviourStateIndex != (int)States.PlayingMusicWhileEscorted) return;
         if (!_agroSfxPlayed)
         {
             _agroSfxPlayed = true;
-            StartCoroutine(PlaySfxAfterTime(setToStunTime + 1f, (int)BagpipesGhostAudioManager.AudioClipTypes.Shocked, audioManager.shockedSfx.Length, false));
+            StartCoroutine(PlaySfxAfterTime(setToStunTime + 1f, (int)BagpipesGhostAIClient.AudioClipTypes.Shocked, 3, false));
         }
         SwitchBehaviourStateLocally((int)States.RunningToEscapeDoor);
     }
@@ -519,11 +513,11 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         _takeDamageCooldown = 0.1f;
         if (enemyHP > 0)
         {
-            netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)BagpipesGhostAudioManager.AudioClipTypes.Damage, audioManager.damageSfx.Length);
+            netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)BagpipesGhostAIClient.AudioClipTypes.Damage, 2);
             if (!_agroSfxPlayed)
             {
                 _agroSfxPlayed = true;
-                StartCoroutine(PlaySfxAfterTime(1f, (int)BagpipesGhostAudioManager.AudioClipTypes.Shocked, audioManager.shockedSfx.Length, false));
+                StartCoroutine(PlaySfxAfterTime(1f, (int)BagpipesGhostAIClient.AudioClipTypes.Shocked, 3, false));
             }
             
             if (currentBehaviourStateIndex == (int)States.PlayingMusicWhileEscorted) SwitchBehaviourStateLocally((int)States.RunningToEscapeDoor);
@@ -617,7 +611,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 isEnemyDead = true;
                 
                 netcodeController.DropBagpipesClientRpc(_ghostId, transform.position);
-                netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsDead, true);
+                netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAIClient.IsDead, true);
                 RetireAllEscorts();
                 break;
             }
@@ -652,8 +646,8 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         if (!IsServer) return;
         
         bool isRunning = _agentCurrentSpeed >= 3f;
-        if (animationController.GetBool(BagpipesGhostAnimationController.IsRunning) != isRunning && !_inStunAnimation)
-            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAnimationController.IsRunning, isRunning);
+        if (animator.GetBool(BagpipesGhostAIClient.IsRunning) != isRunning && !_inStunAnimation)
+            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAIClient.IsRunning, isRunning);
     }
     
     private void CalculateAgentSpeed()
@@ -688,7 +682,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         if (!_agroSfxPlayed)
         {
             _agroSfxPlayed = true;
-            StartCoroutine(PlaySfxAfterTime(0.1f, (int)BagpipesGhostAudioManager.AudioClipTypes.Shocked, audioManager.shockedSfx.Length, false));
+            StartCoroutine(PlaySfxAfterTime(0.1f, (int)BagpipesGhostAIClient.AudioClipTypes.Shocked, 3, false));
         }
         SwitchBehaviourStateLocally((int)States.RunningToEscapeDoor);
     }

@@ -1,37 +1,41 @@
 ## 1.3.4
-* Made the Phantom Piper's exit teleport bigger
-* Added a shield to the Ethereal Enforcer. The shield absorbs a single hit regardless of damage. The shield then takes a specified amount of time (configurable) to regenerate
-* Ethereal Enforcers should hunt separately now
-* Added sound effect to the Phantom Piper's exit teleport
+* Made the Phantom Piper's exit teleport bigger.
+* Added a shield to the Ethereal Enforcer. The shield absorbs a single hit regardless of damage. The shield then takes a specified amount of time (configurable) to regenerate.
+* Ethereal Enforcers should hunt separately now.
+* Added sound effect to the Phantom Piper's exit teleport.
+* Added pick-up and drop sound effects to bagpipes.
+* Added drop sound effect to harp.
+* Added proper scrap icons for the harp and bagpipes.
+* Changed the default spawn rate of the Phantom Piper from 0 to 5. It might mess up the value that you put there if you changed it. I'm confident that the Phantom Piper and Ethereal Enforcers are stable for regular people to use, but ill keep it in "beta" for a few more days.
 
 ## 1.3.3
-* Ethereal Enforcer now has a delay between seeing a player, and shooting them
-* The Ethereal Enforcer's reload time is now longer
-* The Ethereal Enforcer's turn speed is now slower, and customizable
-* The Phantom Piper and Ethereal Enforcer now have a few extra sound effects
-* The bagpipes now disappear properly when the Phantom Piper manages to escape out the map
+* Ethereal Enforcer now has a delay between seeing a player, and shooting them.
+* The Ethereal Enforcer's reload time is now longer.
+* The Ethereal Enforcer's turn speed is now slower, and customizable.
+* The Phantom Piper and Ethereal Enforcer now have a few extra sound effects.
+* The bagpipes now disappear properly when the Phantom Piper manages to escape out the map.
 
 ## 1.3.2
-* Fixed the bagpipes rotation when a player is holding them
-* Fixed bug where the shotguns dropped by the Ethereal Enforcer didnt work
-* Added AsyncLoggers as a **soft** dependency. Not because this mod needs it but like the DissonanceLagFix mod, its just free fps for no cost
+* Fixed the bagpipes rotation when a player is holding them.
+* Fixed bug where the shotguns dropped by the Ethereal Enforcer didnt work.
+* Added AsyncLoggers as a **soft** dependency. Not because this mod needs it but like the DissonanceLagFix mod, its just free fps for no cost.
 
 ## 1.3.1
-* Fixed bug where when a Phantom Piper or Ethereal Enforcer was provoked, unless the enforcer's could see the player, they would not agro onto them
-* Fixed the messed up config (I **really** suggest you delete your config so it can regenerate)
+* Fixed bug where when a Phantom Piper or Ethereal Enforcer was provoked, unless the enforcer's could see the player, they would not agro onto them.
+* Fixed the messed up config (I **really** suggest you delete your config so it can regenerate).
 
 # 1.3.0 Phantom Piper & Ethereal Enforcer BETA
-* See readme for more details
+* See readme for more details.
 
 ## 1.2.9
-* Actually fixed the bug where only the host player would see the ghost's eyes turn red this time
+* Actually fixed the bug where only the host player would see the ghost's eyes turn red this time.
 
 * Added the following configs:
-  * Harp Ghost's view width
-  * Harp Ghost's view range
-  * Harp Ghost's proximity awareness
-  * Whether the Harp Ghost can take damage from non-player entities
-  * An insane amount of audio setting configs for the harp. I'm not going to write them all down because there are loads (don't mess with them if you don't know what you are doing though)
+  * Harp Ghost's view width.
+  * Harp Ghost's view range.
+  * Harp Ghost's proximity awareness.
+  * Whether the Harp Ghost can take damage from non-player entities.
+  * An insane amount of audio setting configs for the harp. I'm not going to write them all down because there are loads (don't mess with them if you don't know what you are doing though).
 
 ## 1.2.8
 * Added the following configs:
