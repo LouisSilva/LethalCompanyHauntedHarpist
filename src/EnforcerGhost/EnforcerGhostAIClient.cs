@@ -36,6 +36,8 @@ public class EnforcerGhostAIClient : MonoBehaviour
     public AudioClip[] upsetSfx;
     public AudioClip[] fartSfx;
     public AudioClip[] spawnSfx;
+    public AudioClip[] shieldBreakSfx;
+    public AudioClip[] shieldRegenSfx;
     public AudioClip dieSfx;
     
     public AudioClip shotgunOpenBarrelSfx;
@@ -66,6 +68,8 @@ public class EnforcerGhostAIClient : MonoBehaviour
         Upset = 4,
         Fart = 5,
         Spawn = 6,
+        ShieldRegen,
+        ShieldBreak,
     }
 
     public static readonly int IsRunning = Animator.StringToHash("isRunning");
@@ -178,7 +182,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
         shieldVfx.SetFloat("Alpha", endAlpha);
         shieldVfx.SetBool("ManualVertexPositioning", false);
         
-        if (endAlpha == 0) shieldRenderer.enabled = false;
+        if (endAlpha == 0f) shieldRenderer.enabled = false;
         else
         {
             yield return null;
@@ -191,13 +195,23 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private void HandleDisableShield(string recievedGhostId)
     {
         if (_ghostId != recievedGhostId) return;
-        if (!_isShieldAnimationPlaying) StartCoroutine(ShieldAnimation(0f, 0.005f, 1f, 0f));
+        if (_isShieldAnimationPlaying) return;
+        
+        StartCoroutine(ShieldAnimation(0f, 0.005f, 1f, 0f));
+        creatureSfxSource.pitch = Random.Range(0.8f, 1.1f);
+        PlaySfx(shieldBreakSfx[0], false);
+        LogDebug("disable shield");
     }
 
     private void HandleEnableShield(string recievedGhostId)
     {
         if (_ghostId != recievedGhostId) return;
-        if (!_isShieldAnimationPlaying) StartCoroutine(ShieldAnimation(0.005f, 0f, 0f, 1f));
+        if (_isShieldAnimationPlaying) return;
+        
+        StartCoroutine(ShieldAnimation(0.005f, 0f, 0f, 1f));
+        creatureSfxSource.pitch = Random.Range(0.8f, 1.1f);
+        PlaySfx(shieldBreakSfx[Random.Range(0, 2)], false);
+        LogDebug("enable shield");
     }
     
     private void HandlePlayTeleportVfx(string recievedGhostId)
@@ -371,6 +385,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
         creatureVoiceSource.Stop(true);
         creatureSfxSource.Stop(true);
         PlayVoice(_ghostId, (int)AudioClipTypes.Death, 1);
+        shieldRenderer.enabled = false;
         
         if (Random.value > 0.5f) StartCoroutine(PlayFartAfterTime(3f));
         else Destroy(this);
@@ -379,7 +394,8 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private IEnumerator PlayFartAfterTime(float time)
     {
         yield return new WaitForSeconds(time);
-        PlayVoice(_ghostId, (int)AudioClipTypes.Fart, 0, false);
+        creatureSfxSource.pitch = Random.Range(0.6f, 1.3f);
+        PlaySfx(fartSfx[0], false);
         yield return new WaitForSeconds(3f);
         Destroy(this);
     }
@@ -446,6 +462,8 @@ public class EnforcerGhostAIClient : MonoBehaviour
             (int)AudioClipTypes.Upset => upsetSfx[randomNum],
             (int)AudioClipTypes.Fart => fartSfx[randomNum],
             (int)AudioClipTypes.Spawn => spawnSfx[randomNum],
+            (int)AudioClipTypes.ShieldRegen => shieldRegenSfx[randomNum],
+            (int)AudioClipTypes.ShieldBreak => shieldBreakSfx[randomNum],
             _ => null
         };
 
@@ -463,7 +481,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
         LogDebug($"Playing audio clip: {clip.name}");
         if (clip == null) return;
         if (interrupt) creatureVoiceSource.Stop(true);
-        creatureVoiceSource.pitch = Random.Range(0.8f, 1.1f);
+        creatureVoiceSource.pitch = clip == fartSfx[0] ? Random.Range(0.6f, 1.3f) : Random.Range(0.8f, 1.1f);
         creatureVoiceSource.PlayOneShot(clip);
         WalkieTalkie.TransmitOneShotAudio(creatureVoiceSource, clip, creatureVoiceSource.volume);
     }
@@ -488,6 +506,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private void HandleUpdateGhostIdentifier(string recievedGhostId)
     {
         _ghostId = recievedGhostId;
+        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Enforcer Ghost AI {_ghostId} | Client");
     }
     
     private void LogDebug(string msg)

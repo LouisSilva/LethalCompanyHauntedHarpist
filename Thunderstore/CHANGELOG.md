@@ -1,5 +1,8 @@
 ## 1.3.4
 * Made the Phantom Piper's exit teleport bigger
+* Added a shield to the Ethereal Enforcer. The shield absorbs a single hit regardless of damage. The shield then takes a specified amount of time (configurable) to regenerate
+* Ethereal Enforcers should hunt separately now
+* Added sound effect to the Phantom Piper's exit teleport
 
 ## 1.3.3
 * Ethereal Enforcer now has a delay between seeing a player, and shooting them

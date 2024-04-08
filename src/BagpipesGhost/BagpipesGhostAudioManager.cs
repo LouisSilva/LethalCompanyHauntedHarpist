@@ -24,6 +24,7 @@ public class BagpipesGhostAudioManager : MonoBehaviour
     public AudioClip[] stunSfx;
     public AudioClip[] upsetSfx;
     public AudioClip dieSfx;
+    public AudioClip tornadoTeleportSfx;
 
     [Space(5f)]
     [Header("Controllers")]
@@ -91,6 +92,7 @@ public class BagpipesGhostAudioManager : MonoBehaviour
         netcodeController.OnPlayCreatureVoice += PlayVoice;
         netcodeController.OnEnterDeathState += HandleOnEnterDeathState;
         netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
+        netcodeController.OnPlayTeleportVfx += HandlePlayTeleportVfx;
     }
 
     private void OnDestroy()
@@ -99,6 +101,13 @@ public class BagpipesGhostAudioManager : MonoBehaviour
         netcodeController.OnPlayCreatureVoice -= PlayVoice;
         netcodeController.OnEnterDeathState -= HandleOnEnterDeathState;
         netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
+        netcodeController.OnPlayTeleportVfx -= HandlePlayTeleportVfx;
+    }
+
+    private void HandlePlayTeleportVfx(string recievedGhostId)
+    {
+        if (_ghostId != recievedGhostId) return;
+        PlaySfx(tornadoTeleportSfx);
     }
 
     private void HandleUpdateGhostIdentifier(string recievedGhostId)

@@ -167,7 +167,6 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     [ClientRpc]
     public void ShootGunClientRpc(string recievedGhostId)
     {
-        LogDebug("In the ShootGunClientRpc");
         OnShootGun?.Invoke(recievedGhostId);
     }
     
