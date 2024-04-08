@@ -32,6 +32,8 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     public event Action<string, string> OnDoShotgunAnimation;
     public event Action<string, bool> OnSetMeshEnabled;
     public event Action<string> OnPlayTeleportVfx;
+    public event Action<string> OnEnableShield;
+    public event Action<string> OnDisableShield; 
 
     private void Start()
     {
@@ -39,6 +41,18 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
         
         enforcerGhostAIServer = GetComponent<EnforcerGhostAIServer>();
         if (enforcerGhostAIServer == null) _mls.LogError("enforcerGhostAI is null");
+    }
+
+    [ClientRpc]
+    public void DisableShieldClientRpc(string recievedGhostId)
+    {
+        OnDisableShield?.Invoke(recievedGhostId);
+    }
+
+    [ClientRpc]
+    public void EnableShieldClientRpc(string recievedGhostId)
+    {
+        OnEnableShield?.Invoke(recievedGhostId);
     }
 
     [ClientRpc]

@@ -26,15 +26,21 @@ public class EnforcerGhostAIServer : EnemyAI
     [SerializeField] private float maxSearchRadius = 60f;
     [SerializeField] private float shootDelay = 3f;
     [SerializeField] private float reloadTime = 5f;
+    [SerializeField] private float shieldRegenerateTime = 25f;
+    [SerializeField] private bool shieldBehaviourEnabled = true;
+    
     private float _agentCurrentSpeed = 0f;
     private float _shootTimer = 0f;
     private float _realtimeStunTimer = 0f;
+    private float _takeDamageCooldown = 0f;
+    private float _shieldRecoverTimer = 0f;
 
     private bool _hasBegunInvestigating = false;
     private bool _inStunAnimation = false;
     private bool _isCurrentlyShooting = false;
     private bool _isReloading = false;
     private bool _hasStartedReloadAnimation = false;
+    private bool _isShieldEnabled = false;
     public bool fullySpawned = false;
     // private bool _canHearPlayers = false;
 
@@ -109,6 +115,8 @@ public class EnforcerGhostAIServer : EnemyAI
         
         _realtimeStunTimer -= Time.deltaTime;
         _shootTimer -= Time.deltaTime;
+        _takeDamageCooldown -= Time.deltaTime;
+        _shieldRecoverTimer -= Time.deltaTime;
         
         if (stunNormalizedTimer <= 0.0 && _inStunAnimation && !isEnemyDead)
         {
@@ -121,6 +129,11 @@ public class EnforcerGhostAIServer : EnemyAI
         {
             netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAIClient.IsRunning, false);
             return;
+        }
+
+        if (shieldBehaviourEnabled && _shieldRecoverTimer <= 0 && !_isShieldEnabled)
+        {
+            netcodeController.EnableShieldClientRpc(ghostId);
         }
     }
 
@@ -270,6 +283,7 @@ public class EnforcerGhostAIServer : EnemyAI
         netcodeController.GrabShotgunClientRpc(ghostId);
         yield return new WaitForSeconds(2f);
         fullySpawned = true;
+        netcodeController.EnableShieldClientRpc(ghostId);
     }
 
     private IEnumerator ReloadShotgun()
@@ -335,10 +349,20 @@ public class EnforcerGhostAIServer : EnemyAI
             if (distanceToPlayer < 3f)
                 accuracyThreshold = 0.7f;
 
-            if (dotProduct > accuracyThreshold)
+            if (dotProduct > accuracyThreshold - 0.12f)
             {
-                StartCoroutine(ShootShotgun());
-                yield break;
+                if (shieldBehaviourEnabled && _isShieldEnabled)
+                {
+                    netcodeController.DisableShieldClientRpc(ghostId);
+                    _isShieldEnabled = false;
+                    _shieldRecoverTimer = shieldRegenerateTime;
+                }
+                
+                if (dotProduct > accuracyThreshold)
+                {
+                    StartCoroutine(ShootShotgun());
+                    yield break;
+                }
             }
             
             yield return new WaitForSeconds(0.2f);
@@ -490,10 +514,21 @@ public class EnforcerGhostAIServer : EnemyAI
         base.HitEnemy(force, playerWhoHit, playHitSFX);
         if (!IsServer) return;
         if (isEnemyDead) return;
+        if (_takeDamageCooldown <= 0.03f) return;
         if (playerWhoHit == null) return;
 
+        _takeDamageCooldown = 0.03f;
         Escortee?.EscorteeBreakoff(playerWhoHit);
+        if (shieldBehaviourEnabled && _isShieldEnabled)
+        {
+            netcodeController.DisableShieldClientRpc(ghostId);
+            _isShieldEnabled = false;
+            _shieldRecoverTimer = shieldRegenerateTime;
+            return;
+        }
+        
         enemyHP -= force;
+        
         if (enemyHP > 0)
         {
             netcodeController.PlayCreatureVoiceClientRpc(ghostId, (int)EnforcerGhostAIClient.AudioClipTypes.Damage, 4);
@@ -515,6 +550,13 @@ public class EnforcerGhostAIServer : EnemyAI
         base.SetEnemyStunned(setToStunned, setToStunTime, setStunnedByPlayer);
         if (!IsServer) return;
         if (currentBehaviourStateIndex is (int)States.Dead || isEnemyDead) return;
+        if (shieldBehaviourEnabled && _isShieldEnabled)
+        {
+            netcodeController.DisableShieldClientRpc(ghostId);
+            _isShieldEnabled = false;
+            _shieldRecoverTimer = shieldRegenerateTime;
+            return;
+        }
         
         netcodeController.PlayCreatureVoiceClientRpc(ghostId, (int)EnforcerGhostAIClient.AudioClipTypes.Stun, 1);
         // netcodeController.DropShotgunForStun(ghostId, transform.position);
@@ -564,6 +606,8 @@ public class EnforcerGhostAIServer : EnemyAI
         enemyHP = EnforcerGhostConfig.Instance.EnforcerGhostInitialHealth.Value;
         shootDelay = EnforcerGhostConfig.Instance.EnforcerGhostShootDelay.Value;
         agent.angularSpeed = EnforcerGhostConfig.Instance.EnforcerGhostTurnSpeed.Value;
+        shieldBehaviourEnabled = EnforcerGhostConfig.Instance.EnforcerGhostShieldEnabled.Value;
+        shieldRegenerateTime = EnforcerGhostConfig.Instance.EnforcerGhostShieldRegenTime.Value;
 
         _shootTimer = shootDelay;
         

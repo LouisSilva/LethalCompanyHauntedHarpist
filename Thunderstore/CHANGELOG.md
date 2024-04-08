@@ -1,3 +1,6 @@
+## 1.3.4
+* Made the Phantom Piper's exit teleport bigger
+
 ## 1.3.3
 * Ethereal Enforcer now has a delay between seeing a player, and shooting them
 * The Ethereal Enforcer's reload time is now longer

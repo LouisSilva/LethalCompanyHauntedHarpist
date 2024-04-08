@@ -16,6 +16,9 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private NetworkObjectReference _shotgunObjectRef;
     private int _shotgunScrapValue;
 
+    private bool _isShieldAnimationPlaying = false;
+    private const float ShieldAnimationDuration = 0.25f;
+
     private PlayerControllerB _targetPlayer;
     
     #pragma warning disable 0649
@@ -46,6 +49,8 @@ public class EnforcerGhostAIClient : MonoBehaviour
     [SerializeField] private Animator animator;
     [SerializeField] private SkinnedMeshRenderer bodyRenderer;
     [SerializeField] private VisualEffect teleportVfx;
+    [SerializeField] private VisualEffect shieldVfx;
+    [SerializeField] private Renderer shieldRenderer;
     
     [Header("Controllers")] [Space(5f)]
     [SerializeField] private EnforcerGhostNetcodeController netcodeController;
@@ -74,7 +79,6 @@ public class EnforcerGhostAIClient : MonoBehaviour
     public static readonly int PickupShotgun = Animator.StringToHash("pickupShotgun");
     public static readonly int ReloadShotgun = Animator.StringToHash("reloadShotgun");
     private static readonly int Reload = Animator.StringToHash("reload");
-    private static readonly int ReloadTime = Animator.StringToHash("reloadTime");
 
     private void OnEnable()
     {
@@ -95,6 +99,8 @@ public class EnforcerGhostAIClient : MonoBehaviour
         netcodeController.OnGrabShotgun += HandleGrabShotgun;
         netcodeController.OnSetMeshEnabled += HandleSetMeshEnabled;
         netcodeController.OnPlayTeleportVfx += HandlePlayTeleportVfx;
+        netcodeController.OnEnableShield += HandleEnableShield;
+        netcodeController.OnDisableShield += HandleDisableShield;
 
         netcodeController.OnPlayCreatureVoice += PlayVoice;
     }
@@ -118,6 +124,8 @@ public class EnforcerGhostAIClient : MonoBehaviour
         netcodeController.OnGrabShotgun -= HandleGrabShotgun;
         netcodeController.OnSetMeshEnabled -= HandleSetMeshEnabled;
         netcodeController.OnPlayTeleportVfx -= HandlePlayTeleportVfx;
+        netcodeController.OnEnableShield -= HandleEnableShield;
+        netcodeController.OnDisableShield -= HandleDisableShield;
         
         netcodeController.OnPlayCreatureVoice -= PlayVoice;
     }
@@ -142,6 +150,54 @@ public class EnforcerGhostAIClient : MonoBehaviour
         if (shotgunGrabShellSfx == null) _mls.LogError("ShotgunGrabShellSfx is null");
         if (shotgunDropShellSfx == null) _mls.LogError("ShotgunDropShellSfx is null");
         if (grabShotgunSfx == null) _mls.LogError("GrabShotgunSfx is null");
+
+        shieldRenderer.enabled = false;
+    }
+    
+    private IEnumerator ShieldAnimation(float startVertexPosition, float endVertexPosition, float startAlpha, float endAlpha)
+    {
+        _isShieldAnimationPlaying = true;
+        float timer = 0;
+
+        shieldRenderer.enabled = true;
+        shieldVfx.SetBool("ManualVertexPositioning", true);
+
+        while (timer <= ShieldAnimationDuration)
+        {
+            float progress = timer / ShieldAnimationDuration;     
+    
+            float currentVertexPosition = Mathf.Lerp(startVertexPosition, endVertexPosition, progress);
+            shieldVfx.SetVector3("VertexAmount", new Vector3(currentVertexPosition, currentVertexPosition, currentVertexPosition));
+            shieldVfx.SetFloat("Alpha", Mathf.Lerp(startAlpha, endAlpha, progress));
+
+            timer += Time.deltaTime;
+            yield return null;
+        }
+
+        shieldVfx.SetVector3("VertexAmount", new Vector3(endVertexPosition, endVertexPosition, endVertexPosition));
+        shieldVfx.SetFloat("Alpha", endAlpha);
+        shieldVfx.SetBool("ManualVertexPositioning", false);
+        
+        if (endAlpha == 0) shieldRenderer.enabled = false;
+        else
+        {
+            yield return null;
+            shieldVfx.SetVector3("VertexAmount", new Vector3(0.0005f, 0.0005f, 0.0005f));
+        }
+        
+        _isShieldAnimationPlaying = false;
+    }
+    
+    private void HandleDisableShield(string recievedGhostId)
+    {
+        if (_ghostId != recievedGhostId) return;
+        if (!_isShieldAnimationPlaying) StartCoroutine(ShieldAnimation(0f, 0.005f, 1f, 0f));
+    }
+
+    private void HandleEnableShield(string recievedGhostId)
+    {
+        if (_ghostId != recievedGhostId) return;
+        if (!_isShieldAnimationPlaying) StartCoroutine(ShieldAnimation(0.005f, 0f, 0f, 1f));
     }
     
     private void HandlePlayTeleportVfx(string recievedGhostId)

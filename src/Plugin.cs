@@ -29,7 +29,7 @@ namespace LethalCompanyHarpGhost
     {
         public const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
         private const string ModName = "Lethal Company Harp Ghost Mod";
-        private const string ModVersion = "1.3.3";
+        private const string ModVersion = "1.3.4";
 
         private readonly Harmony _harmony = new(ModGuid);
         
@@ -939,7 +939,7 @@ namespace LethalCompanyHarpGhost
             BagpipeGhostSpawnRate = cfg.Bind(
                 "Ghost Spawn Values",
                 "Phantom Piper Spawn Value",
-                0,
+                5,
                 "The weighted spawn rarity of the Phantom Piper"
             );
             
@@ -1066,8 +1066,9 @@ namespace LethalCompanyHarpGhost
         public readonly ConfigEntry<bool> EnforcerGhostIsStunnable;
         public readonly ConfigEntry<bool> EnforcerGhostIsKillable;
         public readonly ConfigEntry<float> EnforcerGhostTurnSpeed;
-        public readonly ConfigEntry<float> EnforcerGhostReloadTime;
         public readonly ConfigEntry<float> EnforcerGhostShootDelay;
+        public readonly ConfigEntry<bool> EnforcerGhostShieldEnabled;
+        public readonly ConfigEntry<float> EnforcerGhostShieldRegenTime;
 
         public readonly ConfigEntry<float> EnforcerGhostVoiceSfxVolume;
         public readonly ConfigEntry<float> EnforcerGhostSfxVolume;
@@ -1133,12 +1134,19 @@ namespace LethalCompanyHarpGhost
                 "The delay which dictates how long it takes for an Enforcer Ghost to shoot you after it notices you"
             );
             
-            // EnforcerGhostReloadTime = cfg.Bind(
-            //     "Ethereal Enforcer General",
-            //     "Reload TIme",
-            //     5f,
-            //     "The time it takes for an enforcer ghost to reload"
-            // );
+            EnforcerGhostShieldEnabled = cfg.Bind(
+                "Ethereal Enforcer General",
+                "Is Shield Enabled",
+                true,
+                "Whether or not the Enforcer ghost has a shield which can withstand 1 hit (regardless of the damage). When damaged it breaks, and regens after a specified time"
+            );
+            
+            EnforcerGhostShieldRegenTime = cfg.Bind(
+                "Ethereal Enforcer General",
+                "Shield Regeneration TIme",
+                25f,
+                "The time it takes for the shield to regenerate after being hit, the ghost being stunned or the ghost disabling the shield to shoot"
+            );
             
             EnforcerGhostStunTimeMultiplier = cfg.Bind(
                 "Ethereal Enforcer General",
@@ -1171,7 +1179,7 @@ namespace LethalCompanyHarpGhost
             EnforcerGhostSfxVolume = cfg.Bind(
                 "Ghost Audio",
                 "Enforcer Ghost Sound Effects Volume",
-                0.8f,
+                0.5f,
                 "The volume of the Enforcer ghost's sound effects (e.g. shotgun noises, teleport noises etc). Values are from 0-1"
             );
             
