@@ -1,3 +1,6 @@
+## 1.3.5
+* The Lethallib version has been updated the Haunted Harpist works with v50, but the Phantom Piper is a bit buggy (in v50)
+
 ## 1.3.4
 * Made the Phantom Piper's exit teleport bigger.
 * Added a shield to the Ethereal Enforcer. The shield absorbs a single hit regardless of damage. The shield then takes a specified amount of time (configurable) to regenerate.

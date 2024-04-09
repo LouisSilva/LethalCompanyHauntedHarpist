@@ -27,9 +27,9 @@ namespace LethalCompanyHarpGhost
     [BepInDependency("mattymatty-AsyncLoggers-1.6.1", BepInDependency.DependencyFlags.SoftDependency)]
     public class HarpGhostPlugin : BaseUnityPlugin
     {
-        public const string ModGuid = $"LCM_HarpGhost|{ModVersion}";
-        private const string ModName = "Lethal Company Harp Ghost Mod";
-        private const string ModVersion = "1.3.4";
+        public const string ModGuid = $"LCM_HauntedHarpist|{ModVersion}";
+        private const string ModName = "Lethal Company Haunted Harpist Mod";
+        private const string ModVersion = "1.3.5";
 
         private readonly Harmony _harmony = new(ModGuid);
         

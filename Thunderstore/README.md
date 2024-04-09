@@ -21,13 +21,11 @@ To get the Phantom Piper to spawn, all you need to do is increase the spawn valu
 
 The Ethereal Enforcers are spawned by the Phantom Piper, so leave their spawn values alone.
 
-## Todo Before Final Version
+# FAQ
 
-- Make custom Ethereal Enforcer sound effects.
-- Make the bagpipes give a buff to all players that can hear the music if being played by another player.
-- Make the Ethereal Enforcer spawn animation not terrible
-- Increase the length of the Phantom Piper teleport effect
-- Fix any bugs
+**Does this mod support v50?**
+
+The Haunted Harpist works fine, but the Phantom Piper and Ethereal Enforcer has a few small bugs in the new version
 
 # Recommended Mods to Install
 

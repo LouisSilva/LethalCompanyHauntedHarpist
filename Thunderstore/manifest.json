@@ -1,10 +1,10 @@
 {
     "name": "Haunted_Harpist",
-    "version_number": "1.3.4",
+    "version_number": "1.3.5",
     "website_url": "https://github.com/LouisSilva/LethalCompanyHarpGhost/",
-    "description": "Adds a new enemy - The Haunted Harpist - to the game",
+    "description": "Adds several ghost enemies to the game.",
     "dependencies": [
 		"BepInEx-BepInExPack-5.4.2100",
-        "Evaisa-LethalLib-0.15.0"
+        "Evaisa-LethalLib-0.15.1"
     ]
 }
