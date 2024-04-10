@@ -1,3 +1,9 @@
+## 1.3.7
+* Fixed bug stopping the mod to be loaded because v50 doesn't have the enemy power level variable for some reason
+
+## 1.3.6 
+* Accidentally uploaded the wrong version. I'm incrementing the version to 1.3.6 for clarity
+
 ## 1.3.5
 * The Lethallib version has been updated the Haunted Harpist works with v50, but the Phantom Piper is a bit buggy (in v50)
 
