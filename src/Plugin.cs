@@ -29,7 +29,7 @@ namespace LethalCompanyHarpGhost
     {
         public const string ModGuid = $"LCM_HauntedHarpist|{ModVersion}";
         private const string ModName = "Lethal Company Haunted Harpist Mod";
-        private const string ModVersion = "1.3.7";
+        private const string ModVersion = "1.3.8";
 
         private readonly Harmony _harmony = new(ModGuid);
         
@@ -715,7 +715,7 @@ namespace LethalCompanyHarpGhost
             HarpGhostSpawnRate = cfg.Bind(
                 "Ghost Spawn Values",
                 "Haunted Harpist Spawn Value",
-                40,
+                6,
                 "The weighted spawn rarity of the Haunted Harpist"
             );
             
@@ -939,7 +939,7 @@ namespace LethalCompanyHarpGhost
             BagpipeGhostSpawnRate = cfg.Bind(
                 "Ghost Spawn Values",
                 "Phantom Piper Spawn Value",
-                5,
+                1,
                 "The weighted spawn rarity of the Phantom Piper."
             );
             

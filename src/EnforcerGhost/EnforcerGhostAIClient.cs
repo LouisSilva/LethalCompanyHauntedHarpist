@@ -16,6 +16,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private NetworkObjectReference _shotgunObjectRef;
     private int _shotgunScrapValue;
 
+    private bool _shieldBehaviourEnabled = true;
     private bool _isShieldAnimationPlaying = false;
     private const float ShieldAnimationDuration = 0.25f;
 
@@ -195,6 +196,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private void HandleDisableShield(string recievedGhostId)
     {
         if (_ghostId != recievedGhostId) return;
+        if (!_shieldBehaviourEnabled) return;
         if (_isShieldAnimationPlaying) return;
         
         StartCoroutine(ShieldAnimation(0f, 0.005f, 1f, 0f));
@@ -206,6 +208,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private void HandleEnableShield(string recievedGhostId)
     {
         if (_ghostId != recievedGhostId) return;
+        if (!_shieldBehaviourEnabled) return;
         if (_isShieldAnimationPlaying) return;
         
         StartCoroutine(ShieldAnimation(0.005f, 0f, 0f, 1f));
@@ -498,7 +501,8 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private void HandleInitializeConfigValues(string recievedGhostId)
     {
         if (_ghostId != recievedGhostId) return;
-        
+
+        _shieldBehaviourEnabled = EnforcerGhostConfig.Instance.EnforcerGhostShieldEnabled.Value;
         creatureSfxSource.volume = EnforcerGhostConfig.Default.EnforcerGhostSfxVolume.Value;
         creatureVoiceSource.volume = EnforcerGhostConfig.Default.EnforcerGhostVoiceSfxVolume.Value;
     }
