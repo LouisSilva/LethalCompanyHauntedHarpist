@@ -4,28 +4,50 @@
 
 <p>Dealing with the angry ghost may prove difficult, but it is worth it to obtain the harp.</p>
 
-# (BETA) The Phantom Piper & Ethereal Enforcer
-## WARNING: 
-**These enemies are in beta, which means they may have bugs and aren't fully completed yet. It is not recommended to use them for normal play-throughs**
-
-## Short Description
+# The Phantom Piper & Ethereal Enforcer
 The Phantom Piper plays the bagpipes.
 
 Unlike the Haunted Harpist, the Phantom Piper is scared of players and will run away, bagpipes in hand, when provoked.
 
-Although luckily for the him, he is always escorted by his own Ethereal Enforcers.
-
-## Information
-
-To get the Phantom Piper to spawn, all you need to do is increase the spawn value, which is zero by default.
-
-The Ethereal Enforcers are spawned by the Phantom Piper, so leave their spawn values alone.
+Although luckily for him, he is always escorted by his own Ethereal Enforcers.
 
 # FAQ
 
+**I never see the ghosts, where do they spawn?**
+
+By default, they all spawn only on Dine, with the Haunted Harpist having an "uncommon" spawn rate and the Phantom Piper having a "rare" spawn rate.
+
+<br></br>
+**Can I configure the spawn values?**
+
+With the config provided, you can change the **Spawn Level** config value to one of the following:
+
+    - LevelTypes.All
+    - LevelTypes.Vanilla
+    - LevelTypes.None
+    - LevelTypes.Modded
+    - LevelTypes.<name of moon>Level -> e.g. LevelTypes.TitanLevel
+
+With this Spawn Level, you can set a spawn rarity to it. The default one for the Haunted Harpist is 6.
+
+This config is quite limited, so I suggest you use another mod to fine tune your spawn values if needed.
+
+<br></br>
+**Why are the Ethereal Enforcers so overpowered?**
+
+The Phantom Piper and his escorts are supposed to be a rare enemy in the game, with a high risk - high reward for trying to steal the bagpipes.
+
+Even though they have a shield and 6 HP (configurable), they have big weaknesses which can be easily exploited (some are obvious, some of them aren't so).
+
+<br></br>
 **Does this mod support v50?**
 
-The Haunted Harpist works fine, but the Phantom Piper and Ethereal Enforcer has a few small bugs in the new version
+Yes
+
+<br></br>
+**I found a bug, where can I report it?**
+
+I really appreciate bug reports, so feel free to report them in the Lethal Company Modding Discord or create a new issue on my GitHub page
 
 # Recommended Mods to Install
 

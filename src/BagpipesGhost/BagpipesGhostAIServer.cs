@@ -409,7 +409,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 float closenessToEscorteeFactor = 0.5f;
                 float increasedGapBetweenEscortersFactor = 2f;
                 
-                int targetIndex = Mathf.Max(0, _escortAgentPathPoints.Count - 1 - Mathf.RoundToInt(i * increasedGapBetweenEscortersFactor));
+                int targetIndex = Mathf.Max(0, Mathf.RoundToInt(_escortAgentPathPoints.Count - 1 - i * increasedGapBetweenEscortersFactor));
                 targetPosition = _escortAgentPathPoints[Mathf.Clamp(targetIndex, 0, _escortAgentPathPoints.Count - 1)];
                 targetPosition = Vector3.Lerp(targetPosition, transform.position, closenessToEscorteeFactor);
             }

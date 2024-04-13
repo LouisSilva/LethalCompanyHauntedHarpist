@@ -1,5 +1,7 @@
-## 1.3.9
-
+## 1.3.9 Phantom Piper & Ethereal Enforcer OUT OF BETA
+* Updated the mod to work with the newest v50 update
+* A few minor bug fixes
+* There is still a small thing I want to fix to do with how the Ethereal Enforcers escort the Phantom Piper, but apart from that I am happy with taking these ghosts out of beta
 
 ## 1.3.8
 * Fixed bug where the enforcer ghost shield would still show even after disabling it in the config

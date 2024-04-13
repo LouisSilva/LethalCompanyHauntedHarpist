@@ -343,7 +343,6 @@ namespace LethalCompanyHarpGhost
         
         public readonly ConfigEntry<int> HarpGhostSpawnRate;
         public readonly ConfigEntry<int> MaxAmountOfHarpGhosts;
-        public readonly ConfigEntry<int> HarpGhostPowerLevel;
         public readonly ConfigEntry<LevelTypes> HarpGhostSpawnLevel;
 
         public readonly ConfigEntry<bool> HarpGhostAngryEyesEnabled;
@@ -726,13 +725,6 @@ namespace LethalCompanyHarpGhost
                 "The maximum amount of Haunted Harpist's that can spawn in a game"
             );
             
-            HarpGhostPowerLevel = cfg.Bind(
-                "Haunted Harpist General",
-                "Power Level",
-                1,
-                "The power level of the Haunted Harpist"
-            );
-            
             HarpGhostSpawnLevel = cfg.Bind(
                 "Ghost Spawn Values",
                 "Haunted Harpist Spawn Level",
@@ -955,13 +947,6 @@ namespace LethalCompanyHarpGhost
                 "Number of Escorts to Spawn",
                 3,
                 "The number of escorts to spawn when the Phantom Piper spawns"
-            );
-            
-            BagpipeGhostPowerLevel = cfg.Bind(
-                "Phantom Piper General",
-                "Power Level",
-                1,
-                "The power level of a Phantom Piper"
             );
             
             BagpipeGhostSpawnLevel = cfg.Bind(
@@ -1195,13 +1180,6 @@ namespace LethalCompanyHarpGhost
                 "Max Amount of Enforcer Ghosts",
                 3,
                 "The maximum amount of Enforcer ghosts that can spawn in a game"
-            );
-            
-            EnforcerGhostPowerLevel = cfg.Bind(
-                "Ethereal Enforcer General",
-                "Power Level",
-                1,
-                "The power level of a Enforcer Ghost"
             );
             
             EnforcerGhostSpawnLevel = cfg.Bind(

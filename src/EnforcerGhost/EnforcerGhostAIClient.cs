@@ -354,13 +354,13 @@ public class EnforcerGhostAIClient : MonoBehaviour
         if (_targetPlayer.HasLineOfSightToPosition(eye.position, 90f, 40, 3f))
         {
             _targetPlayer.JumpToFearLevel(0.7f);
-            _targetPlayer.IncreaseFearLevelOverTime(0.5f);;
+            _targetPlayer.IncreaseFearLevelOverTime(0.5f);
         }
         
         else if (Vector3.Distance(eye.transform.position, _targetPlayer.transform.position) < 3)
         {
             _targetPlayer.JumpToFearLevel(0.3f);
-            _targetPlayer.IncreaseFearLevelOverTime(0.3f);;
+            _targetPlayer.IncreaseFearLevelOverTime(0.3f);
         }
     }
     
