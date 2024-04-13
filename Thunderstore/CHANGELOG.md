@@ -1,3 +1,6 @@
+## 1.3.9
+
+
 ## 1.3.8
 * Fixed bug where the enforcer ghost shield would still show even after disabling it in the config
 * Lowered the spawn rates of the ghosts due to v50 changing how they work in some way

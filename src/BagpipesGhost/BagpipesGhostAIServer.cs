@@ -10,6 +10,7 @@ using LethalCompanyHarpGhost.HarpGhost;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
+using Random = UnityEngine.Random;
 
 namespace LethalCompanyHarpGhost.BagpipesGhost;
 
@@ -23,8 +24,6 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
 
     [Header("AI and Pathfinding")]
     [Space(5f)]
-    public AISearchRoutine roamMap;
-    
     private float _agentCurrentSpeed;
     private float _openDoorTimer = 0f;
     private float _takeDamageCooldown = 0f;
@@ -96,7 +95,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         _ghostId = Guid.NewGuid().ToString();
         netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
         
-        UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
+        Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
         InitializeConfigValues();
         EnableEnemyMesh(true);
         
@@ -115,6 +114,8 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         }
         else StartCoroutine(SpawnEscorts(() => { netcodeController.PlayBagpipesMusicClientRpc(_ghostId); }));
         
+        // The ghost is already in this state, but calling the method will choose the ghost's first node to go to
+        SwitchBehaviourStateLocally((int)States.PlayingMusicWhileEscorted);
         _mls.LogInfo("Bagpipes Ghost Spawned");
     }
 
@@ -221,30 +222,30 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         {
             case (int)States.PlayingMusicWhileEscorted:
             {
-                if (!moveTowardsDestination)
-                {
-                    SetDestinationToPosition(ChooseFarthestNodeFromPosition(transform.position).position);
-                    moveTowardsDestination = true;
-                }
 
                 // Check if the ghost has reached its destination
-                if (Vector3.Distance(transform.position, destination) <= 1)
+                if (Vector3.Distance(transform.position, targetNode.position) <= 5)
                 {
-                    moveTowardsDestination = false; 
+                    // Pick next node to go to
+                    int maxOffset = Mathf.Max(1, Mathf.FloorToInt(allAINodes.Length * 0.1f));
+                    Transform farAwayTransform = ChooseFarthestNodeFromPosition(transform.position, offset: Random.Range(0, maxOffset));
+                    targetNode = farAwayTransform;
+                    if (!SetDestinationToPosition(farAwayTransform.position, true))
+                    {
+                        _mls.LogWarning("Bagpipe ghost pathfinding has failed, as a fail-safe the ghost is now running away. This should not happen, contact the mod developer if you see this");
+                        SwitchBehaviourStateLocally((int)States.RunningToEscapeDoor);
+                        break;
+                    }
                 }
                 
-                _isNarrowPath = CheckForNarrowPassages();
                 UpdateEscortAgentPathPoints();
                 UpdateAgentFormation();
-                
-                DrawDebugCircleAtTargetNode();
                 
                 break;
             }
 
             case (int)States.RunningToEscapeDoor:
             {
-                if (roamMap.inProgress) StopSearch(roamMap);
                 if (isOutside) SwitchBehaviourStateLocally((int)States.RunningToEdgeOfOutsideMap);
                 if (!_chosenEscapeDoor) ChooseEscapeDoor();
 
@@ -266,15 +267,12 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                         _openDoorTimer = 0f;
                     }
                 }
-
-                
                 
                 break;
             }
 
             case (int)States.RunningToEdgeOfOutsideMap:
             {
-                if (roamMap.inProgress) StopSearch(roamMap);
                 if (Vector3.Distance(transform.position, destination) <= 1)
                 {
                     moveTowardsDestination = false;
@@ -287,8 +285,6 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
 
             case (int)States.TeleportingOutOfMap:
             {
-                if (roamMap.inProgress) StopSearch(roamMap);
-
                 break;
             }
         }
@@ -369,15 +365,21 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 _escorts[i].targetPosition = targetPlayerToSet.transform.position;
                 _escorts[i].SwitchToBehaviourStateOnLocalClient((int)EnforcerGhostAIServer.States.InvestigatingTargetPosition);
             }
+            else
+            {
+                _escorts[i].SwitchToBehaviourStateOnLocalClient((int)EnforcerGhostAIServer.States.SearchingForPlayers);
+            }
+            
             RemoveEscort(i);
         }
+        
         _currentlyRetiringAllEscorts = false;
     }
 
     private void UpdateAgentFormation()
     {
         _isNarrowPath = CheckForNarrowPassages();
-        for (int i = 0; i < _escorts.Count; i++)
+        for (int i = _escorts.Count - 1; i >= 0; i--)
         {
             // Check if escort is dead and if so remove them from the escort list
             if (_escorts[i].isEnemyDead || _escorts[i] == null)
@@ -385,15 +387,14 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 _escorts.RemoveAt(i);
                 continue;
             }
+
+            _escorts[i].escorteePingTimer = 5f;
             
             // Check if the escort has finished its spawn animation before giving it orders
             if (!_escorts[i].fullySpawned) continue;
             
-            // Check if the bagpipe ghost is moving, if not then dont bother making the escorts do anything
+            // Check if the bagpipe ghost is moving, if not then don't bother making the escorts do anything
             if (!_agentIsMoving && (transform.position - _escorts[i].transform.position).magnitude < EscortRowSpacing) continue;
-            
-            NavMeshAgent curEscortNavMeshAgent = _escorts[i].agent;
-            if (curEscortNavMeshAgent == null) continue;
 
             Vector3 targetPosition;
             if (!_isNarrowPath && _escorts.Count > 1) // triangle formation
@@ -405,12 +406,18 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
             }
             else // single file line
             {
-                int targetIndex = Mathf.Max(0, _escortAgentPathPoints.Count - 1 - i);
+                float closenessToEscorteeFactor = 0.5f;
+                float increasedGapBetweenEscortersFactor = 2f;
+                
+                int targetIndex = Mathf.Max(0, _escortAgentPathPoints.Count - 1 - Mathf.RoundToInt(i * increasedGapBetweenEscortersFactor));
                 targetPosition = _escortAgentPathPoints[Mathf.Clamp(targetIndex, 0, _escortAgentPathPoints.Count - 1)];
+                targetPosition = Vector3.Lerp(targetPosition, transform.position, closenessToEscorteeFactor);
             }
-            
-            if (_agentIsMoving || (curEscortNavMeshAgent.destination - targetPosition).magnitude > 0.1f)
-                curEscortNavMeshAgent.SetDestination(targetPosition);
+
+            if (_agentIsMoving || (_escorts[i].transform.position - targetPosition).magnitude > 1f)
+            {
+                _escorts[i].SetDestinationToPosition(targetPosition);
+            }
         }
     }
 
@@ -418,7 +425,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     {
         if (_escorts.Count == 0) return;
         if (_escortAgentPathPoints.Count == 0) _escortAgentPathPoints.Add(transform.position);
-        if (Vector3.Distance(_escortAgentPathPoints[^1], transform.position) > 1f)
+        if (Vector3.Distance(_escortAgentPathPoints[^1], transform.position) > 0.25f)
             _escortAgentPathPoints.Add(transform.position);
 
         if (_escortAgentPathPoints.Count > 50) _escortAgentPathPoints.RemoveAt(0);
@@ -500,9 +507,9 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         SwitchBehaviourStateLocally((int)States.RunningToEscapeDoor);
     }
 
-    public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false)
+    public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false, int hitId = -1)
     {
-        base.HitEnemy(force, playerWhoHit, playHitSFX);
+        base.HitEnemy(force, playerWhoHit, playHitSFX, hitId);
         if (!IsServer) return;
         if (isEnemyDead) return;
         if (currentBehaviourStateIndex is (int)States.TeleportingOutOfMap or (int)States.Dead) return;
@@ -549,6 +556,15 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 agentMaxAcceleration = 50f;
                 movingTowardsTargetPlayer = false;
                 openDoorSpeedMultiplier = 6;
+                
+                // Pick first node to go to
+                int maxOffset = Mathf.Max(1, Mathf.FloorToInt(allAINodes.Length * 0.1f));
+                Transform farAwayTransform = ChooseFarthestNodeFromPosition(transform.position, offset: Random.Range(0, maxOffset));
+                targetNode = farAwayTransform;
+                if (!SetDestinationToPosition(farAwayTransform.position, true))
+                {
+                    _mls.LogWarning("Bagpipe ghost pathfinding has failed, as a fail-safe the ghost is now running away. This should not happen, contact the mod developer if you see this");
+                }
 
                 break;
             }
@@ -620,25 +636,6 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         if (currentBehaviourStateIndex == state) return;
         previousBehaviourStateIndex = currentBehaviourStateIndex;
         currentBehaviourStateIndex = state;
-    }
-
-    private void DrawDebugCircleAtTargetNode()
-    {
-        if (!_lineRenderer || !roamMap.inProgress || roamMap.currentTargetNode == null) return;
-
-        Vector3 centerPosition = roamMap.currentTargetNode.transform.position;
-        float angle = 20f;
-        const float circleRadius = 0.5f;
-        
-        for (int i = 0; i <= 50; i++)
-        {
-            float x = centerPosition.x + Mathf.Sin(Mathf.Deg2Rad * angle) * circleRadius;
-            float z = centerPosition.z + Mathf.Cos(Mathf.Deg2Rad * angle) * circleRadius;
-            float y = centerPosition.y;
-            
-            _lineRenderer.SetPosition(i, new Vector3(x, y, z));
-            angle += 360f / 50;
-        }
     }
 
     private void RunAnimation()

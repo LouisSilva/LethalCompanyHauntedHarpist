@@ -7,8 +7,6 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
 
-// TODO: Add "Fat Boi" config which allows people to make the enforcer ghost unable to fly across gaps because they are too fat
-
 namespace LethalCompanyHarpGhost.EnforcerGhost;
 
 [SuppressMessage("ReSharper", "RedundantDefaultMemberInitializer")]
@@ -31,15 +29,13 @@ public class EnforcerGhostAIServer : EnemyAI
     
     private float _agentCurrentSpeed = 0f;
     private float _shootTimer = 0f;
-    private float _realtimeStunTimer = 0f;
     private float _takeDamageCooldown = 0f;
     private float _shieldRecoverTimer = 25f;
+    public float escorteePingTimer = 5f;
 
     private bool _hasBegunInvestigating = false;
     private bool _inStunAnimation = false;
-    private bool _isCurrentlyShooting = false;
     private bool _isReloading = false;
-    private bool _hasStartedReloadAnimation = false;
     private bool _isShieldEnabled = false;
     public bool fullySpawned = false;
     // private bool _canHearPlayers = false;
@@ -54,11 +50,11 @@ public class EnforcerGhostAIServer : EnemyAI
     [Space(5f)]
     #pragma warning disable 0649
     [SerializeField] private EnforcerGhostNetcodeController netcodeController;
-    
-    [HideInInspector] public IEscortee Escortee { private get; set; }
+
+    public IEscortee Escortee { private get; set; }
     #pragma warning restore 0649
 
-    [HideInInspector] public enum States
+    public enum States
     {
         Escorting = 0,
         SearchingForPlayers = 1,
@@ -110,15 +106,24 @@ public class EnforcerGhostAIServer : EnemyAI
     {
         base.Update();
         if (!IsServer) return;
+        if (isEnemyDead) return;
         
         CalculateAgentSpeed();
         
-        _realtimeStunTimer -= Time.deltaTime;
         _shootTimer -= Time.deltaTime;
         _takeDamageCooldown -= Time.deltaTime;
         _shieldRecoverTimer -= Time.deltaTime;
+
+        if (currentBehaviourStateIndex == (int)States.Escorting)
+        {
+            escorteePingTimer -= Time.deltaTime;
+            if (escorteePingTimer <= 0)
+            {
+                SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
+            }
+        }
         
-        if (stunNormalizedTimer <= 0.0 && _inStunAnimation && !isEnemyDead)
+        if (stunNormalizedTimer <= 0.0 && _inStunAnimation)
         {
             //netcodeController.DoAnimationClientRpc(ghostId, EnforcerGhostAIClient.Recover);
             _inStunAnimation = false;
@@ -143,13 +148,6 @@ public class EnforcerGhostAIServer : EnemyAI
     {
         base.DoAIInterval();
         if (!IsServer) return;
-
-        // Reload shotgun if its empty
-        if (currentBehaviourStateIndex != (int)States.Dead && _isReloading && !_hasStartedReloadAnimation)
-        {
-            _hasStartedReloadAnimation = true;
-            StartCoroutine(ReloadShotgun());
-        }
 
         switch (currentBehaviourStateIndex)
         {
@@ -217,7 +215,7 @@ public class EnforcerGhostAIServer : EnemyAI
                     }
                 }
 
-                // If player isnt in LOS and ghost has reached the player's last known position, then switch to state 1
+                // If player isn't in LOS and ghost has reached the player's last known position, then switch to state 1
                 if (Vector3.Distance(transform.position, targetPosition) <= 1)
                 {
                     SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
@@ -231,7 +229,7 @@ public class EnforcerGhostAIServer : EnemyAI
             {
                 if (searchForPlayers.inProgress) StopSearch(searchForPlayers);
                 
-                PlayerControllerB playerControllerB = CheckLineOfSightForClosestPlayer(90f, 40, 2);
+                PlayerControllerB playerControllerB = CheckLineOfSightForClosestPlayer(135f, 40, 3);
                 if (playerControllerB == null)
                 {
                     SwitchBehaviourStateLocally((int)States.InvestigatingTargetPosition);
@@ -244,6 +242,8 @@ public class EnforcerGhostAIServer : EnemyAI
                     _isShieldEnabled = false;
                     _shieldRecoverTimer = shieldRegenerateTime;
                 }
+
+                if (stunNormalizedTimer > 0) break;
                 
                 BeginChasingPlayer((int)playerControllerB.playerClientId);
                 
@@ -258,6 +258,7 @@ public class EnforcerGhostAIServer : EnemyAI
                 {
                     movingTowardsTargetPlayer = false;
                     agentMaxSpeed = 0f;
+                    agent.speed = 0f;
                 }
                 else
                 {
@@ -265,9 +266,36 @@ public class EnforcerGhostAIServer : EnemyAI
                     movingTowardsTargetPlayer = true;
                 }
 
-                if (!_inStunAnimation && !_isCurrentlyShooting && !_isReloading && _shootTimer <= 0)
+                if (_heldShotgun.shellsLoaded <= 0 && !_isReloading)
                 {
-                    StartCoroutine(ShootTargetPlayer());
+                    LogDebug("The shotgun has no more bullets! Reloading!");
+                    _isReloading = true;
+                    StartCoroutine(ReloadShotgun());
+                }
+                
+                if (playerControllerB != targetPlayer)
+                {
+                    netcodeController.ChangeTargetPlayerClientRpc(ghostId, (int)playerControllerB.playerClientId);
+                    targetPlayer = playerControllerB;
+                }
+                
+                // Check if the shoot timer is complete
+                if (_shootTimer > 0) break;
+        
+                // Check if the enforcer ghost is aiming at the player
+                Vector3 directionToPlayer = targetPlayer.transform.position - _heldShotgun.transform.position;
+                directionToPlayer.Normalize();
+                float dotProduct = Vector3.Dot(_heldShotgun.transform.forward, directionToPlayer);
+                float distanceToPlayer = Vector3.Distance(_heldShotgun.transform.position, targetPlayer.transform.position);
+        
+                float accuracyThreshold = 0.875f;
+                if (distanceToPlayer < 3f)
+                    accuracyThreshold = 0.7f;
+        
+                if (dotProduct > accuracyThreshold)
+                {
+                    netcodeController.ShootGunClientRpc(ghostId);
+                    _shootTimer = shootDelay;
                 }
                 
                 break;
@@ -305,84 +333,18 @@ public class EnforcerGhostAIServer : EnemyAI
         if (!IsServer) yield break;
         
         _isReloading = true;
-        _hasStartedReloadAnimation = true;
-        _isCurrentlyShooting = false;
         float previousSpeed = agentMaxSpeed;
         agentMaxSpeed = 0f;
         
         LogDebug("In reload coroutine");
-        _heldShotgun.shellsLoaded = 2;
         netcodeController.UpdateShotgunShellsLoadedClientRpc(ghostId, 2);
         netcodeController.DoAnimationClientRpc(ghostId, EnforcerGhostAIClient.ReloadShotgun);
         
-         yield return new WaitForSeconds(reloadTime - 0.3f);
+        yield return new WaitForSeconds(reloadTime - 0.3f);
+        _heldShotgun.shellsLoaded = 2;
         agentMaxSpeed = previousSpeed;
         yield return new WaitForSeconds(reloadTime);
         _isReloading = false;
-        _hasStartedReloadAnimation = false;
-    }
-
-    private IEnumerator ShootTargetPlayer()
-    {
-        if (!IsServer) yield break;
-        
-        _isCurrentlyShooting = true;
-        while (_isCurrentlyShooting && currentBehaviourStateIndex == (int)States.ShootingTargetPlayer)
-        {
-            if (_realtimeStunTimer > 0)
-            {
-                yield return new WaitForSeconds(_realtimeStunTimer);
-                continue;
-            }
-
-            if (_heldShotgun.shellsLoaded <= 0)
-            {
-                LogDebug("The shotgun has no more bullets! Reloading!");
-                _isReloading = true;
-                _hasStartedReloadAnimation = false;
-                _isCurrentlyShooting = false;
-                yield break;
-            }
-            
-            PlayerControllerB playerInLos = CheckLineOfSightForPlayer(90, 40);
-            if (playerInLos != null)
-            {
-                if (playerInLos != targetPlayer)
-                {
-                    netcodeController.ChangeTargetPlayerClientRpc(ghostId, (int)playerInLos.playerClientId);
-                    targetPlayer = playerInLos;
-                }
-            } else yield return new WaitForSeconds(0.2f);
-            
-            // Check if the enforcer ghost is aiming at the player
-            Vector3 directionToPlayer = targetPlayer.transform.position - _heldShotgun.transform.position;
-            directionToPlayer.Normalize();
-            float dotProduct = Vector3.Dot(_heldShotgun.transform.forward, directionToPlayer);
-            float distanceToPlayer = Vector3.Distance(_heldShotgun.transform.position, targetPlayer.transform.position);
-            
-            float accuracyThreshold = 0.875f;
-            if (distanceToPlayer < 3f)
-                accuracyThreshold = 0.7f;
-            
-            if (dotProduct > accuracyThreshold)
-            {
-                StartCoroutine(ShootShotgun());
-                yield break;
-            }
-            
-            yield return new WaitForSeconds(0.2f);
-        }
-    }
-
-    private IEnumerator ShootShotgun()
-    {
-        if (!IsServer) yield break;
-        LogDebug("In the shoot shotgun method");
-        netcodeController.ShootGunClientRpc(ghostId);
-        _shootTimer = shootDelay;
-        
-        yield return new WaitForSeconds(0.3f);
-        _isCurrentlyShooting = false;
     }
 
     private void AimAtPosition(Vector3 position)
@@ -423,7 +385,7 @@ public class EnforcerGhostAIServer : EnemyAI
                 agentMaxAcceleration = 50f;
                 movingTowardsTargetPlayer = false;
                 openDoorSpeedMultiplier = 4f;
-                _isCurrentlyShooting = false;
+                _isReloading = false;
                 _shootTimer = shootDelay;
                 _hasBegunInvestigating = false;
                 targetPosition = default;
@@ -438,7 +400,6 @@ public class EnforcerGhostAIServer : EnemyAI
                 agentMaxSpeed = Mathf.Min(2f, EnforcerGhostConfig.Instance.EnforcerGhostMaxSpeedInChaseMode.Value);
                 agentMaxAcceleration = Mathf.Min(15f, EnforcerGhostConfig.Instance.EnforcerGhostMaxAccelerationInChaseMode.Value);
                 openDoorSpeedMultiplier = Mathf.Min(1f, EnforcerGhostConfig.Instance.EnforcerGhostDoorSpeedMultiplierInChaseMode.Value);
-                _isCurrentlyShooting = false;
                 movingTowardsTargetPlayer = false;
                 _hasBegunInvestigating = false;
                 targetPosition = default;
@@ -456,7 +417,6 @@ public class EnforcerGhostAIServer : EnemyAI
                 agentMaxSpeed = Mathf.Min(2f, EnforcerGhostConfig.Instance.EnforcerGhostMaxSpeedInChaseMode.Value);
                 agentMaxAcceleration = Mathf.Min(15f, EnforcerGhostConfig.Instance.EnforcerGhostMaxAccelerationInChaseMode.Value);
                 openDoorSpeedMultiplier = Mathf.Min(1f, EnforcerGhostConfig.Instance.EnforcerGhostDoorSpeedMultiplierInChaseMode.Value);
-                _isCurrentlyShooting = false;
                 moveTowardsDestination = true;
                 movingTowardsTargetPlayer = false;
                 _hasBegunInvestigating = false;
@@ -474,7 +434,6 @@ public class EnforcerGhostAIServer : EnemyAI
                 agentMaxSpeed = EnforcerGhostConfig.Instance.EnforcerGhostMaxSpeedInChaseMode.Value;
                 agentMaxAcceleration = EnforcerGhostConfig.Instance.EnforcerGhostMaxAccelerationInChaseMode.Value;
                 openDoorSpeedMultiplier = EnforcerGhostConfig.Instance.EnforcerGhostDoorSpeedMultiplierInChaseMode.Value;
-                _isCurrentlyShooting = false;
                 movingTowardsTargetPlayer = true;
                 _hasBegunInvestigating = false;
                 _shootTimer = shootDelay;
@@ -495,9 +454,7 @@ public class EnforcerGhostAIServer : EnemyAI
                 agent.speed = 0f;
                 agent.enabled = false;
                 isEnemyDead = true;
-                _isCurrentlyShooting = false;
                 _isReloading = false;
-                _hasStartedReloadAnimation = false;
                 targetPosition = default;
                 _hasBegunInvestigating = false;
                 moveTowardsDestination = false;
@@ -520,9 +477,9 @@ public class EnforcerGhostAIServer : EnemyAI
         currentBehaviourStateIndex = state;
     }
 
-    public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false)
+    public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false, int hitId = -1)
     {
-        base.HitEnemy(force, playerWhoHit, playHitSFX);
+        base.HitEnemy(force, playerWhoHit, playHitSFX, hitId);
         if (!IsServer) return;
         if (isEnemyDead) return;
         if (playerWhoHit == null) return;
@@ -572,7 +529,6 @@ public class EnforcerGhostAIServer : EnemyAI
         // netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, HarpGhostAnimationController.IsStunned, true);
         // netcodeController.DoAnimationClientRpc(ghostId, HarpGhostAnimationController.Stunned);
         _inStunAnimation = true;
-        _realtimeStunTimer = setToStunTime;
         Escortee?.EscorteeBreakoff(setStunnedByPlayer != null ? setStunnedByPlayer : null);
     }
 

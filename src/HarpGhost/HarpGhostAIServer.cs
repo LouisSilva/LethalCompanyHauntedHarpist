@@ -98,7 +98,8 @@ public class HarpGhostAIServer : EnemyAI
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsDead, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, false);
-        
+
+        StartCoroutine(IsOutsideCheck());
         netcodeController.SpawnHarpServerRpc(_ghostId);
         netcodeController.GrabHarpClientRpc(_ghostId);
         StartCoroutine(DelayedHarpMusicActivate());
@@ -494,9 +495,9 @@ public class HarpGhostAIServer : EnemyAI
         agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
     }
 
-    public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false)
+    public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false, int hitId = -1)
     {
-        base.HitEnemy(force, playerWhoHit, playHitSFX);
+        base.HitEnemy(force, playerWhoHit, playHitSFX, hitId);
         if (!IsServer) return;
         if (isEnemyDead) return;
         if (!friendlyFire)
@@ -775,6 +776,12 @@ public class HarpGhostAIServer : EnemyAI
         bool isRunning = _agentCurrentSpeed >= 3f;
         if (animationController.GetBool(HarpGhostAnimationController.IsRunning) != isRunning && !_inStunAnimation)
             netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, isRunning);
+    }
+
+    private IEnumerator IsOutsideCheck()
+    {
+        yield return new WaitForSeconds(2f);
+        if (isOutside) allAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
     }
     
     private void LogDebug(string msg)
