@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using BepInEx.Logging;
+using LethalCompanyHarpGhost.BagpipesGhost;
+using LethalCompanyHarpGhost.HarpGhost;
 using Unity.Netcode;
 using UnityEngine;
 using Logger = BepInEx.Logging.Logger;

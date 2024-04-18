@@ -58,13 +58,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     private Coroutine _teleportCoroutine = null;
     
     #pragma warning disable 0649
-    [Header("Visual Effects")]
-    [Space(5f)]
-    private LineRenderer _lineRenderer;
-    
-    [Header("Controllers and Managers")]
-    [Space(5f)]
-    //[SerializeField] private BagpipesGhostAudioManager audioManager;
+    [Header("Controllers and Managers")] [Space(5f)]
     [SerializeField] private BagpipesGhostNetcodeController netcodeController;
     [SerializeField] private Animator animator;
     #pragma warning restore 0649

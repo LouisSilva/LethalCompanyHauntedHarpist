@@ -296,7 +296,7 @@ public class HarpGhostAIServer : EnemyAI
                     }
                 }
 
-                // If player isnt in LOS and ghost has reached the player's last known position, then switch to state 1
+                // If player isn't in LOS and ghost has reached the player's last known position, then switch to state 1
                 if (Vector3.Distance(transform.position, _targetPosition) <= 1)
                 {
                     SwitchBehaviourStateLocally((int)States.SearchingForPlayers);

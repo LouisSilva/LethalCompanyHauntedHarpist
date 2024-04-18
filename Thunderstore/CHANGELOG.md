@@ -1,3 +1,10 @@
+## 1.3.10
+* Added scrap item ghost plushies. 4 Different colours.
+* Switched the mod to using a seperate asset bundle file along with the dll because that seems to be the general format.
+* Fixed animation curve spawn rates. In the future I will make them customizable.
+* Changed all ghost's default spawn moon to be Rend instead of Dine (butler annoyes me).
+* Added code to delete old config values that aren't used anymore (thank you Xu Xiaolan for the code)
+
 ## 1.3.9 Phantom Piper & Ethereal Enforcer OUT OF BETA
 * Updated the mod to work with the newest v50 update
 * A few minor bug fixes
