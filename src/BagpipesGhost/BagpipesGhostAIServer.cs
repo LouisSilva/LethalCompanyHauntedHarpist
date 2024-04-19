@@ -7,6 +7,7 @@ using BepInEx.Logging;
 using GameNetcodeStuff;
 using LethalCompanyHarpGhost.EnforcerGhost;
 using LethalCompanyHarpGhost.HarpGhost;
+using LethalCompanyHarpGhost.Items;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;

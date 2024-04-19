@@ -1,5 +1,6 @@
 ﻿using System;
 using BepInEx.Logging;
+using LethalCompanyHarpGhost.Items;
 using Unity.Netcode;
 using UnityEngine;
 

@@ -13,6 +13,7 @@ using HarmonyLib;
 using LethalCompanyHarpGhost.BagpipesGhost;
 using LethalCompanyHarpGhost.EnforcerGhost;
 using LethalCompanyHarpGhost.HarpGhost;
+using LethalCompanyHarpGhost.Items;
 using LethalLib;
 using UnityEngine;
 using LethalLib.Modules;
