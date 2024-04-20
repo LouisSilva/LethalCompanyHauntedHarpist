@@ -164,7 +164,5 @@ public class EnforcerGhostConfig : SyncedInstance<EnforcerGhostConfig>
             90,
             "The maximum value that the shotgun spawned by an enforcer ghost can be set to"
         );
-        
-        ClearUnusedEntries(cfg);
     }
 }

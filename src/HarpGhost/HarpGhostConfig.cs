@@ -501,7 +501,5 @@ public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
             true,
             "Whether the Haunted Harpist's eyes turn red when angry"
         );
-        
-        ClearUnusedEntries(cfg);
     }
 }

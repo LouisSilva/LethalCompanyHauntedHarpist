@@ -41,97 +41,97 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void SyncGhostIdentifierClientRpc(string recievedGhostId)
+    public void SyncGhostIdentifierClientRpc(string receivedGhostId)
     {
-        OnUpdateGhostIdentifier?.Invoke(recievedGhostId);
+        OnUpdateGhostIdentifier?.Invoke(receivedGhostId);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void FixAgentSpeedAfterAttackServerRpc(string recievedGhostId)
+    public void FixAgentSpeedAfterAttackServerRpc(string receivedGhostId)
     {
-        OnFixAgentSpeedAfterAttack?.Invoke(recievedGhostId);
+        OnFixAgentSpeedAfterAttack?.Invoke(receivedGhostId);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void ChangeAgentMaxSpeedServerRpc(string recievedGhostId, float newMaxSpeed, float newMaxSpeed2)
+    public void ChangeAgentMaxSpeedServerRpc(string receivedGhostId, float newMaxSpeed, float newMaxSpeed2)
     {
-        OnChangeAgentMaxSpeed?.Invoke(recievedGhostId, newMaxSpeed, newMaxSpeed2);
+        OnChangeAgentMaxSpeed?.Invoke(receivedGhostId, newMaxSpeed, newMaxSpeed2);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void DamageTargetPlayerServerRpc(string recievedGhostId, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
+    public void DamageTargetPlayerServerRpc(string receivedGhostId, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
     {
-        DamageTargetPlayerClientRpc(recievedGhostId, damage, causeOfDeath);
+        DamageTargetPlayerClientRpc(receivedGhostId, damage, causeOfDeath);
     }
 
     [ClientRpc]
-    public void InitializeConfigValuesClientRpc(string recievedGhostId)
+    public void InitializeConfigValuesClientRpc(string receivedGhostId)
     {
-        OnInitializeConfigValues?.Invoke(recievedGhostId);
+        OnInitializeConfigValues?.Invoke(receivedGhostId);
     }
 
     [ClientRpc]
-    public void DamageTargetPlayerClientRpc(string recievedGhostId, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
+    public void DamageTargetPlayerClientRpc(string receivedGhostId, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
     {
-        OnDamageTargetPlayer?.Invoke(recievedGhostId, damage, causeOfDeath);
+        OnDamageTargetPlayer?.Invoke(receivedGhostId, damage, causeOfDeath);
     }
 
     [ClientRpc]
-    public void ChangeTargetPlayerClientRpc(string recievedGhostId, int playerClientId)
+    public void ChangeTargetPlayerClientRpc(string receivedGhostId, int playerClientId)
     {
-        OnChangeTargetPlayer?.Invoke(recievedGhostId, playerClientId);
+        OnChangeTargetPlayer?.Invoke(receivedGhostId, playerClientId);
     }
 
     [ClientRpc]
-    public void IncreaseTargetPlayerFearLevelClientRpc(string recievedGhostId)
+    public void IncreaseTargetPlayerFearLevelClientRpc(string receivedGhostId)
     {
-        OnIncreaseTargetPlayerFearLevel?.Invoke(recievedGhostId);
+        OnIncreaseTargetPlayerFearLevel?.Invoke(receivedGhostId);
     }
 
     [ClientRpc]
-    public void EnterDeathStateClientRpc(string recievedGhostId)
+    public void EnterDeathStateClientRpc(string receivedGhostId)
     {
-        OnEnterDeathState?.Invoke(recievedGhostId);
+        OnEnterDeathState?.Invoke(receivedGhostId);
     }
 
     [ClientRpc]
-    public void TurnGhostEyesRedClientRpc(string recievedGhostId)
+    public void TurnGhostEyesRedClientRpc(string receivedGhostId)
     {
-        OnGhostEyesTurnRed?.Invoke(recievedGhostId);
+        OnGhostEyesTurnRed?.Invoke(receivedGhostId);
     }
 
     [ClientRpc]
-    public void ChangeAnimationParameterBoolClientRpc(string recievedGhostId, int animationId, bool value)
+    public void ChangeAnimationParameterBoolClientRpc(string receivedGhostId, int animationId, bool value)
     {
-        OnChangeAnimationParameterBool?.Invoke(recievedGhostId, animationId, value);
+        OnChangeAnimationParameterBool?.Invoke(receivedGhostId, animationId, value);
     }
 
     [ClientRpc]
-    public void DoAnimationClientRpc(string recievedGhostId, int animationId)
+    public void DoAnimationClientRpc(string receivedGhostId, int animationId)
     {
-        OnDoAnimation?.Invoke(recievedGhostId, animationId);
+        OnDoAnimation?.Invoke(receivedGhostId, animationId);
     }
 
     [ClientRpc]
-    public void GrabHarpClientRpc(string recievedGhostId)
+    public void GrabHarpClientRpc(string receivedGhostId)
     {
-        OnGrabHarp?.Invoke(recievedGhostId);
+        OnGrabHarp?.Invoke(receivedGhostId);
     }
 
     [ClientRpc]
-    public void PlayHarpMusicClientRpc(string recievedGhostId)
+    public void PlayHarpMusicClientRpc(string receivedGhostId)
     {
-        OnPlayHarpMusic?.Invoke(recievedGhostId);
+        OnPlayHarpMusic?.Invoke(receivedGhostId);
     }
     
     [ClientRpc]
-    public void StopHarpMusicClientRpc(string recievedGhostId)
+    public void StopHarpMusicClientRpc(string receivedGhostId)
     {
-        OnStopHarpMusic?.Invoke(recievedGhostId);
+        OnStopHarpMusic?.Invoke(receivedGhostId);
     }
     
     [ServerRpc]
-    public void SpawnHarpServerRpc(string recievedGhostId)
+    public void SpawnHarpServerRpc(string receivedGhostId)
     {
         GameObject harpObject = Instantiate(
             HarpGhostPlugin.HarpItem.spawnPrefab,
@@ -151,27 +151,27 @@ public class HarpGhostNetcodeController : NetworkBehaviour
         harpGhostAIServer.RoundManagerInstance.totalScrapValueInLevel += harpScrapValue;
 
         harpObject.GetComponent<NetworkObject>().Spawn();
-        SpawnHarpClientRpc(recievedGhostId, harpObject, harpScrapValue);
+        SpawnHarpClientRpc(receivedGhostId, harpObject, harpScrapValue);
     }
 
     [ClientRpc]
-    private void SpawnHarpClientRpc(string recievedGhostId, NetworkObjectReference harpObject, int harpScrapValue)
+    private void SpawnHarpClientRpc(string receivedGhostId, NetworkObjectReference harpObject, int harpScrapValue)
     {
-        OnSpawnHarp?.Invoke(recievedGhostId, harpObject, harpScrapValue);
+        OnSpawnHarp?.Invoke(receivedGhostId, harpObject, harpScrapValue);
     }
 
     [ClientRpc]
-    public void DropHarpClientRpc(string recievedGhostId, Vector3 targetPosition)
+    public void DropHarpClientRpc(string receivedGhostId, Vector3 targetPosition)
     {
-        OnDropHarp?.Invoke(recievedGhostId, targetPosition);
+        OnDropHarp?.Invoke(receivedGhostId, targetPosition);
     }
     
     [ClientRpc]
-    public void PlayCreatureVoiceClientRpc(string recievedGhostId, int typeIndex, int clipArrayLength, bool interrupt = true)
+    public void PlayCreatureVoiceClientRpc(string receivedGhostId, int typeIndex, int clipArrayLength, bool interrupt = true)
     {
         int randomNum = UnityEngine.Random.Range(0, clipArrayLength);
         LogDebug($"Invoking OnPlayCreatureVoice | Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
-        OnPlayCreatureVoice?.Invoke(recievedGhostId, typeIndex, randomNum, interrupt);
+        OnPlayCreatureVoice?.Invoke(receivedGhostId, typeIndex, randomNum, interrupt);
     }
     
     private void LogDebug(string msg)

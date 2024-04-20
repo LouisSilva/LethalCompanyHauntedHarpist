@@ -240,7 +240,7 @@ public class HarpGhostAIServer : EnemyAI
             {
                 if (roamMap.inProgress) StopSearch(roamMap);
                 
-                PlayerControllerB tempTargetPlayer = CheckLineOfSightForClosestPlayer(viewWidth, viewRange, Mathf.Clamp(proximityAwareness, -1, 2));
+                PlayerControllerB tempTargetPlayer = CheckLineOfSightForClosestPlayer(viewWidth, viewRange, Mathf.Clamp(proximityAwareness, -1, int.MaxValue));
                 if (tempTargetPlayer != null)
                 {
                     SwitchBehaviourStateLocally((int)States.ChasingTargetPlayer);

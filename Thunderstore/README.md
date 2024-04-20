@@ -1,5 +1,5 @@
 # Haunted Harpist
-**Adds to the game a new enemy called the Haunted Harpist.**
+**Adds to the game a new enemy/monster called the Haunted Harpist.**
 <p>The Haunted Harpist is an enemy that initially roams the map while playing its haunting melody on the harp. If provoked during its performance—whether by excessive noise, stunning, or direct attack—the Haunted Harpist will cease its serene music, dropping its harp to engage aggressively with anyone it perceives.</p>
 
 <p>Dealing with the angry ghost may prove difficult, but it is worth it to obtain the harp.</p>
