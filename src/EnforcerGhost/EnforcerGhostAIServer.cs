@@ -504,7 +504,7 @@ public class EnforcerGhostAIServer : EnemyAI
         {
             // Ghost is dead
             netcodeController.EnterDeathStateClientRpc(ghostId);
-            KillEnemyClientRpc(false);
+            KillEnemyServerRpc(false);
             SwitchBehaviourStateLocally((int)States.Dead);
         }
     }

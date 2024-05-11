@@ -6,7 +6,6 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
 using BepInEx;
-using BepInEx.Configuration;
 using BepInEx.Logging;
 using GameNetcodeStuff;
 using HarmonyLib;
@@ -34,7 +33,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
 {
     public const string ModGuid = $"LCM_HauntedHarpist|{ModVersion}";
     private const string ModName = "Lethal Company Haunted Harpist Mod";
-    private const string ModVersion = "1.3.11";
+    private const string ModVersion = "1.3.12";
 
     private readonly Harmony _harmony = new(ModGuid);
         
@@ -246,7 +245,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
             
         NetworkPrefabs.RegisterNetworkPrefab(_plushieItem.spawnPrefab);
         Utilities.FixMixerGroups(_plushieItem.spawnPrefab);
-        RegisterScrap(_plushieItem, HarpGhostConfig.Instance.PlushieSpawnRate.Value, HarpGhostConfig.Instance.PlushieSpawnLevel.Value);
+        RegisterScrap(_plushieItem, Mathf.Clamp(HarpGhostConfig.Instance.PlushieSpawnRate.Value, 0, int.MaxValue), HarpGhostConfig.Instance.PlushieSpawnLevel.Value);
     }
 
     [HarmonyPatch(typeof(Terminal), "Start")]
@@ -280,8 +279,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
             return _instrumentAudioClips[instrumentName][index];
         return null;
     }
-        
-    // Got from the giant specimens mod
+    
     private void RegisterEnemyWithConfig(bool ememyEnabled, string configMoonRarity, EnemyType enemy, TerminalNode terminalNode, TerminalKeyword terminalKeyword) {
         if (ememyEnabled) { 
             (Dictionary<LevelTypes, int> spawnRateByLevelType, Dictionary<string, int> spawnRateByCustomLevelType) = ConfigParsing(configMoonRarity);
@@ -305,22 +303,22 @@ public class HarpGhostPlugin : BaseUnityPlugin
                 continue;
             }
 
-            string moonName = entryParts[0];
+            string localName = entryParts[0];
 
             if (!int.TryParse(entryParts[1], out int spawnrate))
             {
                 continue;
             }
 
-            if (Enum.TryParse(moonName, true, out LevelTypes levelType))
+            if (Enum.TryParse(localName, true, out LevelTypes levelType))
             {
                 spawnRateByLevelType[levelType] = spawnrate;
-                Logger.LogDebug($"Registered spawn rate for level type {levelType} to {spawnrate}");
+                _mls.LogDebug($"Registered spawn rate for level type {levelType} to {spawnrate}");
             }
             else
             {
-                spawnRateByCustomLevelType[moonName] = spawnrate;
-                Logger.LogDebug($"Registered spawn rate for custom level type {moonName} to {spawnrate}");
+                spawnRateByCustomLevelType[localName] = spawnrate;
+                _mls.LogDebug($"Registered spawn rate for custom level type {localName} to {spawnrate}");
             }
         }
         return (spawnRateByLevelType, spawnRateByCustomLevelType);

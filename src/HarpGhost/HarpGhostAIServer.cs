@@ -527,7 +527,7 @@ public class HarpGhostAIServer : EnemyAI
         
         // Ghost is dead
         netcodeController.EnterDeathStateClientRpc(_ghostId);
-        KillEnemyClientRpc(false);
+        KillEnemyServerRpc(false);
         SwitchBehaviourStateLocally((int)States.Dead);
     }
 

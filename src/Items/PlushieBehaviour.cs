@@ -25,7 +25,7 @@ public class PlushieBehaviour : PhysicsProp
 
         _plushieId = Guid.NewGuid().ToString();
         _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Plushie {_plushieId}");
-        Random.InitState(FindObjectOfType<StartOfRound>().randomMapSeed - 10);
+        Random.InitState(FindObjectOfType<StartOfRound>().randomMapSeed + _plushieId.GetHashCode());
         ApplyRandomMaterial();
     }
     

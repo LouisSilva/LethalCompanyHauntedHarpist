@@ -78,6 +78,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         base.Start();
         if (!IsServer) return;
         
+        _ghostId = Guid.NewGuid().ToString();
         _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Bagpipes Ghost AI {_ghostId} | Server");
         
         netcodeController = GetComponent<BagpipesGhostNetcodeController>();
@@ -87,7 +88,6 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         if (agent == null) _mls.LogError("NavMeshAgent component not found on " + name);
         agent.enabled = true;
         
-        _ghostId = Guid.NewGuid().ToString();
         netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
         
         Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
@@ -111,7 +111,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         
         // The ghost is already in this state, but calling the method will choose the ghost's first node to go to
         SwitchBehaviourStateLocally((int)States.PlayingMusicWhileEscorted);
-        _mls.LogInfo("Bagpipes Ghost Spawned");
+        _mls.LogInfo("Bagpipe Ghost Spawned");
     }
 
     public override void OnDestroy()
@@ -315,7 +315,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         netcodeController.SetMeshEnabledClientRpc(_ghostId, false);
         
         yield return new WaitForSeconds(5);
-        KillEnemyClientRpc(true);
+        KillEnemyServerRpc(true);
         _teleportCoroutine = null;
         Destroy(this);
     }
@@ -324,6 +324,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     {
         if (!IsServer) return;
         
+        LogDebug("Choosing escape door");
         _chosenEscapeDoor = true;
         EntranceTeleport[] exits = FindObjectsOfType<EntranceTeleport>().Where(exit => exit != null && exit.exitPoint != null).ToArray();
         Dictionary<EntranceTeleport, float> exitDistances = exits.ToDictionary(exit => exit, exit => Vector3.Distance(transform.position, exit.exitPoint.position));
@@ -528,7 +529,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         
         // Ghost is dead
         netcodeController.EnterDeathStateClientRpc(_ghostId);
-        KillEnemyClientRpc(false);
+        KillEnemyServerRpc(false);
         SwitchBehaviourStateLocally((int)States.Dead);
     }
 
