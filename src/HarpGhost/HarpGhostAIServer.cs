@@ -103,7 +103,14 @@ public class HarpGhostAIServer : EnemyAI
         netcodeController.SpawnHarpServerRpc(_ghostId);
         netcodeController.GrabHarpClientRpc(_ghostId);
         StartCoroutine(DelayedHarpMusicActivate());
-        _mls.LogInfo("Harp Ghost Spawned");
+
+        SpawnableEnemyWithRarity harpGhost =
+            RoundManager.Instance.currentLevel.OutsideEnemies.Find(x => enemyType.enemyName.Equals("HarpGhost"));
+        if (harpGhost != null) _mls.LogInfo($"BOBBIE: {harpGhost.rarity.ToString()}");
+        else _mls.LogInfo("ghost was NULL");
+        
+        
+        LogDebug("Harp Ghost Spawned");
     }
 
     public void OnEnable()
@@ -114,11 +121,9 @@ public class HarpGhostAIServer : EnemyAI
         netcodeController.OnFixAgentSpeedAfterAttack += HandleFixAgentSpeedAfterAttack;
     }
 
-    public override void OnDestroy()
+    public void OnDisable()
     {
-        base.OnDestroy();
         if (!IsServer) return;
-        
         netcodeController.OnChangeTargetPlayer -= HandleChangeTargetPlayer;
         netcodeController.OnChangeAgentMaxSpeed -= HandleChangeAgentMaxSpeed;
         netcodeController.OnFixAgentSpeedAfterAttack -= HandleFixAgentSpeedAfterAttack;

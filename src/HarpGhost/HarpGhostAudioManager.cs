@@ -87,7 +87,7 @@ public class HarpGhostAudioManager : MonoBehaviour
         netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
     }
 
-    private void OnDestroy()
+    private void OnDisable()
     {
         netcodeController.OnInitializeConfigValues -= HandleOnInitializeConfigValues;
         netcodeController.OnPlayCreatureVoice -= PlayVoice;

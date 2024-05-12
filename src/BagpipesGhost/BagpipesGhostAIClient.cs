@@ -81,7 +81,7 @@ public class BagpipesGhostAIClient : MonoBehaviour
         netcodeController.OnChangeAnimationParameterBool += SetBool;
     }
 
-    private void OnDestroy()
+    private void OnDisable()
     {
         if (netcodeController == null) return;
         netcodeController.OnDropBagpipes -= HandleDropInstrument;

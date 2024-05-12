@@ -1,5 +1,4 @@
 ﻿using BepInEx.Configuration;
-using LethalLib.Modules;
 
 namespace LethalCompanyHarpGhost.BagpipesGhost;
 
@@ -18,10 +17,10 @@ public class BagpipeGhostConfig : SyncedInstance<BagpipeGhostConfig>
     public readonly ConfigEntry<float> BagpipesVolume;
     public readonly ConfigEntry<int> BagpipesSoundMaxDistance;
     
-    public readonly ConfigEntry<int> BagpipeGhostSpawnRate;
+    public readonly ConfigEntry<bool> BagpipeGhostEnabled;
+    public readonly ConfigEntry<string> BagpipeGhostSpawnRarity;
     public readonly ConfigEntry<int> MaxAmountOfBagpipeGhosts;
     public readonly ConfigEntry<int> BagpipeGhostNumberOfEscortsToSpawn;
-    public readonly ConfigEntry<Levels.LevelTypes> BagpipeGhostSpawnLevel;
     
     public readonly ConfigEntry<int> BagpipesMinValue;
     public readonly ConfigEntry<int> BagpipesMaxValue;
@@ -29,6 +28,20 @@ public class BagpipeGhostConfig : SyncedInstance<BagpipeGhostConfig>
     public BagpipeGhostConfig(ConfigFile cfg)
     {
         InitInstance(this);
+        
+        BagpipeGhostEnabled = cfg.Bind(
+            "Ghost Spawn Values",
+            "Phantom Piper Enabled",
+            true,
+            "Whether the Phantom Piper is enabled (will spawn in games)."
+        );
+        
+        BagpipeGhostSpawnRarity = cfg.Bind(
+            "Ghost Spawn Values", 
+            "Phantom Piper Spawn Rarity",
+            "Modded:1,ExperimentationLevel:0,AssuranceLevel:0,VowLevel:0,OffenseLevel:0,MarchLevel:0,RendLevel:50,DineLevel:50,TitanLevel:2,Adamance:0,Embrion:0,Artifice:5,Auralis:0,Atlantica:0,Acidir:50,Cosmocos:5,Asteroid:0,Desolation:5,Etern:0,Gloom:5,Gratar:0,Infernis:0,Junic:2,Oldred:0,Polarus:0",
+            "Spawn weight of the Phantom Piper on all moons. You can to add to it any moon, just follow the format (also needs LLL installed for LE moons to work with this config)."
+        );
         
         BagpipeGhostInitialHealth = cfg.Bind(
             "Phantom Piper General",
@@ -107,13 +120,6 @@ public class BagpipeGhostConfig : SyncedInstance<BagpipeGhostConfig>
             "Values are from 0 to Infinity"
         );
         
-        BagpipeGhostSpawnRate = cfg.Bind(
-            "Ghost Spawn Values",
-            "Phantom Piper Spawn Value",
-            1,
-            "The weighted spawn rarity of the Phantom Piper."
-        );
-        
         MaxAmountOfBagpipeGhosts = cfg.Bind(
             "Ghost Spawn Values",
             "Max Amount of Phantom Piper Ghosts",
@@ -126,13 +132,6 @@ public class BagpipeGhostConfig : SyncedInstance<BagpipeGhostConfig>
             "Number of Escorts to Spawn",
             3,
             "The number of escorts to spawn when the Phantom Piper spawns"
-        );
-        
-        BagpipeGhostSpawnLevel = cfg.Bind(
-            "Ghost Spawn Values",
-            "Phantom Piper Spawn Level",
-            Levels.LevelTypes.RendLevel,
-            "The LevelTypes that the Phantom Piper spawns in"
         );
         
         BagpipesMinValue = cfg.Bind(

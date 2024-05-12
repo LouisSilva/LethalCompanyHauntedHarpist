@@ -1,5 +1,6 @@
 ﻿using System;
 using BepInEx.Logging;
+using Unity.Netcode;
 using UnityEngine;
 using Logger = BepInEx.Logging.Logger;
 using Random = UnityEngine.Random;
@@ -10,36 +11,48 @@ public class PlushieBehaviour : PhysicsProp
 {
     private ManualLogSource _mls;
     private string _plushieId;
-
-    private int materialVariantIndex;
-
+    
     #pragma warning disable 0649
     [SerializeField] private Material[] plushieMaterialVariants;
-    [SerializeField] private Renderer renderer;
     #pragma warning restore 0649
+
+    private int _materialVariantIndex;
+
+    private bool _loadedVariantFromSave;
+    private bool _calledRpc;
 
     public override void Start()
     {
-        materialVariantIndex = -1;
         base.Start();
 
         _plushieId = Guid.NewGuid().ToString();
         _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Plushie {_plushieId}");
         Random.InitState(FindObjectOfType<StartOfRound>().randomMapSeed + _plushieId.GetHashCode());
-        ApplyRandomMaterial();
+        if (!_calledRpc) ApplyRandomMaterialServerRpc();
     }
-    
+
+    [ServerRpc(RequireOwnership = false)]
+    private void ApplyRandomMaterialServerRpc()
+    {
+        ApplyRandomMaterialClientRpc();
+    }
+
+    [ClientRpc]
+    private void ApplyRandomMaterialClientRpc()
+    {
+        ApplyRandomMaterial();
+        _calledRpc = true;
+    }
+
     private void ApplyRandomMaterial()
     {
-        if (materialVariantIndex != -1)
+        if (_loadedVariantFromSave) return;
+
+        if (plushieMaterialVariants.Length > 0)
         {
-            renderer.material = plushieMaterialVariants[materialVariantIndex];
-        }
-        else if (plushieMaterialVariants.Length > 0)
-        {
-            materialVariantIndex = Random.Range(0, plushieMaterialVariants.Length);
-            renderer.material = plushieMaterialVariants[materialVariantIndex];
-            LogDebug($"Material applied: {plushieMaterialVariants[materialVariantIndex].name}");
+            _materialVariantIndex = Random.Range(0, plushieMaterialVariants.Length);
+            mainObjectRenderer.material = plushieMaterialVariants[_materialVariantIndex];
+            LogDebug($"New random material applied: {plushieMaterialVariants[_materialVariantIndex].name}");
         }
         else
         {
@@ -50,13 +63,16 @@ public class PlushieBehaviour : PhysicsProp
     public override int GetItemDataToSave()
     {
         base.GetItemDataToSave();
-        return materialVariantIndex;
+        return _materialVariantIndex;
     }
 
     public override void LoadItemSaveData(int saveData)
     {
         base.LoadItemSaveData(saveData);
-        materialVariantIndex = saveData;
+        _materialVariantIndex = saveData;
+        mainObjectRenderer.material = plushieMaterialVariants[_materialVariantIndex];
+        _loadedVariantFromSave = true;
+        LogDebug($"Material from save data applied: {plushieMaterialVariants[_materialVariantIndex].name}");
     }
     
     private void LogDebug(string msg)

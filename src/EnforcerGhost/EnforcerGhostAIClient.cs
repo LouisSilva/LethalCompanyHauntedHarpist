@@ -110,8 +110,9 @@ public class EnforcerGhostAIClient : MonoBehaviour
         netcodeController.OnPlayCreatureVoice += PlayVoice;
     }
 
-    private void OnDestroy()
+    private void OnDisable()
     {
+        if (netcodeController == null) return;
         netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
         netcodeController.OnInitializeConfigValues -= HandleInitializeConfigValues;
         netcodeController.OnEnterDeathState -= HandleEnterDeathState;

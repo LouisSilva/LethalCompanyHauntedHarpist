@@ -114,9 +114,9 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         _mls.LogInfo("Bagpipe Ghost Spawned");
     }
 
-    public override void OnDestroy()
+    public void OnDisable()
     {
-        base.OnDestroy();
+        if (netcodeController == null) return;
         netcodeController.OnGrabBagpipes -= HandleGrabBagpipes;
     }
 

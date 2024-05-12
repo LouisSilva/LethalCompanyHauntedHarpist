@@ -1,5 +1,4 @@
 ﻿using BepInEx.Configuration;
-using LethalLib.Modules;
 
 namespace LethalCompanyHarpGhost.EnforcerGhost;
 
@@ -21,9 +20,8 @@ public class EnforcerGhostConfig : SyncedInstance<EnforcerGhostConfig>
     public readonly ConfigEntry<float> EnforcerGhostVoiceSfxVolume;
     public readonly ConfigEntry<float> EnforcerGhostSfxVolume;
     
-    public readonly ConfigEntry<int> EnforcerGhostSpawnRate;
+    public readonly ConfigEntry<string> EnforcerGhostSpawnRarity;
     public readonly ConfigEntry<int> MaxAmountOfEnforcerGhosts;
-    public readonly ConfigEntry<Levels.LevelTypes> EnforcerGhostSpawnLevel;
     
     public readonly ConfigEntry<int> ShotgunMinValue;
     public readonly ConfigEntry<int> ShotgunMaxValue;
@@ -31,6 +29,13 @@ public class EnforcerGhostConfig : SyncedInstance<EnforcerGhostConfig>
     public EnforcerGhostConfig(ConfigFile cfg)
     {
         InitInstance(this);
+        
+        EnforcerGhostSpawnRarity = cfg.Bind(
+            "Ghost Spawn Values", 
+            "Ethereal Enforcer Spawn Rarity",
+            "All:0",
+            "Spawn weight of the Ethereal Enforcer on all moons. You can to add to it any moon, just follow the format (also needs LLL installed for LE moons to work with this config). The default option is having it disabled, because this option is for whether you want the Ethereal Enforcer to spawn by himself."
+        );
         
         EnforcerGhostInitialHealth = cfg.Bind(
             "Ethereal Enforcer General",
@@ -130,25 +135,11 @@ public class EnforcerGhostConfig : SyncedInstance<EnforcerGhostConfig>
             "The volume of the Enforcer ghost's sound effects (e.g. shotgun noises, teleport noises etc). Values are from 0-1"
         );
         
-        EnforcerGhostSpawnRate = cfg.Bind(
-            "Ghost Spawn Values",
-            "Ethereal Enforcer Spawn Value",
-            0,
-            "The weighted spawn rarity of the Enforcer ghost (can be changed, but isn't supposed to spawn by itself)"
-        );
-        
         MaxAmountOfEnforcerGhosts = cfg.Bind(
             "Ghost Spawn Values",
             "Max Amount of Enforcer Ghosts",
             3,
             "The maximum amount of Enforcer ghosts that can spawn in a game"
-        );
-        
-        EnforcerGhostSpawnLevel = cfg.Bind(
-            "Ghost Spawn Values",
-            "Spawn Level",
-            Levels.LevelTypes.RendLevel,
-            "The LevelTypes that the Enforcer ghost spawns in"
         );
         
         ShotgunMinValue = cfg.Bind(

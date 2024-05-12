@@ -57,10 +57,10 @@ public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
     public readonly ConfigEntry<bool> HarpOccludeAudioUseReverbEnabled;
     public readonly ConfigEntry<bool> HarpOccludeAudioOverridingLowPassEnabled;
     public readonly ConfigEntry<int> HarpOccludeAudioLowPassOverride;
-    
-    public readonly ConfigEntry<int> HarpGhostSpawnRate;
+
+    public readonly ConfigEntry<bool> HarpGhostEnabled;
+    public readonly ConfigEntry<string> HarpGhostSpawnRarity;
     public readonly ConfigEntry<int> MaxAmountOfHarpGhosts;
-    public readonly ConfigEntry<Levels.LevelTypes> HarpGhostSpawnLevel;
 
     public readonly ConfigEntry<bool> HarpGhostAngryEyesEnabled;
     
@@ -74,6 +74,20 @@ public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
     public HarpGhostConfig(ConfigFile cfg)
     {
         InitInstance(this);
+        
+        HarpGhostEnabled = cfg.Bind(
+            "Ghost Spawn Values",
+            "Haunted Harpist Enabled",
+            true,
+            "Whether the Haunted Harpist is enabled (will spawn in games)."
+        );
+        
+        HarpGhostSpawnRarity = cfg.Bind(
+            "Ghost Spawn Values", 
+            "Haunted Harpist Spawn Rarity",
+            "Modded:25,ExperimentationLevel:0,AssuranceLevel:0,VowLevel:0,OffenseLevel:0,MarchLevel:0,RendLevel:200,DineLevel:200,TitanLevel:50,Adamance:0,Embrion:0,Artifice:35,Auralis:0,Atlantica:0,Acidir:200,Cosmocos:35,Asteroid:5,Desolation:60,Etern:0,Gloom:60,Gratar:0,Infernis:0,Junic:15,Oldred:0,Polarus:0",
+            "Spawn weight of the Haunted Harpist on all moons. You can to add to it any moon, just follow the format (also needs LLL installed for LE moons to work with this config)."
+            );
         
         HarpGhostInitialHealth = cfg.Bind(
             "Haunted Harpist General",
@@ -432,25 +446,11 @@ public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
             ""
         );
         
-        HarpGhostSpawnRate = cfg.Bind(
-            "Ghost Spawn Values",
-            "Haunted Harpist Spawn Value",
-            6,
-            "The weighted spawn rarity of the Haunted Harpist"
-        );
-        
         MaxAmountOfHarpGhosts = cfg.Bind(
             "Ghost Spawn Values",
             "Max Amount of Haunted Harpists",
             2,
             "The maximum amount of Haunted Harpist's that can spawn in a game"
-        );
-        
-        HarpGhostSpawnLevel = cfg.Bind(
-            "Ghost Spawn Values",
-            "Haunted Harpist Spawn Level",
-            Levels.LevelTypes.RendLevel,
-            "The LevelTypes that the Haunted Harpist spawns in"
         );
         
         HarpMinValue = cfg.Bind(

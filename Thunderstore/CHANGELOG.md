@@ -1,3 +1,11 @@
+## 1.3.12
+* Added way better spawning options in the config (finally).
+* Hopefully fixed the bug with the desyncing plushie.
+* Fixed bug where the plushie would be half clipped into the floor when dropped.
+* Added BMX lobby compatability.
+* Updated readme with information about version 2.
+* Fixed alot (I can't be bothered to list all of them) of very small bugs that probably won't be noticeable.
+
 ## 1.3.11
 * Fixed bug that resets people's configs.
 * Fixed bug where the plushie spawn values weren't being updated from the config.

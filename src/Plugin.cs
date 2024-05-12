@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization.Formatters.Binary;
 using BepInEx;
 using BepInEx.Logging;
@@ -16,6 +17,8 @@ using LethalCompanyHarpGhost.Items;
 using LethalLib;
 using UnityEngine;
 using LethalLib.Modules;
+using LobbyCompatibility.Enums;
+using LobbyCompatibility.Features;
 using Unity.Collections;
 using Unity.Netcode;
 using static LethalLib.Modules.Levels;
@@ -29,6 +32,7 @@ namespace LethalCompanyHarpGhost;
 [BepInDependency(Plugin.ModGUID)]
 [BepInDependency("linkoid-DissonanceLagFix-1.0.0", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("mattymatty-AsyncLoggers-1.6.2", BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency("BMX.LobbyCompatibility", BepInDependency.DependencyFlags.SoftDependency)]
 public class HarpGhostPlugin : BaseUnityPlugin
 {
     public const string ModGuid = $"LCM_HauntedHarpist|{ModVersion}";
@@ -64,6 +68,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
     private void Awake()
     {
         if (_instance == null) _instance = this;
+        if (LobbyCompatibilityChecker.Enabled) LobbyCompatibilityChecker.Init();
             
         InitializeNetworkStuff();
 
@@ -109,17 +114,10 @@ public class HarpGhostPlugin : BaseUnityPlugin
             
         NetworkPrefabs.RegisterNetworkPrefab(_harpGhostEnemyType.enemyPrefab);
         Utilities.FixMixerGroups(_harpGhostEnemyType.enemyPrefab);
-        RegisterEnemy(
-            _harpGhostEnemyType, 
-            Mathf.Clamp(HarpGhostConfig.Instance.HarpGhostSpawnRate.Value, 0, 999), 
-            HarpGhostConfig.Instance.HarpGhostSpawnLevel.Value, 
-            SpawnType.Default, 
-            harpGhostTerminalNode,
-            harpGhostTerminalKeyword
-        );
+        RegisterEnemyWithConfig(HarpGhostConfig.Instance.HarpGhostEnabled.Value, HarpGhostConfig.Instance.HarpGhostSpawnRarity.Value, _harpGhostEnemyType, harpGhostTerminalNode, harpGhostTerminalKeyword);
     }
         
-    private static void SetupBagpipesGhost()
+    private void SetupBagpipesGhost()
     {
         _bagpipesGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("BagpipesGhost");
         _bagpipesGhostEnemyType.canDie = BagpipeGhostConfig.Instance.BagpipeGhostIsKillable.Value;
@@ -134,16 +132,10 @@ public class HarpGhostPlugin : BaseUnityPlugin
             
         NetworkPrefabs.RegisterNetworkPrefab(_bagpipesGhostEnemyType.enemyPrefab);
         Utilities.FixMixerGroups(_bagpipesGhostEnemyType.enemyPrefab);
-        RegisterEnemy(
-            _bagpipesGhostEnemyType, 
-            Mathf.Clamp(BagpipeGhostConfig.Instance.BagpipeGhostSpawnRate.Value, 0, 999), 
-            BagpipeGhostConfig.Instance.BagpipeGhostSpawnLevel.Value, 
-            SpawnType.Default, 
-            bagpipeGhostTerminalNode, 
-            bagpipeGhostTerminalKeyword);
+        RegisterEnemyWithConfig(BagpipeGhostConfig.Instance.BagpipeGhostEnabled.Value, BagpipeGhostConfig.Instance.BagpipeGhostSpawnRarity.Value, _bagpipesGhostEnemyType, bagpipeGhostTerminalNode, bagpipeGhostTerminalKeyword);
     }
         
-    private static void SetupEnforcerGhost()
+    private void SetupEnforcerGhost()
     {
         EnforcerGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("EnforcerGhost");
         EnforcerGhostEnemyType.canDie = EnforcerGhostConfig.Instance.EnforcerGhostIsKillable.Value;
@@ -158,13 +150,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
             
         NetworkPrefabs.RegisterNetworkPrefab(EnforcerGhostEnemyType.enemyPrefab);
         Utilities.FixMixerGroups(EnforcerGhostEnemyType.enemyPrefab);
-        RegisterEnemy(
-            EnforcerGhostEnemyType, 
-            Mathf.Clamp(EnforcerGhostConfig.Instance.EnforcerGhostSpawnRate.Value, 0, 999), 
-            EnforcerGhostConfig.Instance.EnforcerGhostSpawnLevel.Value, 
-            SpawnType.Default, 
-            enforcerGhostTerminalNode, 
-            enforcerGhostTerminalKeyword);
+        RegisterEnemyWithConfig(BagpipeGhostConfig.Instance.BagpipeGhostEnabled.Value, EnforcerGhostConfig.Instance.EnforcerGhostSpawnRarity.Value, EnforcerGhostEnemyType, enforcerGhostTerminalNode, enforcerGhostTerminalKeyword);
 
         CustomShotgunAnimator = Assets.MainAssetBundle.LoadAsset<RuntimeAnimatorController>("AnimatorShotgun");
         if (CustomShotgunAnimator == null) _mls.LogError("custom shotgun animator is null");
@@ -280,8 +266,8 @@ public class HarpGhostPlugin : BaseUnityPlugin
         return null;
     }
     
-    private void RegisterEnemyWithConfig(bool ememyEnabled, string configMoonRarity, EnemyType enemy, TerminalNode terminalNode, TerminalKeyword terminalKeyword) {
-        if (ememyEnabled) { 
+    private void RegisterEnemyWithConfig(bool enemyEnabled, string configMoonRarity, EnemyType enemy, TerminalNode terminalNode, TerminalKeyword terminalKeyword) {
+        if (enemyEnabled) { 
             (Dictionary<LevelTypes, int> spawnRateByLevelType, Dictionary<string, int> spawnRateByCustomLevelType) = ConfigParsing(configMoonRarity);
             RegisterEnemy(enemy, spawnRateByLevelType, spawnRateByCustomLevelType, terminalNode, terminalKeyword);
                 
@@ -291,34 +277,22 @@ public class HarpGhostPlugin : BaseUnityPlugin
     }
 
     // Got from the giant specimens mod
-    private (Dictionary<LevelTypes, int> spawnRateByLevelType, Dictionary<string, int> spawnRateByCustomLevelType) ConfigParsing(string configMoonRarity) {
+    private static (Dictionary<LevelTypes, int> spawnRateByLevelType, Dictionary<string, int> spawnRateByCustomLevelType) ConfigParsing(string configMoonRarity) {
         Dictionary<LevelTypes, int> spawnRateByLevelType = new();
         Dictionary<string, int> spawnRateByCustomLevelType = new();
-
         foreach (string entry in configMoonRarity.Split(',').Select(s => s.Trim())) {
-            string[] entryParts = entry.Split('@');
+            string[] entryParts = entry.Split(':');
 
-            if (entryParts.Length != 2)
-            {
-                continue;
-            }
+            if (entryParts.Length != 2) continue;
+            string name = entryParts[0];
+            if (!int.TryParse(entryParts[1], out int spawnrate)) continue;
 
-            string localName = entryParts[0];
-
-            if (!int.TryParse(entryParts[1], out int spawnrate))
-            {
-                continue;
-            }
-
-            if (Enum.TryParse(localName, true, out LevelTypes levelType))
-            {
+            if (Enum.TryParse(name, true, out LevelTypes levelType)) {
                 spawnRateByLevelType[levelType] = spawnrate;
                 _mls.LogDebug($"Registered spawn rate for level type {levelType} to {spawnrate}");
-            }
-            else
-            {
-                spawnRateByCustomLevelType[localName] = spawnrate;
-                _mls.LogDebug($"Registered spawn rate for custom level type {localName} to {spawnrate}");
+            } else {
+                spawnRateByCustomLevelType[name] = spawnrate;
+                _mls.LogDebug($"Registered spawn rate for custom level type {name} to {spawnrate}");
             }
         }
         return (spawnRateByLevelType, spawnRateByCustomLevelType);
@@ -326,7 +300,16 @@ public class HarpGhostPlugin : BaseUnityPlugin
 
     private static void InitializeNetworkStuff()
     {
-        Type[] types = Assembly.GetExecutingAssembly().GetTypes();
+        IEnumerable<Type> types;
+        try
+        {
+            types = Assembly.GetExecutingAssembly().GetTypes();
+        }
+        catch (ReflectionTypeLoadException e)
+        {
+            types = e.Types.Where(t => t != null);
+        }
+        
         foreach (Type type in types)
         {
             MethodInfo[] methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
@@ -511,5 +494,15 @@ internal static class Assets
             
         AudioClip clip = request.asset as AudioClip;
         callback?.Invoke(clip);
+    }
+}
+
+public static class LobbyCompatibilityChecker 
+{
+    public static bool Enabled => BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("BMX.LobbyCompatibility");
+
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    public static void Init() {
+        PluginHelper.RegisterPlugin(PluginInfo.PLUGIN_GUID, Version.Parse(PluginInfo.PLUGIN_VERSION), CompatibilityLevel.Everyone, VersionStrictness.Patch);
     }
 }

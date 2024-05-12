@@ -93,7 +93,14 @@ public class EnforcerGhostAIServer : EnemyAI
         
         _mls.LogInfo("Enforcer Ghost Spawned");
     }
-    
+
+    private void OnDisable()
+    {
+        if (netcodeController == null) return;
+        netcodeController.OnGrabShotgunPhaseTwo -= HandleGrabShotgunPhaseTwo;
+        netcodeController.OnSpawnShotgun -= HandleSpawnShotgun;
+    }
+
     private void FixedUpdate()
     {
         if (!IsServer) return;

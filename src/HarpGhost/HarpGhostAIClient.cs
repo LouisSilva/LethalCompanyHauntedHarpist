@@ -57,7 +57,7 @@ public class HarpGhostAIClient : MonoBehaviour
         netcodeController.OnGhostEyesTurnRed += HandleGhostEyesTurnRed;
     }
 
-    private void OnDestroy()
+    private void OnDisable()
     {
         netcodeController.OnDropHarp -= HandleDropInstrument;
         netcodeController.OnSpawnHarp -= HandleSpawnInstrument;

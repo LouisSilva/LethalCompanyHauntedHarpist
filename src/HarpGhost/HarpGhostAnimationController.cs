@@ -49,7 +49,7 @@ public class HarpGhostAnimationController : MonoBehaviour
         netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
     }
 
-    private void OnDestroy()
+    private void OnDisable()
     {
         if (netcodeController == null) return;
         netcodeController.OnDoAnimation -= SetTrigger;

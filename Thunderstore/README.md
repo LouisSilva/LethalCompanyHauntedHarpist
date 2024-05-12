@@ -20,17 +20,7 @@ By default, they all spawn only on Dine, with the Haunted Harpist having an "unc
 <br></br>
 **Can I configure the spawn values?**
 
-With the config provided, you can change the **Spawn Level** config value to one of the following:
-
-    - LevelTypes.All
-    - LevelTypes.Vanilla
-    - LevelTypes.None
-    - LevelTypes.Modded
-    - LevelTypes.<name of moon>Level -> e.g. LevelTypes.TitanLevel
-
-With this Spawn Level, you can set a spawn rarity to it. The default one for the Haunted Harpist is 6.
-
-This config is quite limited, so I suggest you use another mod to fine tune your spawn values if needed.
+Yes, the spawn values for the ghosts are fully customizeable in the configs.
 
 <br></br>
 **Why are the Ethereal Enforcers so overpowered?**
@@ -49,17 +39,13 @@ Yes
 
 I really appreciate bug reports, so feel free to report them in the Lethal Company Modding Discord or create a new issue on my GitHub page
 
-# Recommended Mods to Install
+# Future Update: Version 2
 
-## [DissonanceLagFix](https://thunderstore.io/c/lethal-company/p/linkoid/DissonanceLagFix/) 
-This mod reduces any potential lag that occurs when an instrument is played for the first time in a game, and generally helps improve performance for all mods.
+Version 2 of the Haunted Harpist will be a complete rework of the mod. It will add several more ghosts, mini-boss ghosts and a main boss ghost.
 
-## [AsyncLoggers](https://thunderstore.io/c/lethal-company/p/mattymatty/AsyncLoggers/)
-This mod moves logs to their own thread, which significantly increases performance for modpacks.
+These ghosts will also be the main entities that you will see in the **WIP** Luigi's Mansion dungeon interior. The main idea is that these ghosts will be able to interact with their environment (the Luigi's Mansion interior), creating a better and more immersive experience.
 
-The Haunted Harpist mod does not log anything unless it's an error, but you should still install this mod because many other mods do spam the console, which reduces performance.
-
-## Acknowledgements
+# Acknowledgements
 
 - [Evaisa](https://github.com/EvaisaDev) for [LethalLib](https://github.com/EvaisaDev/LethalLib), the [Unity Template](https://github.com/EvaisaDev/LethalCompanyUnityTemplate) and the [Netcode Patcher](https://github.com/EvaisaDev/UnityNetcodePatcher)
 - [Hamunii](https://github.com/Hamunii) for the [Example Enemy](https://lethal.wiki/dev/apis/lethallib/custom-enemies/overview) enemy modding tutorial
