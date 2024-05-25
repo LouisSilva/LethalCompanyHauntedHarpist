@@ -37,7 +37,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
 {
     public const string ModGuid = $"LCM_HauntedHarpist|{ModVersion}";
     private const string ModName = "Lethal Company Haunted Harpist Mod";
-    private const string ModVersion = "1.3.12";
+    private const string ModVersion = "1.3.13";
 
     private readonly Harmony _harmony = new(ModGuid);
         

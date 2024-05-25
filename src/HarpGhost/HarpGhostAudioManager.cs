@@ -95,29 +95,29 @@ public class HarpGhostAudioManager : MonoBehaviour
         netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
     }
 
-    private void HandleUpdateGhostIdentifier(string recievedGhostId)
+    private void HandleUpdateGhostIdentifier(string receivedGhostId)
     {
-        _ghostId = recievedGhostId;
+        _ghostId = receivedGhostId;
     }
 
-    private void HandleOnInitializeConfigValues(string recievedGhostId)
+    private void HandleOnInitializeConfigValues(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         creatureVoiceSource.volume = HarpGhostConfig.Default.HarpGhostVoiceSfxVolume.Value;
     }
 
-    private void HandleOnEnterDeathState(string recievedGhostId)
+    private void HandleOnEnterDeathState(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         creatureVoiceSource.Stop(true);
         creatureSfxSource.Stop(true);
         PlayVoice(_ghostId, (int)AudioClipTypes.Death, 1);
         Destroy(this);
     }
 
-    private void PlayVoice(string recievedGhostId, int typeIndex, int randomNum, bool interrupt = true)
+    private void PlayVoice(string receivedGhostId, int typeIndex, int randomNum, bool interrupt = true)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         creatureVoiceSource.pitch = Random.Range(0.8f, 1.1f);
         
         AudioClip audioClip = typeIndex switch

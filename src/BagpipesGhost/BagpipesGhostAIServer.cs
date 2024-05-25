@@ -100,7 +100,6 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         
         netcodeController.SpawnBagpipesServerRpc(_ghostId);
         netcodeController.GrabBagpipesClientRpc(_ghostId);
-        netcodeController.OnGrabBagpipes += HandleGrabBagpipes;
 
         if (HarpGhostPlugin.EnforcerGhostEnemyType.enemyPrefab == null)
         {
@@ -114,8 +113,16 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         _mls.LogInfo("Bagpipe Ghost Spawned");
     }
 
+    public void OnEnable()
+    {
+        if (!IsServer) return;
+        if (netcodeController == null) return;
+        netcodeController.OnGrabBagpipes += HandleGrabBagpipes;
+    }
+
     public void OnDisable()
     {
+        if (!IsServer) return;
         if (netcodeController == null) return;
         netcodeController.OnGrabBagpipes -= HandleGrabBagpipes;
     }
@@ -315,7 +322,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         netcodeController.SetMeshEnabledClientRpc(_ghostId, false);
         
         yield return new WaitForSeconds(5);
-        KillEnemyServerRpc(true);
+        KillEnemyClientRpc(true);
         _teleportCoroutine = null;
         Destroy(this);
     }
@@ -458,6 +465,8 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         {
             GameObject escort = Instantiate(HarpGhostPlugin.EnforcerGhostEnemyType.enemyPrefab, transform.position, Quaternion.identity);
             escort.GetComponentInChildren<NetworkObject>().Spawn(destroyWithScene: true);
+            RoundManager.Instance.currentEnemyPower += HarpGhostPlugin.EnforcerGhostEnemyType.PowerLevel;
+            ++RoundManager.Instance.currentLevel.Enemies.FirstOrDefault(enemy => enemy.enemyType.name == "EnforcerGhost")!.enemyType.numberSpawned;
 
             EnforcerGhostAIServer escortScript = escort.GetComponent<EnforcerGhostAIServer>();
             escortScript.agent.avoidancePriority = Mathf.Min(i + 1, 99); // Give the escort agents a different, descending priority
@@ -471,9 +480,9 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         callback.Invoke();
     }
     
-    private void HandleGrabBagpipes(string recievedGhostId)
+    private void HandleGrabBagpipes(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         if (_heldBagpipes != null) return;
         if (!_instrumentObjectRef.TryGet(out NetworkObject networkObject)) return;
         _heldBagpipes = networkObject.gameObject.GetComponent<InstrumentBehaviour>();
@@ -529,7 +538,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         
         // Ghost is dead
         netcodeController.EnterDeathStateClientRpc(_ghostId);
-        KillEnemyServerRpc(false);
+        KillEnemyClientRpc(false);
         SwitchBehaviourStateLocally((int)States.Dead);
     }
 
@@ -622,8 +631,6 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 agent.enabled = false;
                 isEnemyDead = true;
                 
-                netcodeController.DropBagpipesClientRpc(_ghostId, transform.position);
-                netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAIClient.IsDead, true);
                 RetireAllEscorts();
                 break;
             }

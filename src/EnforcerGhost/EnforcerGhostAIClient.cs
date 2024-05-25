@@ -11,18 +11,33 @@ public class EnforcerGhostAIClient : MonoBehaviour
 {
     private ManualLogSource _mls;
     private string _ghostId;
-
-    private ShotgunItem _heldShotgun;
-    private NetworkObjectReference _shotgunObjectRef;
-    private int _shotgunScrapValue;
-
-    private bool _shieldBehaviourEnabled = true;
-    private bool _isShieldAnimationPlaying = false;
-    private const float ShieldAnimationDuration = 0.25f;
-
-    private PlayerControllerB _targetPlayer;
     
-    #pragma warning disable 0649
+    internal enum AudioClipTypes
+    {
+        Death = 0,
+        Damage = 1,
+        Laugh = 2,
+        Stun = 3,
+        Upset = 4,
+        Fart = 5,
+        Spawn = 6,
+        ShieldRegen,
+        ShieldBreak,
+    }
+
+    public static readonly int IsRunning = Animator.StringToHash("isRunning");
+    public static readonly int IsStunned = Animator.StringToHash("isStunned");
+    public static readonly int IsDead = Animator.StringToHash("isDead");
+    public static readonly int IsHoldingShotgun = Animator.StringToHash("isHoldingShotgun");
+    public static readonly int Death = Animator.StringToHash("death");
+    public static readonly int Stunned = Animator.StringToHash("stunned");
+    public static readonly int Recover = Animator.StringToHash("recover");
+    public static readonly int Attack = Animator.StringToHash("attack");
+    public static readonly int PickupShotgun = Animator.StringToHash("pickupShotgun");
+    public static readonly int ReloadShotgun = Animator.StringToHash("reloadShotgun");
+    private static readonly int Reload = Animator.StringToHash("reload");
+    
+#pragma warning disable 0649
     [Header("Transforms")] [Space(3f)]
     [SerializeField] private Transform grabTarget;
     [SerializeField] private Transform eye;
@@ -58,35 +73,21 @@ public class EnforcerGhostAIClient : MonoBehaviour
     [Header("Controllers")] [Space(5f)]
     [SerializeField] private EnforcerGhostNetcodeController netcodeController;
     [SerializeField] private EnforcerGhostAIServer enforcerGhostAIServer;
-    #pragma warning restore 0649
+#pragma warning restore 0649
+    
+    private ShotgunItem _heldShotgun;
+    private NetworkObjectReference _shotgunObjectRef;
+    private int _shotgunScrapValue;
 
-    internal enum AudioClipTypes
-    {
-        Death = 0,
-        Damage = 1,
-        Laugh = 2,
-        Stun = 3,
-        Upset = 4,
-        Fart = 5,
-        Spawn = 6,
-        ShieldRegen,
-        ShieldBreak,
-    }
+    private bool _shieldBehaviourEnabled = true;
+    private bool _isShieldAnimationPlaying;
+    private const float ShieldAnimationDuration = 0.25f;
 
-    public static readonly int IsRunning = Animator.StringToHash("isRunning");
-    public static readonly int IsStunned = Animator.StringToHash("isStunned");
-    public static readonly int IsDead = Animator.StringToHash("isDead");
-    public static readonly int IsHoldingShotgun = Animator.StringToHash("isHoldingShotgun");
-    public static readonly int Death = Animator.StringToHash("death");
-    public static readonly int Stunned = Animator.StringToHash("stunned");
-    public static readonly int Recover = Animator.StringToHash("recover");
-    public static readonly int Attack = Animator.StringToHash("attack");
-    public static readonly int PickupShotgun = Animator.StringToHash("pickupShotgun");
-    public static readonly int ReloadShotgun = Animator.StringToHash("reloadShotgun");
-    private static readonly int Reload = Animator.StringToHash("reload");
+    private PlayerControllerB _targetPlayer;
 
     private void OnEnable()
     {
+        if (netcodeController == null) return;
         netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
         netcodeController.OnInitializeConfigValues += HandleInitializeConfigValues;
         netcodeController.OnEnterDeathState += HandleEnterDeathState;
@@ -194,9 +195,9 @@ public class EnforcerGhostAIClient : MonoBehaviour
         _isShieldAnimationPlaying = false;
     }
     
-    private void HandleDisableShield(string recievedGhostId)
+    private void HandleDisableShield(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         if (!_shieldBehaviourEnabled) return;
         if (_isShieldAnimationPlaying) return;
         
@@ -206,9 +207,9 @@ public class EnforcerGhostAIClient : MonoBehaviour
         LogDebug("disable shield");
     }
 
-    private void HandleEnableShield(string recievedGhostId)
+    private void HandleEnableShield(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         if (!_shieldBehaviourEnabled) return;
         if (_isShieldAnimationPlaying) return;
         
@@ -218,54 +219,54 @@ public class EnforcerGhostAIClient : MonoBehaviour
         LogDebug("enable shield");
     }
     
-    private void HandlePlayTeleportVfx(string recievedGhostId)
+    private void HandlePlayTeleportVfx(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         teleportVfx.SendEvent("OnPlayTeleport");
     }
     
-    private void HandleSetMeshEnabled(string recievedGhostId, bool meshEnabled)
+    private void HandleSetMeshEnabled(string receivedGhostId, bool meshEnabled)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         bodyRenderer.enabled = meshEnabled;
     }
 
-    private void HandleUpdateShotgunShellsLoaded(string recievedGhostId, int shells)
+    private void HandleUpdateShotgunShellsLoaded(string receivedGhostId, int shells)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         LogDebug($"current shells: {_heldShotgun.shellsLoaded}, changing to: {shells}");
         _heldShotgun.shellsLoaded = shells;
     }
 
-    private void HandleShootShotgun(string recievedGhostId)
+    private void HandleShootShotgun(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         _heldShotgun.ShootGun(_heldShotgun.transform.position, _heldShotgun.transform.forward);
     }
     
-    private void HandleDoShotgunAnimation(string recievedGhostId, string animationId)
+    private void HandleDoShotgunAnimation(string receivedGhostId, string animationId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         _heldShotgun.gunAnimator.SetTrigger(animationId);
     }
     
-    private void HandleGrabShotgun(string recievedGhostId)
+    private void HandleGrabShotgun(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         SetTrigger(_ghostId, PickupShotgun);
         SetBool(_ghostId, IsHoldingShotgun, true);
     }
 
-    private void HandleSpawnShotgun(string recievedGhostId, NetworkObjectReference shotgunObject, int shotgunScrapValue)
+    private void HandleSpawnShotgun(string receivedGhostId, NetworkObjectReference shotgunObject, int shotgunScrapValue)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         _shotgunObjectRef = shotgunObject;
         _shotgunScrapValue = shotgunScrapValue;
     }
 
-    private void HandleGrabShotgunPhaseTwo(string recievedGhostId)
+    private void HandleGrabShotgunPhaseTwo(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         if (_heldShotgun != null) return;
         if (!_shotgunObjectRef.TryGet(out NetworkObject networkObject)) return;
         _heldShotgun = networkObject.gameObject.GetComponent<ShotgunItem>();
@@ -281,9 +282,9 @@ public class EnforcerGhostAIClient : MonoBehaviour
         PlaySfx(grabShotgunSfx);
     }
 
-    private void HandleGrabShotgunAfterStun(string recievedGhostId)
+    private void HandleGrabShotgunAfterStun(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         if (_heldShotgun.isHeld)
         {
             LogDebug("Someone else already picked it up!");
@@ -299,9 +300,9 @@ public class EnforcerGhostAIClient : MonoBehaviour
         PlaySfx(grabShotgunSfx);
     }
     
-    private void HandleDropShotgun(string recievedGhostId, Vector3 dropPosition)
+    private void HandleDropShotgun(string receivedGhostId, Vector3 dropPosition)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         if (_heldShotgun == null) return;
         _heldShotgun.parentObject = null;
         _heldShotgun.transform.SetParent(StartOfRound.Instance.propsContainer, true);
@@ -321,9 +322,9 @@ public class EnforcerGhostAIClient : MonoBehaviour
         _heldShotgun = null;
     }
 
-    private void HandleDropShotgunWhenStunned(string recievedGhostId, Vector3 dropPosition)
+    private void HandleDropShotgunWhenStunned(string receivedGhostId, Vector3 dropPosition)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         if (_heldShotgun == null) return;
         _heldShotgun.parentObject = null;
         _heldShotgun.transform.SetParent(StartOfRound.Instance.propsContainer, true);
@@ -342,9 +343,9 @@ public class EnforcerGhostAIClient : MonoBehaviour
         _heldShotgun.isHeldByEnemy = false;
     }
     
-    private void HandleIncreaseTargetPlayerFearLevel(string recievedGhostId)
+    private void HandleIncreaseTargetPlayerFearLevel(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         if (GameNetworkManager.Instance.localPlayerController != _targetPlayer) return;
         
         if (_targetPlayer == null)
@@ -365,9 +366,9 @@ public class EnforcerGhostAIClient : MonoBehaviour
         }
     }
     
-    private void HandleChangeTargetPlayer(string recievedGhostId, int targetPlayerObjectId)
+    private void HandleChangeTargetPlayer(string receivedGhostId, int targetPlayerObjectId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         if (targetPlayerObjectId == -69420)
         {
             _targetPlayer = null;
@@ -378,18 +379,22 @@ public class EnforcerGhostAIClient : MonoBehaviour
         _targetPlayer = player;
     }
 
-    private void HandleEnterDeathState(string recievedGhostId)
+    private void HandleEnterDeathState(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
+        
         SetTrigger(_ghostId, Death);
         SetBool(_ghostId, IsDead, true);
         SetBool(_ghostId, IsRunning, false);
         SetBool(_ghostId, IsStunned, false);
         SetBool(_ghostId, IsHoldingShotgun, false);
+        
         creatureVoiceSource.Stop(true);
         creatureSfxSource.Stop(true);
         PlayVoice(_ghostId, (int)AudioClipTypes.Death, 1);
+        
         shieldRenderer.enabled = false;
+        HandleDropShotgun(_ghostId, transform.position);
         
         if (Random.value > 0.5f) StartCoroutine(PlayFartAfterTime(3f));
         else Destroy(this);
@@ -435,27 +440,27 @@ public class EnforcerGhostAIClient : MonoBehaviour
         PlaySfx(shotgunGrabShellSfx);
     }
     
-    private void SetBool(string recievedGhostId, int parameter, bool value)
+    private void SetBool(string receivedGhostId, int parameter, bool value)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         animator.SetBool(parameter, value);
     }
 
-    private void SetFloat(string recievedGhostId, int parameter, float value)
+    private void SetFloat(string receivedGhostId, int parameter, float value)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         animator.SetFloat(parameter, value);
     }
     
-    private void SetTrigger(string recievedGhostId, int parameter)
+    private void SetTrigger(string receivedGhostId, int parameter)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         animator.SetTrigger(parameter);
     }
     
-    private void PlayVoice(string recievedGhostId, int typeIndex, int randomNum, bool interrupt = true)
+    private void PlayVoice(string receivedGhostId, int typeIndex, int randomNum, bool interrupt = true)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         
         AudioClip audioClip = typeIndex switch
         {
@@ -499,18 +504,18 @@ public class EnforcerGhostAIClient : MonoBehaviour
         WalkieTalkie.TransmitOneShotAudio(creatureSfxSource, clip, creatureSfxSource.volume);
     }
 
-    private void HandleInitializeConfigValues(string recievedGhostId)
+    private void HandleInitializeConfigValues(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
 
         _shieldBehaviourEnabled = EnforcerGhostConfig.Instance.EnforcerGhostShieldEnabled.Value;
         creatureSfxSource.volume = EnforcerGhostConfig.Default.EnforcerGhostSfxVolume.Value;
         creatureVoiceSource.volume = EnforcerGhostConfig.Default.EnforcerGhostVoiceSfxVolume.Value;
     }
 
-    private void HandleUpdateGhostIdentifier(string recievedGhostId)
+    private void HandleUpdateGhostIdentifier(string receivedGhostId)
     {
-        _ghostId = recievedGhostId;
+        _ghostId = receivedGhostId;
         _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Enforcer Ghost AI {_ghostId} | Client");
     }
     

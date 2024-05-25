@@ -1,3 +1,11 @@
+## 1.3.13
+* Fixed bug where bagpipes could not be picked up after the Phantom Piper was killed.
+* Fixed bug where the shield of the Ethereal Enforcer would still be visible after the Enforcer died.
+* Fixed bug where the Ethereal Enforcers weren't being added to the power level when the Phantom Piper spawned them.
+* Fixed the item offsets for the plushie.
+* Fixed bug where the Ethereal Enforcer wouldn't care about a player shooting at them if the player only broke the Enforcer's shield, and didn't damage them.
+* Fixed bug where the Ethereal Enforcer would shoot more bullets than he has, and would shoot instantly after reloading.
+
 ## 1.3.12
 * Added way better spawning options in the config (finally).
 * Hopefully fixed the bug with the desyncing plushie.

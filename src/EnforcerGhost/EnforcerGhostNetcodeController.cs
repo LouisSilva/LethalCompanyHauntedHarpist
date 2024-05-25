@@ -44,49 +44,49 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void DisableShieldClientRpc(string recievedGhostId)
+    public void DisableShieldClientRpc(string receivedGhostId)
     {
-        OnDisableShield?.Invoke(recievedGhostId);
+        OnDisableShield?.Invoke(receivedGhostId);
     }
 
     [ClientRpc]
-    public void EnableShieldClientRpc(string recievedGhostId)
+    public void EnableShieldClientRpc(string receivedGhostId)
     {
-        OnEnableShield?.Invoke(recievedGhostId);
+        OnEnableShield?.Invoke(receivedGhostId);
     }
 
     [ClientRpc]
-    public void DropShotgunForStunClientRpc(string recievedGhostId, Vector3 dropPosition)
+    public void DropShotgunForStunClientRpc(string receivedGhostId, Vector3 dropPosition)
     {
-        OnDropShotgunWhenStunned?.Invoke(recievedGhostId, dropPosition);
+        OnDropShotgunWhenStunned?.Invoke(receivedGhostId, dropPosition);
     }
 
     [ClientRpc]
-    public void GrabShotgunAfterStunClientRpc(string recievedGhostId)
+    public void GrabShotgunAfterStunClientRpc(string receivedGhostId)
     {
-        OnGrabShotgunAfterStun?.Invoke(recievedGhostId);
+        OnGrabShotgunAfterStun?.Invoke(receivedGhostId);
     }
     
     [ClientRpc]
-    public void PlayTeleportVfxClientRpc(string recievedGhostId)
+    public void PlayTeleportVfxClientRpc(string receivedGhostId)
     {
-        OnPlayTeleportVfx?.Invoke(recievedGhostId);
+        OnPlayTeleportVfx?.Invoke(receivedGhostId);
     }
 
     [ClientRpc]
-    public void SetMeshEnabledClientRpc(string recievedGhostId, bool meshEnabled)
+    public void SetMeshEnabledClientRpc(string receivedGhostId, bool meshEnabled)
     {
-        OnSetMeshEnabled?.Invoke(recievedGhostId, meshEnabled);
+        OnSetMeshEnabled?.Invoke(receivedGhostId, meshEnabled);
     }
     
     [ClientRpc]
-    public void InitializeConfigValuesClientRpc(string recievedGhostId)
+    public void InitializeConfigValuesClientRpc(string receivedGhostId)
     {
-        OnInitializeConfigValues?.Invoke(recievedGhostId);
+        OnInitializeConfigValues?.Invoke(receivedGhostId);
     }
 
     [ServerRpc]
-    public void SpawnShotgunServerRpc(string recievedGhostId)
+    public void SpawnShotgunServerRpc(string receivedGhostId)
     {
         GameObject shotgunObject = Instantiate(
             HarpGhostPlugin.ShotgunPrefab,
@@ -101,105 +101,105 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
         enforcerGhostAIServer.RoundManagerInstance.totalScrapValueInLevel += shotgunScrapValue;
         
         shotgunObject.GetComponent<NetworkObject>().Spawn();
-        SpawnShotgunClientRpc(recievedGhostId, shotgunObject, shotgunScrapValue);
+        SpawnShotgunClientRpc(receivedGhostId, shotgunObject, shotgunScrapValue);
     }
 
     [ClientRpc]
-    public void SpawnShotgunClientRpc(string recievedGhostId, NetworkObjectReference shotgunObject, int shotgunScrapValue)
+    public void SpawnShotgunClientRpc(string receivedGhostId, NetworkObjectReference shotgunObject, int shotgunScrapValue)
     {
-        OnSpawnShotgun?.Invoke(recievedGhostId, shotgunObject, shotgunScrapValue);
+        OnSpawnShotgun?.Invoke(receivedGhostId, shotgunObject, shotgunScrapValue);
     }
 
     [ClientRpc]
-    public void GrabShotgunClientRpc(string recievedGhostId)
+    public void GrabShotgunClientRpc(string receivedGhostId)
     {
-        OnGrabShotgun?.Invoke(recievedGhostId);
+        OnGrabShotgun?.Invoke(receivedGhostId);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void GrabShotgunPhaseTwoServerRpc(string recievedGhostId)
+    public void GrabShotgunPhaseTwoServerRpc(string receivedGhostId)
     {
-        GrabShotgunPhaseTwoClientRpc(recievedGhostId);
+        GrabShotgunPhaseTwoClientRpc(receivedGhostId);
     }
     
     [ClientRpc]
-    public void ChangeTargetPlayerClientRpc(string recievedGhostId, int playerClientId)
+    public void ChangeTargetPlayerClientRpc(string receivedGhostId, int playerClientId)
     {
-        OnChangeTargetPlayer?.Invoke(recievedGhostId, playerClientId);
+        OnChangeTargetPlayer?.Invoke(receivedGhostId, playerClientId);
     }
     
     [ClientRpc]
-    public void IncreaseTargetPlayerFearLevelClientRpc(string recievedGhostId)
+    public void IncreaseTargetPlayerFearLevelClientRpc(string receivedGhostId)
     {
-        OnIncreaseTargetPlayerFearLevel?.Invoke(recievedGhostId);
+        OnIncreaseTargetPlayerFearLevel?.Invoke(receivedGhostId);
     }
 
     [ClientRpc]
-    public void UpdateShotgunShellsLoadedClientRpc(string recievedGhostId, int shells)
+    public void UpdateShotgunShellsLoadedClientRpc(string receivedGhostId, int shells)
     {
-        OnUpdateShotgunShellsLoaded?.Invoke(recievedGhostId, shells);
+        OnUpdateShotgunShellsLoaded?.Invoke(receivedGhostId, shells);
     }
     
     [ServerRpc(RequireOwnership = false)]
-    public void DoShotgunAnimationServerRpc(string recievedGhostId, string animationId)
+    public void DoShotgunAnimationServerRpc(string receivedGhostId, string animationId)
     {
-        DoShotgunAnimationClientRpc(recievedGhostId, animationId);
+        DoShotgunAnimationClientRpc(receivedGhostId, animationId);
     }
     
     [ClientRpc]
-    public void DoShotgunAnimationClientRpc(string recievedGhostId, string animationId)
+    public void DoShotgunAnimationClientRpc(string receivedGhostId, string animationId)
     {
-        OnDoShotgunAnimation?.Invoke(recievedGhostId, animationId);
+        OnDoShotgunAnimation?.Invoke(receivedGhostId, animationId);
     }
 
     [ClientRpc]
-    private void GrabShotgunPhaseTwoClientRpc(string recievedGhostId)
+    private void GrabShotgunPhaseTwoClientRpc(string receivedGhostId)
     {
-        OnGrabShotgunPhaseTwo?.Invoke(recievedGhostId);
+        OnGrabShotgunPhaseTwo?.Invoke(receivedGhostId);
     }
     
     [ClientRpc]
-    public void DropShotgunClientRpc(string recievedGhostId, Vector3 targetPosition)
+    public void DropShotgunClientRpc(string receivedGhostId, Vector3 targetPosition)
     {
-        OnDropShotgun?.Invoke(recievedGhostId, targetPosition);
+        OnDropShotgun?.Invoke(receivedGhostId, targetPosition);
     }
 
     [ClientRpc]
-    public void ShootGunClientRpc(string recievedGhostId)
+    public void ShootGunClientRpc(string receivedGhostId)
     {
-        OnShootGun?.Invoke(recievedGhostId);
+        OnShootGun?.Invoke(receivedGhostId);
     }
     
     [ClientRpc]
-    public void ChangeAnimationParameterBoolClientRpc(string recievedGhostId, int animationId, bool value)
+    public void ChangeAnimationParameterBoolClientRpc(string receivedGhostId, int animationId, bool value)
     {
-        OnChangeAnimationParameterBool?.Invoke(recievedGhostId, animationId, value);
+        OnChangeAnimationParameterBool?.Invoke(receivedGhostId, animationId, value);
     }
 
     [ClientRpc]
-    public void DoAnimationClientRpc(string recievedGhostId, int animationId)
+    public void DoAnimationClientRpc(string receivedGhostId, int animationId)
     {
-        OnDoAnimation?.Invoke(recievedGhostId, animationId);
+        OnDoAnimation?.Invoke(receivedGhostId, animationId);
     }
     
     [ClientRpc]
-    public void SyncGhostIdentifierClientRpc(string recievedGhostId)
+    public void SyncGhostIdentifierClientRpc(string receivedGhostId)
     {
-        OnUpdateGhostIdentifier?.Invoke(recievedGhostId);
+        OnUpdateGhostIdentifier?.Invoke(receivedGhostId);
     }
     
     [ClientRpc]
-    public void PlayCreatureVoiceClientRpc(string recievedGhostId, int typeIndex, int clipArrayLength, bool interrupt = true)
+    public void PlayCreatureVoiceClientRpc(string receivedGhostId, int typeIndex, int clipArrayLength, bool interrupt = true)
     {
         int randomNum = UnityEngine.Random.Range(0, clipArrayLength);
         LogDebug($"Invoking OnPlayCreatureVoice | Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
-        OnPlayCreatureVoice?.Invoke(recievedGhostId, typeIndex, randomNum, interrupt);
+        OnPlayCreatureVoice?.Invoke(receivedGhostId, typeIndex, randomNum, interrupt);
     }
     
     [ClientRpc]
-    public void EnterDeathStateClientRpc(string recievedGhostId)
+    public void EnterDeathStateClientRpc(string receivedGhostId)
     {
-        OnEnterDeathState?.Invoke(recievedGhostId);
+        OnEnterDeathState?.Invoke(receivedGhostId);
     }
 
     private void LogDebug(string msg)

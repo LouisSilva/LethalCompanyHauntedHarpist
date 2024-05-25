@@ -63,6 +63,7 @@ public class BagpipesGhostAIClient : MonoBehaviour
 
     private void OnEnable()
     {
+        if (netcodeController == null) return;
         netcodeController.OnDropBagpipes += HandleDropInstrument;
         netcodeController.OnSpawnBagpipes += HandleSpawnInstrument;
         netcodeController.OnGrabBagpipes += HandleGrabInstrument;
@@ -108,37 +109,37 @@ public class BagpipesGhostAIClient : MonoBehaviour
         renderer.enabled = true;
     }
     
-    private void HandlePlayTeleportVfx(string recievedGhostId)
+    private void HandlePlayTeleportVfx(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         teleportVfx.SendEvent("OnPlayTeleport");
         PlaySfx(tornadoTeleportSfx);
     }
 
-    private void HandleDestroyBagpipes(string recievedGhostId)
+    private void HandleDestroyBagpipes(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         if (_heldInstrument != null) Destroy(_heldInstrument.gameObject);
         _heldInstrument = null;
     }
 
-    private void HandleOnPlayInstrumentMusic(string recievedGhostId)
+    private void HandleOnPlayInstrumentMusic(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         if (_heldInstrument == null) return;
         _heldInstrument.StartMusicServerRpc();
     }
     
-    private void HandleOnStopInstrumentMusic(string recievedGhostId)
+    private void HandleOnStopInstrumentMusic(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         if (_heldInstrument == null) return;
         _heldInstrument.StopMusicServerRpc();
     }
 
-    private void HandleDropInstrument(string recievedGhostId, Vector3 dropPosition)
+    private void HandleDropInstrument(string receivedGhostId, Vector3 dropPosition)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         if (_heldInstrument == null) return;
         _heldInstrument.parentObject = null;
         _heldInstrument.transform.SetParent(StartOfRound.Instance.propsContainer, true);
@@ -158,9 +159,9 @@ public class BagpipesGhostAIClient : MonoBehaviour
         _heldInstrument = null;
     }
 
-    private void HandleGrabInstrument(string recievedGhostId)
+    private void HandleGrabInstrument(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         if (_heldInstrument != null) return;
         if (!_instrumentObjectRef.TryGet(out NetworkObject networkObject)) return;
         _heldInstrument = networkObject.gameObject.GetComponent<InstrumentBehaviour>();
@@ -172,22 +173,22 @@ public class BagpipesGhostAIClient : MonoBehaviour
         _heldInstrument.grabbable = false;
     }
     
-    private void HandleSpawnInstrument(string recievedGhostId, NetworkObjectReference instrumentObject, int instrumentScrapValue)
+    private void HandleSpawnInstrument(string receivedGhostId, NetworkObjectReference instrumentObject, int instrumentScrapValue)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         _instrumentObjectRef = instrumentObject;
         _instrumentScrapValue = instrumentScrapValue;
     }
 
-    private void HandleSetMeshEnabled(string recievedGhostId, bool meshEnabled)
+    private void HandleSetMeshEnabled(string receivedGhostId, bool meshEnabled)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         renderer.enabled = meshEnabled;
     }
     
-    private void PlayVoice(string recievedGhostId, int typeIndex, int randomNum, bool interrupt = true)
+    private void PlayVoice(string receivedGhostId, int typeIndex, int randomNum, bool interrupt = true)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         creatureVoiceSource.pitch = Random.Range(0.8f, 1.1f);
         
         AudioClip audioClip = typeIndex switch
@@ -222,9 +223,9 @@ public class BagpipesGhostAIClient : MonoBehaviour
         WalkieTalkie.TransmitOneShotAudio(creatureSfxSource, clip, volume);
     }
     
-    private void SetBool(string recievedGhostId, int parameter, bool value)
+    private void SetBool(string receivedGhostId, int parameter, bool value)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         animator.SetBool(parameter, value);
     }
 
@@ -233,15 +234,16 @@ public class BagpipesGhostAIClient : MonoBehaviour
         return animator.GetBool(parameter);
     }
 
-    private void SetTrigger(string recievedGhostId, int parameter)
+    private void SetTrigger(string receivedGhostId, int parameter)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         animator.SetTrigger(parameter);
     }
     
-    private void HandleOnEnterDeathState(string recievedGhostId)
+    private void HandleOnEnterDeathState(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
+        HandleDropInstrument(_ghostId, transform.position);
         SetTrigger(_ghostId, Death);
         SetBool(_ghostId, IsDead, true);
         SetBool(_ghostId, IsRunning, false);
@@ -252,9 +254,9 @@ public class BagpipesGhostAIClient : MonoBehaviour
         Destroy(this);
     }
     
-    private void HandleOnInitializeConfigValues(string recievedGhostId)
+    private void HandleOnInitializeConfigValues(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         creatureVoiceSource.volume = BagpipeGhostConfig.Default.BagpipeGhostVoiceSfxVolume.Value;
     }
     
@@ -265,8 +267,8 @@ public class BagpipesGhostAIClient : MonoBehaviour
         #endif
     }
 
-    private void HandleUpdateGhostIdentifier(string recievedGhostId)
+    private void HandleUpdateGhostIdentifier(string receivedGhostId)
     {
-        _ghostId = recievedGhostId;
+        _ghostId = receivedGhostId;
     }
 }

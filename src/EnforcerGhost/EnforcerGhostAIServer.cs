@@ -79,8 +79,6 @@ public class EnforcerGhostAIServer : EnemyAI
         agent.enabled = true;
         
         netcodeController.SyncGhostIdentifierClientRpc(ghostId);
-        netcodeController.OnGrabShotgunPhaseTwo += HandleGrabShotgunPhaseTwo;
-        netcodeController.OnSpawnShotgun += HandleSpawnShotgun;
         
         UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
         InitializeConfigValues();
@@ -92,6 +90,13 @@ public class EnforcerGhostAIServer : EnemyAI
         StartCoroutine(SpawnAnimation());
         
         _mls.LogInfo("Enforcer Ghost Spawned");
+    }
+
+    private void OnEnable()
+    {
+        if (netcodeController == null) return;
+        netcodeController.OnGrabShotgunPhaseTwo += HandleGrabShotgunPhaseTwo;
+        netcodeController.OnSpawnShotgun += HandleSpawnShotgun;
     }
 
     private void OnDisable()
@@ -278,12 +283,7 @@ public class EnforcerGhostAIServer : EnemyAI
                     LogDebug("The shotgun has no more bullets! Reloading!");
                     _isReloading = true;
                     StartCoroutine(ReloadShotgun());
-                }
-                
-                if (playerControllerB != targetPlayer)
-                {
-                    netcodeController.ChangeTargetPlayerClientRpc(ghostId, (int)playerControllerB.playerClientId);
-                    targetPlayer = playerControllerB;
+                    break;
                 }
                 
                 // Check if the shoot timer is complete
@@ -299,10 +299,13 @@ public class EnforcerGhostAIServer : EnemyAI
                 if (distanceToPlayer < 3f)
                     accuracyThreshold = 0.7f;
         
+                // Shoot the gun if the ghost has an accurate enough shot
                 if (dotProduct > accuracyThreshold)
                 {
                     netcodeController.ShootGunClientRpc(ghostId);
                     _shootTimer = shootDelay;
+                    _heldShotgun.shellsLoaded = Mathf.Clamp(_heldShotgun.shellsLoaded - 1, 0, 2);
+                    netcodeController.UpdateShotgunShellsLoadedClientRpc(ghostId, _heldShotgun.shellsLoaded);
                 }
                 
                 break;
@@ -351,6 +354,7 @@ public class EnforcerGhostAIServer : EnemyAI
         _heldShotgun.shellsLoaded = 2;
         agentMaxSpeed = previousSpeed;
         yield return new WaitForSeconds(reloadTime);
+        _shootTimer = shootDelay;
         _isReloading = false;
     }
 
@@ -466,15 +470,9 @@ public class EnforcerGhostAIServer : EnemyAI
                 _hasBegunInvestigating = false;
                 moveTowardsDestination = false;
 
-                if (_isShieldEnabled && shieldBehaviourEnabled)
-                {
-                    netcodeController.DisableShieldClientRpc(ghostId);
-                    shieldBehaviourEnabled = false;
-                    _isShieldEnabled = false;
-                }
+                netcodeController.EnterDeathStateClientRpc(ghostId);
                 Escortee?.EscorteeBreakoff();
-                netcodeController.DropShotgunClientRpc(ghostId, transform.position);
-                netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAIClient.IsDead, true);
+                
                 break;
             }
         }
@@ -490,7 +488,7 @@ public class EnforcerGhostAIServer : EnemyAI
         if (!IsServer) return;
         if (isEnemyDead) return;
         if (playerWhoHit == null) return;
-        if (_takeDamageCooldown > 0.03f) return;
+        if (_takeDamageCooldown <= 0) return;
 
         _takeDamageCooldown = 0.03f;
         Escortee?.EscorteeBreakoff(playerWhoHit);
@@ -499,10 +497,9 @@ public class EnforcerGhostAIServer : EnemyAI
             netcodeController.DisableShieldClientRpc(ghostId);
             _isShieldEnabled = false;
             _shieldRecoverTimer = shieldRegenerateTime;
-            return;
         }
+        else enemyHP -= force;
         
-        enemyHP -= force;
         if (enemyHP > 0)
         {
             netcodeController.PlayCreatureVoiceClientRpc(ghostId, (int)EnforcerGhostAIClient.AudioClipTypes.Damage, 4);
@@ -510,9 +507,8 @@ public class EnforcerGhostAIServer : EnemyAI
         else
         {
             // Ghost is dead
-            netcodeController.EnterDeathStateClientRpc(ghostId);
-            KillEnemyServerRpc(false);
             SwitchBehaviourStateLocally((int)States.Dead);
+            KillEnemyClientRpc(false);
         }
     }
 
@@ -539,18 +535,23 @@ public class EnforcerGhostAIServer : EnemyAI
         Escortee?.EscorteeBreakoff(setStunnedByPlayer != null ? setStunnedByPlayer : null);
     }
 
-    private void HandleGrabShotgunPhaseTwo(string recievedGhostId)
+    private void HandleGrabShotgunPhaseTwo(string receivedGhostId)
     {
         if (!IsServer) return;
-        if (ghostId != recievedGhostId) return;
+        if (ghostId != receivedGhostId) return;
         if (_heldShotgun != null) return;
-        if (!_shotgunObjectRef.TryGet(out NetworkObject networkObject)) return;
+        if (!_shotgunObjectRef.TryGet(out NetworkObject networkObject))
+        {
+            LogDebug("Could not get shotgun object reference");
+            return;
+        }
+            
         _heldShotgun = networkObject.gameObject.GetComponent<ShotgunItem>();
     }
     
-    private void HandleSpawnShotgun(string recievedGhostId, NetworkObjectReference shotgunObject, int shotgunScrapValue)
+    private void HandleSpawnShotgun(string receivedGhostId, NetworkObjectReference shotgunObject, int shotgunScrapValue)
     {
-        if (ghostId != recievedGhostId) return;
+        if (ghostId != receivedGhostId) return;
         _shotgunObjectRef = shotgunObject;
     }
 
@@ -584,15 +585,6 @@ public class EnforcerGhostAIServer : EnemyAI
         _shootTimer = shootDelay;
         
         netcodeController.InitializeConfigValuesClientRpc(ghostId);
-    }
-
-    public override void OnDestroy()
-    {
-        base.OnDestroy();
-        if (!IsServer) return;
-        
-        netcodeController.OnGrabShotgunPhaseTwo -= HandleGrabShotgunPhaseTwo;
-        netcodeController.OnSpawnShotgun -= HandleSpawnShotgun;
     }
     
     private void CalculateAgentSpeed()

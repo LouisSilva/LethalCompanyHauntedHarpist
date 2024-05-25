@@ -532,7 +532,7 @@ public class HarpGhostAIServer : EnemyAI
         
         // Ghost is dead
         netcodeController.EnterDeathStateClientRpc(_ghostId);
-        KillEnemyServerRpc(false);
+        KillEnemyClientRpc(false);
         SwitchBehaviourStateLocally((int)States.Dead);
     }
 
@@ -600,9 +600,9 @@ public class HarpGhostAIServer : EnemyAI
         netcodeController.PlayHarpMusicClientRpc(_ghostId);
     }
 
-    private void HandleChangeTargetPlayer(string recievedGhostId, int targetPlayerObjectId)
+    private void HandleChangeTargetPlayer(string receivedGhostId, int targetPlayerObjectId)
     {
-        if (!IsServer || _ghostId != recievedGhostId) return;
+        if (!IsServer || _ghostId != receivedGhostId) return;
         if (targetPlayerObjectId == -69420)
         {
             targetPlayer = null;
@@ -613,16 +613,16 @@ public class HarpGhostAIServer : EnemyAI
         targetPlayer = player;
     }
 
-    private void HandleChangeAgentMaxSpeed(string recievedGhostId, float newMaxSpeed, float newMaxSpeed2)
+    private void HandleChangeAgentMaxSpeed(string receivedGhostId, float newMaxSpeed, float newMaxSpeed2)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         agent.speed = newMaxSpeed;
         agentMaxSpeed = newMaxSpeed2;
     }
 
-    private void HandleFixAgentSpeedAfterAttack(string recievedGhostId)
+    private void HandleFixAgentSpeedAfterAttack(string receivedGhostId)
     {
-        if (_ghostId != recievedGhostId) return;
+        if (_ghostId != receivedGhostId) return;
         float newMaxSpeed, newMaxSpeed2;
         switch (currentBehaviourStateIndex)
         {
