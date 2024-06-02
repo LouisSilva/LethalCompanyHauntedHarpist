@@ -1,3 +1,7 @@
+## 1.3.14
+* Fixed the Ethereal Enforcer invincibility bug.
+* Fixed the player being able to scan the ghost plushie while holding it.
+
 ## 1.3.13
 * Fixed bug where bagpipes could not be picked up after the Phantom Piper was killed.
 * Fixed bug where the shield of the Ethereal Enforcer would still be visible after the Enforcer died.

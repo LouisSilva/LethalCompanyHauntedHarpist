@@ -488,7 +488,7 @@ public class EnforcerGhostAIServer : EnemyAI
         if (!IsServer) return;
         if (isEnemyDead) return;
         if (playerWhoHit == null) return;
-        if (_takeDamageCooldown <= 0) return;
+        if (_takeDamageCooldown > 0) return;
 
         _takeDamageCooldown = 0.03f;
         Escortee?.EscorteeBreakoff(playerWhoHit);
