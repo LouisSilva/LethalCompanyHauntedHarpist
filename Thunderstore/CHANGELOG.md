@@ -1,3 +1,6 @@
+## 1.3.15
+* Ethereal Enforcers now get told your location whenever you damage the Phantom Piper (when they are all in formation).
+
 ## 1.3.14
 * Fixed the Ethereal Enforcer invincibility bug.
 * Fixed the player being able to scan the ghost plushie while holding it.

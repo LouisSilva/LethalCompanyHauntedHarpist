@@ -532,7 +532,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 StartCoroutine(PlaySfxAfterTime(1f, (int)BagpipesGhostAIClient.AudioClipTypes.Shocked, 3, false));
             }
             
-            if (currentBehaviourStateIndex == (int)States.PlayingMusicWhileEscorted) SwitchBehaviourStateLocally((int)States.RunningToEscapeDoor);
+            if (currentBehaviourStateIndex == (int)States.PlayingMusicWhileEscorted) SwitchBehaviourStateLocally((int)States.RunningToEscapeDoor, playerWhoHit);
             return;
         }
         
@@ -548,7 +548,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         netcodeController.PlayCreatureVoiceClientRpc(_ghostId, typeIndex, clipArrayLength, interrupt);
     }
     
-    private void SwitchBehaviourStateLocally(int state)
+    private void SwitchBehaviourStateLocally(int state, PlayerControllerB targetPlayerToSet = null)
     {
         if (!IsServer) return;
         switch (state)
@@ -583,7 +583,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 openDoorSpeedMultiplier = openDoorSpeedMultiplierInEscapeMode;
                 movingTowardsTargetPlayer = false;
 
-                RetireAllEscorts();
+                RetireAllEscorts(targetPlayerToSet);
                 netcodeController.StopBagpipesMusicClientRpc(_ghostId);
                 break;
             }
