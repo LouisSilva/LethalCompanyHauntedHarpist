@@ -3,8 +3,8 @@ Assets/
 bin/
 dll/
 UnityProject/
-Thunderstore/harp.zip
-Thunderstore/icon_old.png
+Thunderstore/Haunted Harpist
+Thunderstore/Haunted_Harpist.zip
 
 .gitignore
 NuGet.Config
