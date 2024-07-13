@@ -569,6 +569,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 if (!SetDestinationToPosition(farAwayTransform.position, true))
                 {
                     _mls.LogWarning("Bagpipe ghost pathfinding has failed, as a fail-safe the ghost is now running away. This should not happen, contact the mod developer if you see this");
+                    SwitchBehaviourStateLocally((int)States.RunningToEscapeDoor);
                 }
 
                 break;

@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Collections;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using BepInEx.Logging;
 using GameNetcodeStuff;
 using UnityEngine;
 using UnityEngine.AI;
+using Logger = BepInEx.Logging.Logger;
+using Random = UnityEngine.Random;
 
 namespace LethalCompanyHarpGhost.HarpGhost;
 
-[SuppressMessage("ReSharper", "RedundantDefaultMemberInitializer")]
 public class HarpGhostAIServer : EnemyAI
 {
     private ManualLogSource _mls;
@@ -22,7 +22,7 @@ public class HarpGhostAIServer : EnemyAI
     
     [SerializeField] private float agentMaxAcceleration = 50f;
     [SerializeField] private float agentMaxSpeed = 0.3f;
-    [SerializeField] private float annoyanceLevel = 0f;
+    [SerializeField] private float annoyanceLevel;
     [SerializeField] private float annoyanceDecayRate = 0.3f;
     [SerializeField] private float annoyanceThreshold = 8f;
     [SerializeField] private float maxSearchRadius = 100f;
@@ -33,16 +33,16 @@ public class HarpGhostAIServer : EnemyAI
     [SerializeField] private bool canHearPlayers = true;
     [SerializeField] private bool friendlyFire = true;
     
-    private float _agentCurrentSpeed = 0f;
-    private float _timeSinceHittingLocalPlayer = 0f;
-    private float _hearNoiseCooldown = 0f;
+    private float _agentCurrentSpeed;
+    private float _timeSinceHittingLocalPlayer;
+    private float _hearNoiseCooldown;
     
-    private bool _hasBegunInvestigating = false;
-    private bool _inStunAnimation = false;
-    private bool _hasTransitionedMaterial = false;
+    private bool _hasBegunInvestigating;
+    private bool _inStunAnimation;
+    private bool _hasTransitionedMaterial;
     
-    private Vector3 _targetPosition = default;
-    private Vector3 _agentLastPosition = default;
+    private Vector3 _targetPosition;
+    private Vector3 _agentLastPosition;
 
     private RoundManager _roundManager;
     
@@ -73,7 +73,7 @@ public class HarpGhostAIServer : EnemyAI
         if (!IsServer) return;
         
         _ghostId = Guid.NewGuid().ToString();
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost AI {_ghostId} | Server");
+        _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost AI {_ghostId} | Server");
         
         netcodeController = GetComponent<HarpGhostNetcodeController>();
         if (netcodeController == null) _mls.LogError("Netcode Controller is null");
@@ -89,31 +89,24 @@ public class HarpGhostAIServer : EnemyAI
         if (animationController == null) _mls.LogError("Animation Controller is null");
         
         _roundManager = FindObjectOfType<RoundManager>();
-        
         netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
         
-        UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
+        Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
         InitializeConfigValues();
+        GhostUtils.AssignCorrectAINodesType(this);
         
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsDead, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, false);
-
-        StartCoroutine(IsOutsideCheck());
+        
         netcodeController.SpawnHarpServerRpc(_ghostId);
         netcodeController.GrabHarpClientRpc(_ghostId);
         StartCoroutine(DelayedHarpMusicActivate());
-
-        SpawnableEnemyWithRarity harpGhost =
-            RoundManager.Instance.currentLevel.OutsideEnemies.Find(x => enemyType.enemyName.Equals("HarpGhost"));
-        if (harpGhost != null) _mls.LogInfo($"BOBBIE: {harpGhost.rarity.ToString()}");
-        else _mls.LogInfo("ghost was NULL");
-        
         
         LogDebug("Harp Ghost Spawned");
     }
 
-    public void OnEnable()
+    private void OnEnable()
     {
         if (!IsServer) return;
         netcodeController.OnChangeTargetPlayer += HandleChangeTargetPlayer;
@@ -121,7 +114,7 @@ public class HarpGhostAIServer : EnemyAI
         netcodeController.OnFixAgentSpeedAfterAttack += HandleFixAgentSpeedAfterAttack;
     }
 
-    public void OnDisable()
+    private void OnDisable()
     {
         if (!IsServer) return;
         netcodeController.OnChangeTargetPlayer -= HandleChangeTargetPlayer;
@@ -148,19 +141,11 @@ public class HarpGhostAIServer : EnemyAI
         ExtendAttackAreaCollider();
     }
 
-    private void FixedUpdate()
-    {
-        if (!IsServer) return;
-        
-        Vector3 position = transform.position;
-        _agentCurrentSpeed = Mathf.Lerp(_agentCurrentSpeed, (position - _agentLastPosition).magnitude / Time.deltaTime, 0.75f);
-        _agentLastPosition = position;
-    }
-
     public override void Update()
     {
         base.Update();
         if (!IsServer) return;
+        
         CalculateAgentSpeed();
 
         if (stunNormalizedTimer <= 0.0 && _inStunAnimation && !isEnemyDead)
@@ -196,7 +181,6 @@ public class HarpGhostAIServer : EnemyAI
                     
                     if (_targetPosition != default) SwitchBehaviourStateLocally((int)States.InvestigatingTargetPosition);
                     else SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
-                    
                 }
 
                 break;
@@ -267,7 +251,6 @@ public class HarpGhostAIServer : EnemyAI
                     // If there is no target player last seen position, just search from where the ghost is currently at
                     searchForPlayers.searchWidth = 100f;
                     StartSearch(transform.position, searchForPlayers);
-                    break;
                 }
                 
                 break;
@@ -305,7 +288,6 @@ public class HarpGhostAIServer : EnemyAI
                 if (Vector3.Distance(transform.position, _targetPosition) <= 1)
                 {
                     SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
-                    break;
                 }
                 
                 break;
@@ -477,6 +459,11 @@ public class HarpGhostAIServer : EnemyAI
     private void CalculateAgentSpeed()
     {
         if (!IsServer) return;
+        
+        Vector3 position = transform.position;
+        _agentCurrentSpeed = Mathf.Lerp(_agentCurrentSpeed, (position - _agentLastPosition).magnitude / Time.deltaTime, 0.75f);
+        _agentLastPosition = position;
+        
         if (stunNormalizedTimer > 0)
         {
             agent.speed = 0;
@@ -781,12 +768,6 @@ public class HarpGhostAIServer : EnemyAI
         bool isRunning = _agentCurrentSpeed >= 3f;
         if (animationController.GetBool(HarpGhostAnimationController.IsRunning) != isRunning && !_inStunAnimation)
             netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, isRunning);
-    }
-
-    private IEnumerator IsOutsideCheck()
-    {
-        yield return new WaitForSeconds(2f);
-        if (isOutside) allAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
     }
     
     private void LogDebug(string msg)
