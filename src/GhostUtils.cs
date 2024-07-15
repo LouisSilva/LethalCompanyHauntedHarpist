@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using GameNetcodeStuff;
+using System;
+using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace LethalCompanyHarpGhost;
@@ -76,5 +79,20 @@ public static class GhostUtils
         }
         
         return insideNodePositions;
+    }
+    
+    public static void ChangeNetworkVar<T>(NetworkVariable<T> networkVariable, T newValue) where T : IEquatable<T>
+    {
+        if (!EqualityComparer<T>.Default.Equals(networkVariable.Value, newValue))
+        {
+            networkVariable.Value = newValue;
+        }
+    }
+    
+    public static bool IsPlayerTargetable(PlayerControllerB player)
+    {
+        if (player == null) return false;
+        return !player.isPlayerDead && player.isPlayerControlled && !player.isInHangarShipRoom &&
+               !(player.sinkingValue >= 0.7300000190734863);
     }
 }
