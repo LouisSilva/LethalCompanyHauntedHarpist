@@ -15,7 +15,7 @@ public class HarpGhostServer : EnemyAI
     private ManualLogSource _mls;
     private string _ghostId;
     
-    private enum States
+    public enum States
     {
         PlayingMusic = 0,
         SearchingForPlayers = 1,
@@ -116,6 +116,8 @@ public class HarpGhostServer : EnemyAI
         netcodeController.SpawnHarpServerRpc(_ghostId);
         netcodeController.GrabHarpClientRpc(_ghostId);
         StartCoroutine(DelayedHarpMusicActivate());
+
+        netcodeController.TargetPlayerClientId.Value = 69420;
         
         LogDebug("Harp Ghost Spawned");
     }
@@ -394,6 +396,7 @@ public class HarpGhostServer : EnemyAI
         if (currentBehaviourStateIndex == state) return;
         previousBehaviourStateIndex = currentBehaviourStateIndex;
         currentBehaviourStateIndex = state;
+        netcodeController.CurrentBehaviourStateIndex.Value = currentBehaviourStateIndex;
     }
 
     private bool CheckForPath(Vector3 position)

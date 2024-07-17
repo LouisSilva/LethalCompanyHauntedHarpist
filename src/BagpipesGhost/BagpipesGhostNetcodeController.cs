@@ -11,10 +11,10 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     private ManualLogSource _mls;
     
     #pragma warning disable 0649
-    [SerializeField] private BagpipesGhostAIServer bagpipesGhostAIServer;
+    [SerializeField] private BagpipesGhostServer bagpipesGhostServer;
     #pragma warning restore 0649
     
-    public event Action<string, int> OnDoAnimation;
+    public event Action<string, int> OnSetAnimationTrigger;
     public event Action<string, int, bool> OnChangeAnimationParameterBool;
     public event Action<string> OnInitializeConfigValues;
     public event Action<string> OnUpdateGhostIdentifier;
@@ -27,14 +27,20 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     public event Action<string> OnEnterDeathState;
     public event Action<string> OnPlayTeleportVfx;
     public event Action<string, int, int, bool> OnPlayCreatureVoice;
-    public event Action<string, bool> OnSetMeshEnabled; 
+    public event Action<string, bool> OnSetMeshEnabled;
+    
+    [HideInInspector] public readonly NetworkVariable<ulong> TargetPlayerClientId = new();
+    [HideInInspector] public readonly NetworkVariable<int> CurrentBehaviourStateIndex = new();
+    
+    [HideInInspector] public readonly NetworkVariable<bool> AnimationParamStunned = new();
+    [HideInInspector] public readonly NetworkVariable<bool> AnimationParamDead = new();
 
     private void Start()
     {
         _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Bagpipe Ghost Netcode Controller");
         
-        bagpipesGhostAIServer = GetComponent<BagpipesGhostAIServer>();
-        if (bagpipesGhostAIServer == null) _mls.LogError("bagpipesGhostAI is null");
+        bagpipesGhostServer = GetComponent<BagpipesGhostServer>();
+        if (bagpipesGhostServer == null) _mls.LogError("bagpipesGhostAI is null");
     }
 
     [ClientRpc]
@@ -64,7 +70,7 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     [ClientRpc]
     public void DoAnimationClientRpc(string receivedGhostId, int animationId)
     {
-        OnDoAnimation?.Invoke(receivedGhostId, animationId);
+        OnSetAnimationTrigger?.Invoke(receivedGhostId, animationId);
     }
 
     [ClientRpc]
@@ -102,9 +108,9 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     {
         GameObject bagpipesObject = Instantiate(
             HarpGhostPlugin.BagpipesItem.spawnPrefab,
-            bagpipesGhostAIServer.TransformPosition,
+            bagpipesGhostServer.TransformPosition,
             Quaternion.identity,
-            bagpipesGhostAIServer.RoundManagerInstance.spawnedScrapContainer);
+            bagpipesGhostServer.RoundManagerInstance.spawnedScrapContainer);
         
         AudioSource bagpipesAudioSource = bagpipesObject.GetComponentInChildren<AudioSource>();
         if (bagpipesAudioSource == null) _mls.LogError("bagpipesAudioSource is null");
@@ -115,7 +121,7 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
         int bagpipesScrapValue = UnityEngine.Random.Range(BagpipeGhostConfig.Instance.BagpipesMinValue.Value, BagpipeGhostConfig.Instance.BagpipesMaxValue.Value);
         bagpipesObject.GetComponent<GrabbableObject>().fallTime = 0f;
         bagpipesObject.GetComponent<GrabbableObject>().SetScrapValue(bagpipesScrapValue);
-        bagpipesGhostAIServer.RoundManagerInstance.totalScrapValueInLevel += bagpipesScrapValue;
+        bagpipesGhostServer.RoundManagerInstance.totalScrapValueInLevel += bagpipesScrapValue;
 
         bagpipesObject.GetComponent<NetworkObject>().Spawn();
         SpawnBagpipesClientRpc(receivedGhostId, bagpipesObject, bagpipesScrapValue);

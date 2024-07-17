@@ -108,9 +108,13 @@ public class HarpGhostClient : MonoBehaviour
     }
 
     private void LateUpdate()
-    { 
-        bool isRunning = _agentCurrentSpeed >= 3f;
-        animator.SetBool(Running, isRunning);
+    {
+        if (_currentBehaviourStateIndex is not ((int)HarpGhostServer.States.PlayingMusic
+            or (int)HarpGhostServer.States.Dead))
+        {
+            bool isRunning = _agentCurrentSpeed >= 3f;
+            animator.SetBool(Running, isRunning);
+        }
     }
 
     private void HandlePlayAudioClipType(string receivedGhostId, AudioClipTypes audioClipType, int clipIndex, bool interrupt = false)
