@@ -37,13 +37,10 @@ public class BagpipesGhostAIClient : MonoBehaviour
     public AudioClip dieSfx;
     public AudioClip tornadoTeleportSfx;
     
-    public static readonly int IsRunning = Animator.StringToHash("isRunning");
-    public static readonly int IsStunned = Animator.StringToHash("isStunned");
-    public static readonly int IsDead = Animator.StringToHash("isDead");
-    public static readonly int Death = Animator.StringToHash("death");
-    public static readonly int Stunned = Animator.StringToHash("stunned");
+    public static readonly int IsRunning = Animator.StringToHash("Running");
+    public static readonly int IsStunned = Animator.StringToHash("Stunned");
+    public static readonly int IsDead = Animator.StringToHash("Dead");
     public static readonly int Recover = Animator.StringToHash("recover");
-    public static readonly int Attack = Animator.StringToHash("attack");
     
     #pragma warning disable 0649
     [Header("Audio")] [Space(5f)]
@@ -244,7 +241,6 @@ public class BagpipesGhostAIClient : MonoBehaviour
     {
         if (_ghostId != receivedGhostId) return;
         HandleDropInstrument(_ghostId, transform.position);
-        SetTrigger(_ghostId, Death);
         SetBool(_ghostId, IsDead, true);
         SetBool(_ghostId, IsRunning, false);
         SetBool(_ghostId, IsStunned, false);

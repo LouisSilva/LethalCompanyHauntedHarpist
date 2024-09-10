@@ -1,12 +1,5 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.Serialization.Formatters.Binary;
-using BepInEx;
+﻿using BepInEx;
+using BepInEx.Bootstrap;
 using BepInEx.Logging;
 using GameNetcodeStuff;
 using HarmonyLib;
@@ -15,12 +8,20 @@ using LethalCompanyHarpGhost.EnforcerGhost;
 using LethalCompanyHarpGhost.HarpGhost;
 using LethalCompanyHarpGhost.Items;
 using LethalLib;
-using UnityEngine;
 using LethalLib.Modules;
 using LobbyCompatibility.Enums;
 using LobbyCompatibility.Features;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.Serialization.Formatters.Binary;
 using Unity.Collections;
 using Unity.Netcode;
+using UnityEngine;
 using static LethalLib.Modules.Levels;
 using static LethalLib.Modules.Enemies;
 using static LethalLib.Modules.Items;
@@ -37,7 +38,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
 {
     public const string ModGuid = $"LCM_HauntedHarpist|{ModVersion}";
     private const string ModName = "Lethal Company Haunted Harpist Mod";
-    private const string ModVersion = "1.3.15";
+    private const string ModVersion = "1.3.16";
 
     private readonly Harmony _harmony = new(ModGuid);
         
@@ -139,7 +140,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
     {
         EnforcerGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("EnforcerGhost");
         EnforcerGhostEnemyType.canDie = EnforcerGhostConfig.Instance.EnforcerGhostIsKillable.Value;
-        // EnforcerGhostEnemyType.PowerLevel = EnforcerGhostConfig.Instance.EnforcerGhostPowerLevel.Value;
+        EnforcerGhostEnemyType.PowerLevel = EnforcerGhostConfig.Instance.EnforcerGhostPowerLevel.Value;
         EnforcerGhostEnemyType.canBeStunned = EnforcerGhostConfig.Instance.EnforcerGhostIsStunnable.Value; 
         EnforcerGhostEnemyType.MaxCount = EnforcerGhostConfig.Instance.MaxAmountOfEnforcerGhosts.Value;
         EnforcerGhostEnemyType.stunTimeMultiplier = EnforcerGhostConfig.Instance.EnforcerGhostStunTimeMultiplier.Value;
@@ -150,7 +151,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
             
         NetworkPrefabs.RegisterNetworkPrefab(EnforcerGhostEnemyType.enemyPrefab);
         Utilities.FixMixerGroups(EnforcerGhostEnemyType.enemyPrefab);
-        RegisterEnemyWithConfig(BagpipeGhostConfig.Instance.BagpipeGhostEnabled.Value, EnforcerGhostConfig.Instance.EnforcerGhostSpawnRarity.Value, EnforcerGhostEnemyType, enforcerGhostTerminalNode, enforcerGhostTerminalKeyword);
+        RegisterEnemyWithConfig(EnforcerGhostConfig.Instance.EnforcerGhostEnabled.Value, EnforcerGhostConfig.Instance.EnforcerGhostSpawnRarity.Value, EnforcerGhostEnemyType, enforcerGhostTerminalNode, enforcerGhostTerminalKeyword);
 
         CustomShotgunAnimator = Assets.MainAssetBundle.LoadAsset<RuntimeAnimatorController>("AnimatorShotgun");
         if (CustomShotgunAnimator == null) _mls.LogError("custom shotgun animator is null");
@@ -158,12 +159,6 @@ public class HarpGhostPlugin : BaseUnityPlugin
 
     private void SetupHarp()
     {
-        // string[] assetNames = Assets.MainAssetBundle.GetAllAssetNames();
-        // foreach (string assetName in assetNames)
-        // {
-        //     mls.LogInfo("Asset in bundle: " + assetName);
-        // }
-            
         HarpItem = Assets.MainAssetBundle.LoadAsset<Item>("HarpItemData");
         if (HarpItem == null)
         {
@@ -265,39 +260,54 @@ public class HarpGhostPlugin : BaseUnityPlugin
             return _instrumentAudioClips[instrumentName][index];
         return null;
     }
-    
-    private void RegisterEnemyWithConfig(bool enemyEnabled, string configMoonRarity, EnemyType enemy, TerminalNode terminalNode, TerminalKeyword terminalKeyword) {
-        if (enemyEnabled) { 
+
+    private static void RegisterEnemyWithConfig(bool enemyEnabled, string configMoonRarity, EnemyType enemy, TerminalNode terminalNode, TerminalKeyword terminalKeyword) 
+    {
+        if (enemyEnabled) 
+        { 
             (Dictionary<LevelTypes, int> spawnRateByLevelType, Dictionary<string, int> spawnRateByCustomLevelType) = ConfigParsing(configMoonRarity);
             RegisterEnemy(enemy, spawnRateByLevelType, spawnRateByCustomLevelType, terminalNode, terminalKeyword);
-                
-        } else {
+        } 
+        else 
+        {
             RegisterEnemy(enemy, 0, LevelTypes.All, terminalNode, terminalKeyword);
         }
     }
-
-    // Got from the giant specimens mod
-    private static (Dictionary<LevelTypes, int> spawnRateByLevelType, Dictionary<string, int> spawnRateByCustomLevelType) ConfigParsing(string configMoonRarity) {
+    
+    private static (Dictionary<LevelTypes, int> spawnRateByLevelType, Dictionary<string, int> spawnRateByCustomLevelType) ConfigParsing(string configMoonRarity) 
+    {
         Dictionary<LevelTypes, int> spawnRateByLevelType = new();
         Dictionary<string, int> spawnRateByCustomLevelType = new();
-        foreach (string entry in configMoonRarity.Split(',').Select(s => s.Trim())) {
+        foreach (string entry in configMoonRarity.Split(',').Select(s => s.Trim())) 
+        {
             string[] entryParts = entry.Split(':');
 
             if (entryParts.Length != 2) continue;
             string name = entryParts[0];
             if (!int.TryParse(entryParts[1], out int spawnrate)) continue;
 
-            if (Enum.TryParse(name, true, out LevelTypes levelType)) {
+            if (Enum.TryParse(name, true, out LevelTypes levelType)) 
+            {
                 spawnRateByLevelType[levelType] = spawnrate;
-                _mls.LogDebug($"Registered spawn rate for level type {levelType} to {spawnrate}");
-            } else {
-                spawnRateByCustomLevelType[name] = spawnrate;
-                _mls.LogDebug($"Registered spawn rate for custom level type {name} to {spawnrate}");
+            } 
+            else 
+            {
+                // Try appending "Level" to the name and re-attempt parsing
+                string modifiedName = name + "Level";
+                if (Enum.TryParse(modifiedName, true, out levelType))
+                {
+                    spawnRateByLevelType[levelType] = spawnrate;
+                }
+                else
+                {
+                    spawnRateByCustomLevelType[name] = spawnrate;
+                }
             }
         }
+        
         return (spawnRateByLevelType, spawnRateByCustomLevelType);
     }
-
+    
     private static void InitializeNetworkStuff()
     {
         IEnumerable<Type> types;
@@ -499,7 +509,7 @@ internal static class Assets
 
 public static class LobbyCompatibilityChecker 
 {
-    public static bool Enabled => BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("BMX.LobbyCompatibility");
+    public static bool Enabled => Chainloader.PluginInfos.ContainsKey("BMX.LobbyCompatibility");
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     public static void Init() {

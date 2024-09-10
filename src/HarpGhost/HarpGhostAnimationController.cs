@@ -16,13 +16,10 @@ public class HarpGhostAnimationController : MonoBehaviour
     [SerializeField] private HarpGhostAudioManager audioManager;
     #pragma warning restore 0649
     
-    public static readonly int IsRunning = Animator.StringToHash("isRunning");
-    public static readonly int IsStunned = Animator.StringToHash("isStunned");
-    public static readonly int IsDead = Animator.StringToHash("isDead");
-    public static readonly int Death = Animator.StringToHash("death");
-    public static readonly int Stunned = Animator.StringToHash("stunned");
-    public static readonly int Recover = Animator.StringToHash("recover");
-    public static readonly int Attack = Animator.StringToHash("attack");
+    public static readonly int IsRunning = Animator.StringToHash("Running");
+    public static readonly int IsStunned = Animator.StringToHash("Stunned");
+    public static readonly int IsDead = Animator.StringToHash("Dead");
+    public static readonly int Attack = Animator.StringToHash("Attack");
 
     private int _attackDamage = 35;
 
@@ -67,7 +64,6 @@ public class HarpGhostAnimationController : MonoBehaviour
     private void HandleOnEnterDeathState(string receivedGhostId)
     {
         if (_ghostId != receivedGhostId) return;
-        SetTrigger(_ghostId, Death);
         SetBool(_ghostId, IsDead, true);
         SetBool(_ghostId, IsRunning, false);
         SetBool(_ghostId, IsStunned, false);

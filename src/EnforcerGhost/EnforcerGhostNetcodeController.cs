@@ -92,13 +92,13 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
             HarpGhostPlugin.ShotgunPrefab,
             enforcerGhostAIServer.TransformPosition,
             Quaternion.identity,
-            enforcerGhostAIServer.RoundManagerInstance.spawnedScrapContainer
+            EnforcerGhostAIServer.RoundManagerInstance.spawnedScrapContainer
             );
 
         int shotgunScrapValue = UnityEngine.Random.Range(EnforcerGhostConfig.Instance.ShotgunMinValue.Value, EnforcerGhostConfig.Instance.ShotgunMaxValue.Value);
         shotgunObject.GetComponent<GrabbableObject>().fallTime = 0f;
         shotgunObject.GetComponent<GrabbableObject>().SetScrapValue(shotgunScrapValue);
-        enforcerGhostAIServer.RoundManagerInstance.totalScrapValueInLevel += shotgunScrapValue;
+        EnforcerGhostAIServer.RoundManagerInstance.totalScrapValueInLevel += shotgunScrapValue;
         
         shotgunObject.GetComponent<NetworkObject>().Spawn();
         SpawnShotgunClientRpc(receivedGhostId, shotgunObject, shotgunScrapValue);

@@ -22,14 +22,13 @@ public class HarpGhostAIClient : MonoBehaviour
 
     private PlayerControllerB _targetPlayer;
     
-    #pragma warning disable 0649
+#pragma warning disable 0649
     [SerializeField] private Transform grabTarget;
     [SerializeField] private Transform eye;
     
     [SerializeField] private HarpGhostNetcodeController netcodeController;
     
-    [Header("Materials and Renderers")]
-    [Space(3f)]
+    [Header("Materials and Renderers")] [Space(3f)]
     [SerializeField] private bool enableGhostAngryModel = true;
     [SerializeField] private Renderer rendererLeftEye;
     [SerializeField] private Renderer rendererRightEye;
@@ -40,7 +39,7 @@ public class HarpGhostAIClient : MonoBehaviour
     private float _transitioningMaterialTimer = 0f;
     
     private static readonly int AlternativeColourFadeInTimer = Shader.PropertyToID("_AlternativeColourFadeInTimer");
-    #pragma warning restore 0649
+#pragma warning restore 0649
     
 
     private void OnEnable()

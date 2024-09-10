@@ -103,12 +103,6 @@ public class HarpGhostAIServer : EnemyAI
         netcodeController.SpawnHarpServerRpc(_ghostId);
         netcodeController.GrabHarpClientRpc(_ghostId);
         StartCoroutine(DelayedHarpMusicActivate());
-
-        SpawnableEnemyWithRarity harpGhost =
-            RoundManager.Instance.currentLevel.OutsideEnemies.Find(x => enemyType.enemyName.Equals("HarpGhost"));
-        if (harpGhost != null) _mls.LogInfo($"BOBBIE: {harpGhost.rarity.ToString()}");
-        else _mls.LogInfo("ghost was NULL");
-        
         
         LogDebug("Harp Ghost Spawned");
     }
@@ -165,9 +159,8 @@ public class HarpGhostAIServer : EnemyAI
 
         if (stunNormalizedTimer <= 0.0 && _inStunAnimation && !isEnemyDead)
         {
-            netcodeController.DoAnimationClientRpc(_ghostId, HarpGhostAnimationController.Recover);
-            _inStunAnimation = false;
             netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, false);
+            _inStunAnimation = false;
         }
         
         if (StartOfRound.Instance.allPlayersDead)
@@ -321,7 +314,7 @@ public class HarpGhostAIServer : EnemyAI
                     layerMask: StartOfRound.Instance.collidersAndRoomMaskAndDefault);
 
                 // Check if our target is in LOS
-                bool ourTargetFound = false;
+                bool ourTargetFound;
                 if (playersInLineOfSight is { Length: > 0 })
                 {
                     ourTargetFound = targetPlayer != null && playersInLineOfSight.Any(playerControllerB => playerControllerB == targetPlayer && playerControllerB != null);
@@ -505,28 +498,15 @@ public class HarpGhostAIServer : EnemyAI
         base.HitEnemy(force, playerWhoHit, playHitSFX, hitId);
         if (!IsServer) return;
         if (isEnemyDead) return;
-        if (!friendlyFire)
-        {
-            // Two seperate ifs because comparisons to null are expensive, so only do so if necessary
-            if (playerWhoHit == null) return;
-        }
+        if (!friendlyFire || playerWhoHit == null) return;
         
         enemyHP -= force;
         if (enemyHP > 0)
         {
             TurnGhostEyesRed();
             netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Damage, audioManager.damageSfx.Length);
-            if (playerWhoHit != null)
-            {
-                netcodeController.ChangeTargetPlayerClientRpc(_ghostId, (int)playerWhoHit.playerClientId);
-                SwitchBehaviourStateLocally((int)States.ChasingTargetPlayer);
-            }
-
-            else
-            {
-                if (currentBehaviourStateIndex == (int)States.PlayingMusic) SwitchBehaviourStateLocally((int)States.SearchingForPlayers);
-            }
-            
+            netcodeController.ChangeTargetPlayerClientRpc(_ghostId, (int)playerWhoHit.playerClientId);
+            SwitchBehaviourStateLocally((int)States.ChasingTargetPlayer);
             return;
         }
         
@@ -548,7 +528,7 @@ public class HarpGhostAIServer : EnemyAI
         netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Stun, audioManager.stunSfx.Length);
         netcodeController.DropHarpClientRpc(_ghostId, transform.position);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, true);
-        netcodeController.DoAnimationClientRpc(_ghostId, HarpGhostAnimationController.Stunned);
+        netcodeController.DoAnimationClientRpc(_ghostId, HarpGhostAnimationController.IsStunned);
         _inStunAnimation = true;
 
         if (setStunnedByPlayer != null)
@@ -556,7 +536,6 @@ public class HarpGhostAIServer : EnemyAI
             netcodeController.ChangeTargetPlayerClientRpc(_ghostId, (int)setStunnedByPlayer.playerClientId);
             SwitchBehaviourStateLocally((int)States.ChasingTargetPlayer);
         }
-
         else
         {
             if (currentBehaviourStateIndex == (int)States.PlayingMusic) SwitchBehaviourStateLocally((int)States.SearchingForPlayers);

@@ -10,9 +10,9 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
 {
     private ManualLogSource _mls;
     
-    #pragma warning disable 0649
+#pragma warning disable 0649
     [SerializeField] private BagpipesGhostAIServer bagpipesGhostAIServer;
-    #pragma warning restore 0649
+#pragma warning restore 0649
     
     public event Action<string, int> OnDoAnimation;
     public event Action<string, int, bool> OnChangeAnimationParameterBool;
@@ -104,7 +104,7 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
             HarpGhostPlugin.BagpipesItem.spawnPrefab,
             bagpipesGhostAIServer.TransformPosition,
             Quaternion.identity,
-            bagpipesGhostAIServer.RoundManagerInstance.spawnedScrapContainer);
+            BagpipesGhostAIServer.RoundManagerInstance.spawnedScrapContainer);
         
         AudioSource bagpipesAudioSource = bagpipesObject.GetComponentInChildren<AudioSource>();
         if (bagpipesAudioSource == null) _mls.LogError("bagpipesAudioSource is null");
@@ -115,7 +115,7 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
         int bagpipesScrapValue = UnityEngine.Random.Range(BagpipeGhostConfig.Instance.BagpipesMinValue.Value, BagpipeGhostConfig.Instance.BagpipesMaxValue.Value);
         bagpipesObject.GetComponent<GrabbableObject>().fallTime = 0f;
         bagpipesObject.GetComponent<GrabbableObject>().SetScrapValue(bagpipesScrapValue);
-        bagpipesGhostAIServer.RoundManagerInstance.totalScrapValueInLevel += bagpipesScrapValue;
+        BagpipesGhostAIServer.RoundManagerInstance.totalScrapValueInLevel += bagpipesScrapValue;
 
         bagpipesObject.GetComponent<NetworkObject>().Spawn();
         SpawnBagpipesClientRpc(receivedGhostId, bagpipesObject, bagpipesScrapValue);

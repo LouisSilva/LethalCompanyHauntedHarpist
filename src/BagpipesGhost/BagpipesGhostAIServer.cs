@@ -224,12 +224,11 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         {
             case (int)States.PlayingMusicWhileEscorted:
             {
-
                 // Check if the ghost has reached its destination
                 if (Vector3.Distance(transform.position, targetNode.position) <= 5)
                 {
                     // Pick next node to go to
-                    int maxOffset = Mathf.Max(1, Mathf.FloorToInt(allAINodes.Length * 0.1f));
+                    int maxOffset = Mathf.Max(1, Mathf.FloorToInt(allAINodes.Length * 0.3f));
                     Transform farAwayTransform = ChooseFarthestNodeFromPosition(transform.position, offset: Random.Range(0, maxOffset));
                     targetNode = farAwayTransform;
                     if (!SetDestinationToPosition(farAwayTransform.position, true))
@@ -409,8 +408,8 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
             }
             else // single file line
             {
-                float closenessToEscorteeFactor = 0.5f;
-                float increasedGapBetweenEscortersFactor = 2f;
+                const float closenessToEscorteeFactor = 0.5f;
+                const float increasedGapBetweenEscortersFactor = 2f;
                 
                 int targetIndex = Mathf.Max(0, Mathf.RoundToInt(_escortAgentPathPoints.Count - 1 - i * increasedGapBetweenEscortersFactor));
                 targetPosition = _escortAgentPathPoints[Mathf.Clamp(targetIndex, 0, _escortAgentPathPoints.Count - 1)];
@@ -500,7 +499,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Stun, 2);
         // netcodeController.DropBagpipesClientRpc(_ghostId, transform.position);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, true);
-        netcodeController.DoAnimationClientRpc(_ghostId, BagpipesGhostAIClient.Stunned);
+        netcodeController.DoAnimationClientRpc(_ghostId, BagpipesGhostAIClient.IsStunned);
         _inStunAnimation = true;
 
         if (currentBehaviourStateIndex != (int)States.PlayingMusicWhileEscorted) return;
@@ -695,5 +694,5 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     }
     
     public Vector3 TransformPosition => transform.position;
-    public RoundManager RoundManagerInstance => RoundManager.Instance;
+    public static RoundManager RoundManagerInstance => RoundManager.Instance;
 }

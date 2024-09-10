@@ -13,10 +13,6 @@ Although luckily for him, he is always escorted by his own Ethereal Enforcers.
 
 # FAQ
 
-**I never see the ghosts, where do they spawn?**
-
-By default, they all spawn only on Dine, with the Haunted Harpist having an "uncommon" spawn rate and the Phantom Piper having a "rare" spawn rate.
-
 <br></br>
 **Can I configure the spawn values?**
 
@@ -30,7 +26,7 @@ The Phantom Piper and his escorts are supposed to be a rare enemy in the game, w
 Even though they have a shield and 6 HP (configurable), they have big weaknesses which can be easily exploited (some are obvious, some of them aren't so).
 
 <br></br>
-**Does this mod support v50?**
+**Does this mod support v64?**
 
 Yes
 
@@ -38,12 +34,6 @@ Yes
 **I found a bug, where can I report it?**
 
 I really appreciate bug reports, so feel free to report them in the Lethal Company Modding Discord or create a new issue on my GitHub page
-
-# Future Update: Version 2
-
-Version 2 of the Haunted Harpist will be a complete rework of the mod. It will add several more ghosts, mini-boss ghosts and a main boss ghost.
-
-These ghosts will also be the main entities that you will see in the **WIP** Luigi's Mansion dungeon interior. The main idea is that these ghosts will be able to interact with their environment (the Luigi's Mansion interior), creating a better and more immersive experience.
 
 # Acknowledgements
 
