@@ -1,9 +1,11 @@
 ﻿using HarmonyLib;
+using System.Diagnostics.CodeAnalysis;
 using UnityEngine;
 
 namespace LethalCompanyHarpGhost.EnforcerGhost;
 
 [HarmonyPatch(typeof(ShotgunItem))]
+[SuppressMessage("ReSharper", "InconsistentNaming")]
 internal static class ShotgunPatches
 {
     internal static RuntimeAnimatorController DefaultShotgunAnimationController;
@@ -17,6 +19,7 @@ internal static class ShotgunPatches
 }
 
 [HarmonyPatch(typeof(GrabbableObject))]
+[SuppressMessage("ReSharper", "InconsistentNaming")]
 internal static class GrabbableObjectPatches
 {
     [HarmonyPatch(nameof(ShotgunItem.LateUpdate))]

@@ -25,17 +25,12 @@ public class EnforcerGhostAIClient : MonoBehaviour
         ShieldBreak,
     }
 
-    public static readonly int IsRunning = Animator.StringToHash("isRunning");
-    public static readonly int IsStunned = Animator.StringToHash("isStunned");
-    public static readonly int IsDead = Animator.StringToHash("isDead");
-    public static readonly int IsHoldingShotgun = Animator.StringToHash("isHoldingShotgun");
-    public static readonly int Death = Animator.StringToHash("death");
-    public static readonly int Stunned = Animator.StringToHash("stunned");
-    public static readonly int Recover = Animator.StringToHash("recover");
-    public static readonly int Attack = Animator.StringToHash("attack");
-    public static readonly int PickupShotgun = Animator.StringToHash("pickupShotgun");
-    public static readonly int ReloadShotgun = Animator.StringToHash("reloadShotgun");
-    private static readonly int Reload = Animator.StringToHash("reload");
+    public static readonly int IsRunning = Animator.StringToHash("Running");
+    public static readonly int IsStunned = Animator.StringToHash("Stunned");
+    public static readonly int IsDead = Animator.StringToHash("Dead");
+    public static readonly int IsHoldingShotgun = Animator.StringToHash("HoldingShotgun");
+    public static readonly int PickupShotgun = Animator.StringToHash("PickupShotgun");
+    public static readonly int ReloadShotgun = Animator.StringToHash("ReloadShotgun");
     
 #pragma warning disable 0649
     [Header("Transforms")] [Space(3f)]
@@ -383,7 +378,6 @@ public class EnforcerGhostAIClient : MonoBehaviour
     {
         if (_ghostId != receivedGhostId) return;
         
-        SetTrigger(_ghostId, Death);
         SetBool(_ghostId, IsDead, true);
         SetBool(_ghostId, IsRunning, false);
         SetBool(_ghostId, IsStunned, false);
@@ -409,33 +403,33 @@ public class EnforcerGhostAIClient : MonoBehaviour
         Destroy(this);
     }
     
-    private void OnAnimationEventStartReloadShotgun()
+    public void OnAnimationEventStartReloadShotgun()
     {
         netcodeController.DoShotgunAnimationServerRpc(_ghostId, "reload");
         PlaySfx(shotgunDropShellSfx);
     }
 
-    private void OnAnimationEventPickupShotgun()
+    public void OnAnimationEventPickupShotgun()
     {
         netcodeController.GrabShotgunPhaseTwoServerRpc(_ghostId);
     }
 
-    private void OnAnimationEventPlayShotgunOpenBarrelAudio()
+    public void OnAnimationEventPlayShotgunOpenBarrelAudio()
     {
         PlaySfx(shotgunOpenBarrelSfx);
     }
 
-    private void OnAnimationEventPlayShotgunReloadAudio()
+    public void OnAnimationEventPlayShotgunReloadAudio()
     {
         PlaySfx(shotgunReloadSfx);
     }
 
-    private void OnAnimationEventPlayShotgunCloseBarrelAudio()
+    public void OnAnimationEventPlayShotgunCloseBarrelAudio()
     {
         PlaySfx(shotgunCloseBarrelSfx);
     }
 
-    private void OnAnimationEventPlayShotgunGrabShellAudio()
+    public void OnAnimationEventPlayShotgunGrabShellAudio()
     {
         PlaySfx(shotgunGrabShellSfx);
     }

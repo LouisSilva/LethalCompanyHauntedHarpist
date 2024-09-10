@@ -1,3 +1,6 @@
+## 1.3.16
+* Made the mod compatible with the newest version.
+
 ## 1.3.15
 * Ethereal Enforcers now get told your location whenever you damage the Phantom Piper (when they are all in formation).
 

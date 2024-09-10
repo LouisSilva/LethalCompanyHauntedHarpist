@@ -46,13 +46,12 @@ public class EnforcerGhostAIServer : EnemyAI
     private ShotgunItem _heldShotgun;
     private NetworkObjectReference _shotgunObjectRef;
     
-    [Header("Controllers")]
-    [Space(5f)]
-    #pragma warning disable 0649
+    [Header("Controllers")] [Space(5f)]
+#pragma warning disable 0649
     [SerializeField] private EnforcerGhostNetcodeController netcodeController;
 
     public IEscortee Escortee { private get; set; }
-    #pragma warning restore 0649
+#pragma warning restore 0649
 
     public enum States
     {
@@ -79,8 +78,8 @@ public class EnforcerGhostAIServer : EnemyAI
         agent.enabled = true;
         
         netcodeController.SyncGhostIdentifierClientRpc(ghostId);
-        
-        UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
+
+        UnityEngine.Random.InitState(StartOfRound.Instance.randomMapSeed + ghostId.GetHashCode() - thisEnemyIndex);
         InitializeConfigValues();
         netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAIClient.IsDead, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, EnforcerGhostAIClient.IsStunned, false);
@@ -89,7 +88,7 @@ public class EnforcerGhostAIServer : EnemyAI
 
         StartCoroutine(SpawnAnimation());
         
-        _mls.LogInfo("Enforcer Ghost Spawned");
+        LogDebug("Enforcer Ghost Spawned");
     }
 
     private void OnEnable()
@@ -621,5 +620,5 @@ public class EnforcerGhostAIServer : EnemyAI
     }
     
     public Vector3 TransformPosition => transform.position;
-    public RoundManager RoundManagerInstance => RoundManager.Instance;
+    public static RoundManager RoundManagerInstance => RoundManager.Instance;
 }

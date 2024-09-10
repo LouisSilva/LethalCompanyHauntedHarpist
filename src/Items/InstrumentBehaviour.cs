@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using BepInEx.Logging;
-using JetBrains.Annotations;
 using LethalCompanyHarpGhost.BagpipesGhost;
 using LethalCompanyHarpGhost.HarpGhost;
 using Unity.Netcode;
@@ -139,7 +138,7 @@ public class InstrumentBehaviour : PhysicsProp
         _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Instrument {_instrumentId}");
         
         _roundManager = FindObjectOfType<RoundManager>();
-        Random.InitState(FindObjectOfType<StartOfRound>().randomMapSeed + _instrumentId.GetHashCode());
+        Random.InitState(FindObjectOfType<StartOfRound>().randomMapSeed - 10);
         
         if (!IsOwner) return;
         
@@ -209,6 +208,14 @@ public class InstrumentBehaviour : PhysicsProp
         radarIcon.position = transform.position;
     }
     
+    private void LogDebug(string msg)
+    {
+        #if DEBUG
+        if (!IsOwner) return;
+        _mls.LogInfo(msg);
+        #endif
+    }
+    
     public override void ItemActivate(bool used, bool buttonDown = true)
     {
         base.ItemActivate(used, buttonDown);
@@ -243,7 +250,6 @@ public class InstrumentBehaviour : PhysicsProp
         _isPlayingMusic = true;
     }
 
-    [UsedImplicitly]
     private void StartMusic()
     {
         StartMusic(Random.Range(0, instrumentAudioClips.Length));
@@ -256,18 +262,18 @@ public class InstrumentBehaviour : PhysicsProp
         _isPlayingMusic = false;
     }
 
-    // public override void ItemInteractLeftRight(bool right)
-    // {
-    //     base.ItemInteractLeftRight(right);
-    //     if (!right || (playerAltInstrumentOffset.positionOffset == default &&
-    //                    playerInstrumentOffset.rotationOffset == default))
-    //     {
-    //         return;
-    //     }
-    //     
-    //     // Set alternative player offsets if it exists
-    //     _isInAltPlayerOffset = !_isInAltPlayerOffset;
-    // }
+    public override void ItemInteractLeftRight(bool right)
+    {
+        base.ItemInteractLeftRight(right);
+        if (!right || (playerAltInstrumentOffset.positionOffset == default &&
+                       playerInstrumentOffset.rotationOffset == default))
+        {
+            return;
+        }
+        
+        // Set alternative player offsets if it exists
+        _isInAltPlayerOffset = !_isInAltPlayerOffset;
+    }
     
     private IEnumerator MusicPitchDown()
     {
@@ -345,13 +351,5 @@ public class InstrumentBehaviour : PhysicsProp
     private void StartMusicClientRpc(int clipNumber)
     {
         StartMusic(clipNumber);
-    }
-    
-    private void LogDebug(string msg)
-    {
-#if DEBUG
-        if (!IsOwner) return;
-        _mls.LogInfo(msg);
-#endif
     }
 }

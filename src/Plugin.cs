@@ -23,6 +23,7 @@ using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using static LethalLib.Modules.Levels;
+using static LethalLib.Modules.Enemies;
 using static LethalLib.Modules.Items;
 using NetworkPrefabs = LethalLib.Modules.NetworkPrefabs;
 
@@ -31,25 +32,27 @@ namespace LethalCompanyHarpGhost;
 [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
 [BepInDependency(Plugin.ModGUID)]
 [BepInDependency("linkoid-DissonanceLagFix-1.0.0", BepInDependency.DependencyFlags.SoftDependency)]
-[BepInDependency("mattymatty-AsyncLoggers-1.6.3", BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency("mattymatty-AsyncLoggers-1.6.2", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("BMX.LobbyCompatibility", BepInDependency.DependencyFlags.SoftDependency)]
 public class HarpGhostPlugin : BaseUnityPlugin
 {
     public const string ModGuid = $"LCM_HauntedHarpist|{ModVersion}";
     private const string ModName = "Lethal Company Haunted Harpist Mod";
-    private const string ModVersion = "1.4.0";
+    private const string ModVersion = "1.3.16";
 
     private readonly Harmony _harmony = new(ModGuid);
-    
-    private static readonly ManualLogSource Mls = BepInEx.Logging.Logger.CreateLogSource(ModGuid);
+        
+    // ReSharper disable once InconsistentNaming
+    private static readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource(ModGuid);
 
     private static HarpGhostPlugin _instance;
-    
-    private static readonly Dictionary<string, List<AudioClip>> InstrumentAudioClips = new();
+
+    // ReSharper disable once InconsistentNaming
+    private static readonly Dictionary<string, List<AudioClip>> _instrumentAudioClips = new();
         
-    public static HarpGhostConfig HarpGhostConfigInstance { get; internal set; }
-    public static BagpipeGhostConfig BagpipeGhostConfigInstance { get; internal set; }
-    public static EnforcerGhostConfig EnforcerGhostConfigInstance { get; internal set; }
+    public static HarpGhostConfig HarpGhostConfig { get; internal set; }
+    public static BagpipeGhostConfig BagpipeGhostConfig { get; internal set; }
+    public static EnforcerGhostConfig EnforcerGhostConfig { get; internal set; }
 
     private static EnemyType _harpGhostEnemyType;
     private static EnemyType _bagpipesGhostEnemyType;
@@ -73,14 +76,14 @@ public class HarpGhostPlugin : BaseUnityPlugin
         Assets.PopulateAssetsFromFile();
         if (Assets.MainAssetBundle == null)
         {
-            Mls.LogError("MainAssetBundle is null");
+            _mls.LogError("MainAssetBundle is null");
             return;
         }
             
         _harmony.PatchAll();
-        HarpGhostConfigInstance = new HarpGhostConfig(Config);
-        BagpipeGhostConfigInstance = new BagpipeGhostConfig(Config);
-        EnforcerGhostConfigInstance = new EnforcerGhostConfig(Config);
+        HarpGhostConfig = new HarpGhostConfig(Config);
+        BagpipeGhostConfig = new BagpipeGhostConfig(Config);
+        EnforcerGhostConfig = new EnforcerGhostConfig(Config);
             
         SetupHarpGhost();
         SetupBagpipesGhost();
@@ -93,14 +96,14 @@ public class HarpGhostPlugin : BaseUnityPlugin
             
         _harmony.PatchAll();
         _harmony.PatchAll(typeof(HarpGhostPlugin));
-        Mls.LogInfo($"Plugin {ModName} is loaded!");
+        _mls.LogInfo($"Plugin {ModName} is loaded!");
     }
 
     private void SetupHarpGhost()
     {
         _harpGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("HarpGhost");
         _harpGhostEnemyType.canDie = HarpGhostConfig.Instance.HarpGhostIsKillable.Value;
-        _harpGhostEnemyType.PowerLevel = HarpGhostConfig.Instance.HarpGhostPowerLevel.Value;
+        //_harpGhostEnemyType.PowerLevel = HarpGhostConfig.Instance.HarpGhostPowerLevel.Value;
         _harpGhostEnemyType.canBeStunned = HarpGhostConfig.Instance.HarpGhostIsStunnable.Value;
         _harpGhostEnemyType.MaxCount = HarpGhostConfig.Instance.MaxAmountOfHarpGhosts.Value;
         _harpGhostEnemyType.stunTimeMultiplier = HarpGhostConfig.Instance.HarpGhostStunTimeMultiplier.Value;
@@ -137,7 +140,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
     {
         EnforcerGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("EnforcerGhost");
         EnforcerGhostEnemyType.canDie = EnforcerGhostConfig.Instance.EnforcerGhostIsKillable.Value;
-        // EnforcerGhostEnemyType.PowerLevel = EnforcerGhostConfig.Instance.EnforcerGhostPowerLevel.Value;
+        EnforcerGhostEnemyType.PowerLevel = EnforcerGhostConfig.Instance.EnforcerGhostPowerLevel.Value;
         EnforcerGhostEnemyType.canBeStunned = EnforcerGhostConfig.Instance.EnforcerGhostIsStunnable.Value; 
         EnforcerGhostEnemyType.MaxCount = EnforcerGhostConfig.Instance.MaxAmountOfEnforcerGhosts.Value;
         EnforcerGhostEnemyType.stunTimeMultiplier = EnforcerGhostConfig.Instance.EnforcerGhostStunTimeMultiplier.Value;
@@ -148,10 +151,10 @@ public class HarpGhostPlugin : BaseUnityPlugin
             
         NetworkPrefabs.RegisterNetworkPrefab(EnforcerGhostEnemyType.enemyPrefab);
         Utilities.FixMixerGroups(EnforcerGhostEnemyType.enemyPrefab);
-        RegisterEnemyWithConfig(BagpipeGhostConfig.Instance.BagpipeGhostEnabled.Value, EnforcerGhostConfig.Instance.EnforcerGhostSpawnRarity.Value, EnforcerGhostEnemyType, enforcerGhostTerminalNode, enforcerGhostTerminalKeyword);
+        RegisterEnemyWithConfig(EnforcerGhostConfig.Instance.EnforcerGhostEnabled.Value, EnforcerGhostConfig.Instance.EnforcerGhostSpawnRarity.Value, EnforcerGhostEnemyType, enforcerGhostTerminalNode, enforcerGhostTerminalKeyword);
 
         CustomShotgunAnimator = Assets.MainAssetBundle.LoadAsset<RuntimeAnimatorController>("AnimatorShotgun");
-        if (CustomShotgunAnimator == null) Mls.LogError("custom shotgun animator is null");
+        if (CustomShotgunAnimator == null) _mls.LogError("custom shotgun animator is null");
     }
 
     private void SetupHarp()
@@ -159,7 +162,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
         HarpItem = Assets.MainAssetBundle.LoadAsset<Item>("HarpItemData");
         if (HarpItem == null)
         {
-            Mls.LogError("Failed to load HarpItemData from AssetBundle.");
+            _mls.LogError("Failed to load HarpItemData from AssetBundle.");
             return;
         }
             
@@ -180,7 +183,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
         BagpipesItem = Assets.MainAssetBundle.LoadAsset<Item>("BagpipesItemData");
         if (BagpipesItem == null)
         {
-            Mls.LogError("Failed to load BagpipesItemData from AssetBundle");
+            _mls.LogError("Failed to load BagpipesItemData from AssetBundle");
             return;
         }
             
@@ -200,7 +203,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
         TubaItem = Assets.MainAssetBundle.LoadAsset<Item>("TubaItemData");
         if (TubaItem == null)
         {
-            Mls.LogError("Failed to load TubaItemData from AssetBundle");
+            _mls.LogError("Failed to load TubaItemData from AssetBundle");
             return;
         }
             
@@ -214,12 +217,12 @@ public class HarpGhostPlugin : BaseUnityPlugin
         _plushieItem = Assets.MainAssetBundle.LoadAsset<Item>("GhostPlushieItemData");
         if (_plushieItem == null)
         {
-            Mls.LogError("Failed to load GhostPlushieItemData from AssetBundle");
+            _mls.LogError("Failed to load GhostPlushieItemData from AssetBundle");
             return;
         }
 
-        _plushieItem.minValue = Mathf.Clamp(HarpGhostConfig.Instance.PlushieMinValue.Value, 0, int.MaxValue - 1);
-        _plushieItem.maxValue = Mathf.Clamp(HarpGhostConfig.Instance.PlushieMaxValue.Value, _plushieItem.minValue, int.MaxValue);
+        _plushieItem.minValue = Mathf.Clamp(HarpGhostConfig.Instance.PlushieMinValue.Value, 0, int.MaxValue);
+        _plushieItem.maxValue = Mathf.Clamp(HarpGhostConfig.Instance.PlushieMaxValue.Value, 0, int.MaxValue);
             
         NetworkPrefabs.RegisterNetworkPrefab(_plushieItem.spawnPrefab);
         Utilities.FixMixerGroups(_plushieItem.spawnPrefab);
@@ -243,31 +246,31 @@ public class HarpGhostPlugin : BaseUnityPlugin
         {
             StartCoroutine(Assets.LoadAudioClipAsync(audioClipName, clip =>
             {
-                if (!InstrumentAudioClips.ContainsKey(instrumentName))
-                    InstrumentAudioClips[instrumentName] = [];
-                InstrumentAudioClips[instrumentName].Add(clip);
-                Mls.LogDebug($"{instrumentName} audio clip '{audioClipName}' loaded asynchronously");
+                if (!_instrumentAudioClips.ContainsKey(instrumentName))
+                    _instrumentAudioClips[instrumentName] = [];
+                _instrumentAudioClips[instrumentName].Add(clip);
+                _mls.LogDebug($"{instrumentName} audio clip '{audioClipName}' loaded asynchronously");
             }));
         }
     }
 
     public static AudioClip GetInstrumentAudioClip(string instrumentName, int index)
     {
-        if (InstrumentAudioClips.ContainsKey(instrumentName) && index < InstrumentAudioClips[instrumentName].Count)
-            return InstrumentAudioClips[instrumentName][index];
+        if (_instrumentAudioClips.ContainsKey(instrumentName) && index < _instrumentAudioClips[instrumentName].Count)
+            return _instrumentAudioClips[instrumentName][index];
         return null;
     }
-    
+
     private static void RegisterEnemyWithConfig(bool enemyEnabled, string configMoonRarity, EnemyType enemy, TerminalNode terminalNode, TerminalKeyword terminalKeyword) 
     {
         if (enemyEnabled) 
         { 
             (Dictionary<LevelTypes, int> spawnRateByLevelType, Dictionary<string, int> spawnRateByCustomLevelType) = ConfigParsing(configMoonRarity);
-            Enemies.RegisterEnemy(enemy, spawnRateByLevelType, spawnRateByCustomLevelType, terminalNode, terminalKeyword);
+            RegisterEnemy(enemy, spawnRateByLevelType, spawnRateByCustomLevelType, terminalNode, terminalKeyword);
         } 
         else 
         {
-            Enemies.RegisterEnemy(enemy, 0, LevelTypes.All, terminalNode, terminalKeyword);
+            RegisterEnemy(enemy, 0, LevelTypes.All, terminalNode, terminalKeyword);
         }
     }
     
@@ -286,7 +289,6 @@ public class HarpGhostPlugin : BaseUnityPlugin
             if (Enum.TryParse(name, true, out LevelTypes levelType)) 
             {
                 spawnRateByLevelType[levelType] = spawnrate;
-                Mls.LogDebug($"Registered spawn rate for level type {levelType} to {spawnrate}");
             } 
             else 
             {
@@ -295,19 +297,17 @@ public class HarpGhostPlugin : BaseUnityPlugin
                 if (Enum.TryParse(modifiedName, true, out levelType))
                 {
                     spawnRateByLevelType[levelType] = spawnrate;
-                    Mls.LogDebug($"Registered spawn rate for level type {levelType} to {spawnrate}");
                 }
                 else
                 {
                     spawnRateByCustomLevelType[name] = spawnrate;
-                    Mls.LogDebug($"Registered spawn rate for custom level type {name} to {spawnrate}");
                 }
             }
         }
         
         return (spawnRateByLevelType, spawnRateByCustomLevelType);
     }
-
+    
     private static void InitializeNetworkStuff()
     {
         IEnumerable<Type> types;

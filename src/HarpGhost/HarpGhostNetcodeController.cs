@@ -1,47 +1,49 @@
 ﻿using System;
 using BepInEx.Logging;
 using LethalCompanyHarpGhost.Items;
-using System.Diagnostics.CodeAnalysis;
 using Unity.Netcode;
 using UnityEngine;
 
 namespace LethalCompanyHarpGhost.HarpGhost;
 
-[SuppressMessage("ReSharper", "Unity.RedundantHideInInspectorAttribute")]
 public class HarpGhostNetcodeController : NetworkBehaviour
 {
+    #pragma warning disable 0649
+    [SerializeField] private HarpGhostAIServer harpGhostAIServer;
+    #pragma warning restore 0649
+
     private ManualLogSource _mls;
     
-    public event Action<string, int> OnSetAnimationTrigger;
+    public event Action<string, int> OnDoAnimation;
+    public event Action<string, int, bool> OnChangeAnimationParameterBool;
+    public event Action<string, int, int, bool> OnPlayCreatureVoice;
     public event Action<string> OnEnterDeathState;
     public event Action<string> OnGrabHarp;
     public event Action<string, NetworkObjectReference, int> OnSpawnHarp;
     public event Action<string, Vector3> OnDropHarp;
     public event Action<string> OnPlayHarpMusic;
     public event Action<string> OnStopHarpMusic;
+    public event Action<string, int> OnChangeTargetPlayer;
     public event Action<string, int, CauseOfDeath> OnDamageTargetPlayer;
     public event Action<string, float, float> OnChangeAgentMaxSpeed;
     public event Action<string> OnFixAgentSpeedAfterAttack;
     public event Action<string> OnIncreaseTargetPlayerFearLevel;
-    public event Action<string> OnSyncGhostIdentifier;
+    public event Action<string> OnInitializeConfigValues;
+    public event Action<string> OnUpdateGhostIdentifier;
     public event Action<string> OnGhostEyesTurnRed;
-    public event Action<string, HarpGhostClient.AudioClipTypes, int, bool> OnPlayAudioClipType;
-    
-    [HideInInspector] public readonly NetworkVariable<ulong> TargetPlayerClientId = new();
-    [HideInInspector] public readonly NetworkVariable<int> CurrentBehaviourStateIndex = new();
-    
-    [HideInInspector] public readonly NetworkVariable<bool> AnimationParamStunned = new();
-    [HideInInspector] public readonly NetworkVariable<bool> AnimationParamDead = new();
 
     private void Start()
     {
         _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost Netcode Controller");
+        
+        harpGhostAIServer = GetComponent<HarpGhostAIServer>();
+        if (harpGhostAIServer == null) _mls.LogError("harpGhostAI is null");
     }
 
     [ClientRpc]
     public void SyncGhostIdentifierClientRpc(string receivedGhostId)
     {
-        OnSyncGhostIdentifier?.Invoke(receivedGhostId);
+        OnUpdateGhostIdentifier?.Invoke(receivedGhostId);
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -63,9 +65,21 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     }
 
     [ClientRpc]
+    public void InitializeConfigValuesClientRpc(string receivedGhostId)
+    {
+        OnInitializeConfigValues?.Invoke(receivedGhostId);
+    }
+
+    [ClientRpc]
     public void DamageTargetPlayerClientRpc(string receivedGhostId, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
     {
         OnDamageTargetPlayer?.Invoke(receivedGhostId, damage, causeOfDeath);
+    }
+
+    [ClientRpc]
+    public void ChangeTargetPlayerClientRpc(string receivedGhostId, int playerClientId)
+    {
+        OnChangeTargetPlayer?.Invoke(receivedGhostId, playerClientId);
     }
 
     [ClientRpc]
@@ -87,9 +101,15 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void SetAnimationTriggerClientRpc(string receivedGhostId, int animationId)
+    public void ChangeAnimationParameterBoolClientRpc(string receivedGhostId, int animationId, bool value)
     {
-        OnSetAnimationTrigger?.Invoke(receivedGhostId, animationId);
+        OnChangeAnimationParameterBool?.Invoke(receivedGhostId, animationId, value);
+    }
+
+    [ClientRpc]
+    public void DoAnimationClientRpc(string receivedGhostId, int animationId)
+    {
+        OnDoAnimation?.Invoke(receivedGhostId, animationId);
     }
 
     [ClientRpc]
@@ -115,9 +135,12 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     {
         GameObject harpObject = Instantiate(
             HarpGhostPlugin.HarpItem.spawnPrefab,
-            transform.position,
+            harpGhostAIServer.TransformPosition,
             Quaternion.identity,
-            RoundManager.Instance.spawnedScrapContainer);
+            harpGhostAIServer.RoundManagerInstance.spawnedScrapContainer);
+        
+        AudioSource harpAudioSource = harpObject.GetComponent<AudioSource>();
+        if (harpAudioSource == null) _mls.LogError("harpAudioSource is null");
 
         InstrumentBehaviour harpBehaviour = harpObject.GetComponent<InstrumentBehaviour>();
         if (harpBehaviour == null) _mls.LogError("harpBehaviour is null");
@@ -125,7 +148,7 @@ public class HarpGhostNetcodeController : NetworkBehaviour
         int harpScrapValue = UnityEngine.Random.Range(HarpGhostConfig.Instance.HarpMinValue.Value, HarpGhostConfig.Instance.HarpMaxValue.Value + 1);
         harpObject.GetComponent<GrabbableObject>().fallTime = 0f;
         harpObject.GetComponent<GrabbableObject>().SetScrapValue(harpScrapValue);
-        RoundManager.Instance.totalScrapValueInLevel += harpScrapValue;
+        harpGhostAIServer.RoundManagerInstance.totalScrapValueInLevel += harpScrapValue;
 
         harpObject.GetComponent<NetworkObject>().Spawn();
         SpawnHarpClientRpc(receivedGhostId, harpObject, harpScrapValue);
@@ -143,54 +166,12 @@ public class HarpGhostNetcodeController : NetworkBehaviour
         OnDropHarp?.Invoke(receivedGhostId, targetPosition);
     }
     
-    [ServerRpc]
-    public void PlayAudioClipTypeServerRpc(string receivedGhostId, HarpGhostClient.AudioClipTypes audioClipType, bool interrupt = false)
-    {
-        HarpGhostClient ghostClient = GetComponent<HarpGhostClient>();
-        if (ghostClient == null)
-        {
-            _mls.LogError("Harpist client was null, cannot play audio clip");
-            return;
-        }
-        
-        int numberOfAudioClips = audioClipType switch
-        {
-            HarpGhostClient.AudioClipTypes.Death => ghostClient.dieSfx.Length,
-            HarpGhostClient.AudioClipTypes.Damage => ghostClient.damageSfx.Length,
-            HarpGhostClient.AudioClipTypes.Laugh => ghostClient.laughSfx.Length,
-            HarpGhostClient.AudioClipTypes.Stun => ghostClient.stunSfx.Length,
-            HarpGhostClient.AudioClipTypes.Upset => ghostClient.upsetSfx.Length,
-            HarpGhostClient.AudioClipTypes.Hit => ghostClient.hitSfx.Length,
-            _ => -1
-        };
-
-        switch (numberOfAudioClips)
-        {
-            case 0:
-                _mls.LogError($"There are no audio clips for audio clip type {audioClipType}.");
-                return;
-            
-            case -1:
-                _mls.LogError($"Audio Clip Type was not listed, cannot play audio clip. Number of audio clips: {numberOfAudioClips}.");
-                return;
-            
-            default:
-            {
-                int clipIndex = UnityEngine.Random.Range(0, numberOfAudioClips);
-                PlayAudioClipTypeClientRpc(receivedGhostId, audioClipType, clipIndex, interrupt);
-                break;
-            }
-        }
-    }
-
     [ClientRpc]
-    private void PlayAudioClipTypeClientRpc(
-        string receivedGhostId, 
-        HarpGhostClient.AudioClipTypes audioClipType, 
-        int clipIndex, 
-        bool interrupt = false)
+    public void PlayCreatureVoiceClientRpc(string receivedGhostId, int typeIndex, int clipArrayLength, bool interrupt = true)
     {
-        OnPlayAudioClipType?.Invoke(receivedGhostId, audioClipType, clipIndex, interrupt);
+        int randomNum = UnityEngine.Random.Range(0, clipArrayLength);
+        LogDebug($"Invoking OnPlayCreatureVoice | Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
+        OnPlayCreatureVoice?.Invoke(receivedGhostId, typeIndex, randomNum, interrupt);
     }
     
     private void LogDebug(string msg)
