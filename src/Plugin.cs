@@ -41,14 +41,12 @@ public class HarpGhostPlugin : BaseUnityPlugin
     private const string ModVersion = "1.3.17";
 
     private readonly Harmony _harmony = new(ModGuid);
-        
-    // ReSharper disable once InconsistentNaming
-    private static readonly ManualLogSource _mls = BepInEx.Logging.Logger.CreateLogSource(ModGuid);
+    
+    private static readonly ManualLogSource Mls = BepInEx.Logging.Logger.CreateLogSource(ModGuid);
 
     private static HarpGhostPlugin _instance;
-
-    // ReSharper disable once InconsistentNaming
-    private static readonly Dictionary<string, List<AudioClip>> _instrumentAudioClips = new();
+    
+    private static readonly Dictionary<string, List<AudioClip>> InstrumentAudioClips = new();
         
     public static HarpGhostConfig HarpGhostConfig { get; internal set; }
     public static BagpipeGhostConfig BagpipeGhostConfig { get; internal set; }
@@ -76,7 +74,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
         Assets.PopulateAssetsFromFile();
         if (Assets.MainAssetBundle == null)
         {
-            _mls.LogError("MainAssetBundle is null");
+            Mls.LogError("MainAssetBundle is null");
             return;
         }
             
@@ -96,14 +94,14 @@ public class HarpGhostPlugin : BaseUnityPlugin
             
         _harmony.PatchAll();
         _harmony.PatchAll(typeof(HarpGhostPlugin));
-        _mls.LogInfo($"Plugin {ModName} is loaded!");
+        Mls.LogInfo($"Plugin {ModName} is loaded!");
     }
 
     private void SetupHarpGhost()
     {
         _harpGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("HarpGhost");
         _harpGhostEnemyType.canDie = HarpGhostConfig.Instance.HarpGhostIsKillable.Value;
-        //_harpGhostEnemyType.PowerLevel = HarpGhostConfig.Instance.HarpGhostPowerLevel.Value;
+        _harpGhostEnemyType.PowerLevel = HarpGhostConfig.Instance.HarpGhostPowerLevel.Value;
         _harpGhostEnemyType.canBeStunned = HarpGhostConfig.Instance.HarpGhostIsStunnable.Value;
         _harpGhostEnemyType.MaxCount = HarpGhostConfig.Instance.MaxAmountOfHarpGhosts.Value;
         _harpGhostEnemyType.stunTimeMultiplier = HarpGhostConfig.Instance.HarpGhostStunTimeMultiplier.Value;
@@ -122,7 +120,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
     {
         _bagpipesGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("BagpipesGhost");
         _bagpipesGhostEnemyType.canDie = BagpipeGhostConfig.Instance.BagpipeGhostIsKillable.Value;
-        //_bagpipesGhostEnemyType.PowerLevel = BagpipeGhostConfig.Instance.BagpipeGhostPowerLevel.Value;
+        _bagpipesGhostEnemyType.PowerLevel = BagpipeGhostConfig.Instance.BagpipeGhostPowerLevel.Value;
         _bagpipesGhostEnemyType.canBeStunned = BagpipeGhostConfig.Instance.BagpipeGhostIsStunnable.Value;
         _bagpipesGhostEnemyType.MaxCount = BagpipeGhostConfig.Instance.MaxAmountOfBagpipeGhosts.Value;
         _bagpipesGhostEnemyType.stunTimeMultiplier = BagpipeGhostConfig.Instance.BagpipeGhostStunTimeMultiplier.Value;
@@ -154,7 +152,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
         RegisterEnemyWithConfig(EnforcerGhostConfig.Instance.EnforcerGhostEnabled.Value, EnforcerGhostConfig.Instance.EnforcerGhostSpawnRarity.Value, EnforcerGhostEnemyType, enforcerGhostTerminalNode, enforcerGhostTerminalKeyword);
 
         CustomShotgunAnimator = Assets.MainAssetBundle.LoadAsset<RuntimeAnimatorController>("AnimatorShotgun");
-        if (CustomShotgunAnimator == null) _mls.LogError("custom shotgun animator is null");
+        if (CustomShotgunAnimator == null) Mls.LogError("custom shotgun animator is null");
     }
 
     private void SetupHarp()
@@ -162,7 +160,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
         HarpItem = Assets.MainAssetBundle.LoadAsset<Item>("HarpItemData");
         if (HarpItem == null)
         {
-            _mls.LogError("Failed to load HarpItemData from AssetBundle.");
+            Mls.LogError("Failed to load HarpItemData from AssetBundle.");
             return;
         }
             
@@ -183,7 +181,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
         BagpipesItem = Assets.MainAssetBundle.LoadAsset<Item>("BagpipesItemData");
         if (BagpipesItem == null)
         {
-            _mls.LogError("Failed to load BagpipesItemData from AssetBundle");
+            Mls.LogError("Failed to load BagpipesItemData from AssetBundle");
             return;
         }
             
@@ -203,7 +201,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
         TubaItem = Assets.MainAssetBundle.LoadAsset<Item>("TubaItemData");
         if (TubaItem == null)
         {
-            _mls.LogError("Failed to load TubaItemData from AssetBundle");
+            Mls.LogError("Failed to load TubaItemData from AssetBundle");
             return;
         }
             
@@ -217,7 +215,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
         _plushieItem = Assets.MainAssetBundle.LoadAsset<Item>("GhostPlushieItemData");
         if (_plushieItem == null)
         {
-            _mls.LogError("Failed to load GhostPlushieItemData from AssetBundle");
+            Mls.LogError("Failed to load GhostPlushieItemData from AssetBundle");
             return;
         }
 
@@ -246,18 +244,18 @@ public class HarpGhostPlugin : BaseUnityPlugin
         {
             StartCoroutine(Assets.LoadAudioClipAsync(audioClipName, clip =>
             {
-                if (!_instrumentAudioClips.ContainsKey(instrumentName))
-                    _instrumentAudioClips[instrumentName] = [];
-                _instrumentAudioClips[instrumentName].Add(clip);
-                _mls.LogDebug($"{instrumentName} audio clip '{audioClipName}' loaded asynchronously");
+                if (!InstrumentAudioClips.ContainsKey(instrumentName))
+                    InstrumentAudioClips[instrumentName] = [];
+                InstrumentAudioClips[instrumentName].Add(clip);
+                Mls.LogDebug($"{instrumentName} audio clip '{audioClipName}' loaded asynchronously");
             }));
         }
     }
 
     public static AudioClip GetInstrumentAudioClip(string instrumentName, int index)
     {
-        if (_instrumentAudioClips.ContainsKey(instrumentName) && index < _instrumentAudioClips[instrumentName].Count)
-            return _instrumentAudioClips[instrumentName][index];
+        if (InstrumentAudioClips.ContainsKey(instrumentName) && index < InstrumentAudioClips[instrumentName].Count)
+            return InstrumentAudioClips[instrumentName][index];
         return null;
     }
 
@@ -512,7 +510,8 @@ public static class LobbyCompatibilityChecker
     public static bool Enabled => Chainloader.PluginInfos.ContainsKey("BMX.LobbyCompatibility");
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    public static void Init() {
+    public static void Init() 
+    {
         PluginHelper.RegisterPlugin(PluginInfo.PLUGIN_GUID, Version.Parse(PluginInfo.PLUGIN_VERSION), CompatibilityLevel.Everyone, VersionStrictness.Patch);
     }
 }

@@ -10,11 +10,10 @@ public class HarpGhostAudioManager : MonoBehaviour
     private ManualLogSource _mls;
     private string _ghostId;
     
-    [Header("Audio")] [Space(5f)]
 #pragma warning disable 0649
+    [Header("Audio")] [Space(5f)]
     [SerializeField] private AudioSource creatureVoiceSource;
     [SerializeField] private AudioSource creatureSfxSource;
-#pragma warning restore 0649
     
     public AudioClip[] damageSfx;
     public AudioClip[] laughSfx;
@@ -23,7 +22,6 @@ public class HarpGhostAudioManager : MonoBehaviour
     public AudioClip dieSfx;
 
     [Space(5f)] [Header("Controllers")]
-#pragma warning disable 0649
     [SerializeField] private HarpGhostNetcodeController netcodeController;
 #pragma warning restore 0649
     

@@ -19,6 +19,7 @@ public class BagpipeGhostConfig : SyncedInstance<BagpipeGhostConfig>
     
     public readonly ConfigEntry<bool> BagpipeGhostEnabled;
     public readonly ConfigEntry<string> BagpipeGhostSpawnRarity;
+    public readonly ConfigEntry<float> BagpipeGhostPowerLevel;
     public readonly ConfigEntry<int> MaxAmountOfBagpipeGhosts;
     public readonly ConfigEntry<int> BagpipeGhostNumberOfEscortsToSpawn;
     
@@ -39,8 +40,15 @@ public class BagpipeGhostConfig : SyncedInstance<BagpipeGhostConfig>
         BagpipeGhostSpawnRarity = cfg.Bind(
             "Ghost Spawn Values", 
             "Phantom Piper Spawn Rarity",
-            "Modded:1,ExperimentationLevel:0,AssuranceLevel:0,VowLevel:0,OffenseLevel:0,MarchLevel:0,RendLevel:50,DineLevel:50,TitanLevel:2,Adamance:0,Embrion:0,Artifice:5,Auralis:0,Atlantica:0,Acidir:50,Cosmocos:5,Asteroid:0,Desolation:5,Etern:0,Gloom:5,Gratar:0,Infernis:0,Junic:2,Oldred:0,Polarus:0",
+            "Modded:5,ExperimentationLevel:0,AssuranceLevel:0,VowLevel:2,OffenseLevel:1,MarchLevel:2,RendLevel:75,DineLevel:75,TitanLevel:25,Adamance:10,Embrion:0,Artifice:10,Auralis:0,Atlantica:0,Acidir:100,Cosmocos:5,Asteroid:2,Desolation:5,Etern:0,Gloom:5,Gratar:0,Infernis:0,Junic:2,Oldred:0,Polarus:0,Seichi:4,Bozoros:5",
             "Spawn weight of the Phantom Piper on all moons. You can to add to it any moon, just follow the format (also needs LLL installed for LE moons to work with this config)."
+        );
+        
+        BagpipeGhostPowerLevel = cfg.Bind(
+            "Ghost Spawn Values",
+            "Phantom Piper Power Level",
+            1f,
+            "The power level of the Phantom Piper."
         );
         
         BagpipeGhostInitialHealth = cfg.Bind(

@@ -44,7 +44,7 @@ public class HarpGhostAIServer : EnemyAI
     private Vector3 _agentLastPosition;
 
 #pragma warning disable 0649
-    [Header("Transforms")] [Space(3f)] 
+    [Header("Transforms")] [Space(5f)] 
     [SerializeField] private BoxCollider attackArea;
 
     [Header("Controllers and Managers")] [Space(5f)] 
@@ -93,8 +93,7 @@ public class HarpGhostAIServer : EnemyAI
             false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning,
             false);
-
-        StartCoroutine(IsOutsideCheck());
+        
         netcodeController.SpawnHarpServerRpc(_ghostId);
         netcodeController.GrabHarpClientRpc(_ghostId);
         StartCoroutine(DelayedHarpMusicActivate());
@@ -665,8 +664,7 @@ public class HarpGhostAIServer : EnemyAI
         PlayerControllerB playerControllerB = collider.gameObject.GetComponent<PlayerControllerB>();
 
         if (playerControllerB == null) return null;
-        if (playerControllerB.isInsideFactory &&
-            !playerControllerB.isInHangarShipRoom &&
+        if (!playerControllerB.isInHangarShipRoom &&
             !playerControllerB.isPlayerDead &&
             playerControllerB.sinkingValue < 0.7300000190734863) return playerControllerB;
         return null;
@@ -782,12 +780,6 @@ public class HarpGhostAIServer : EnemyAI
         if (animationController.GetBool(HarpGhostAnimationController.IsRunning) != isRunning && !_inStunAnimation)
             netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning,
                 isRunning);
-    }
-
-    private IEnumerator IsOutsideCheck()
-    {
-        yield return new WaitForSeconds(2f);
-        if (isOutside) allAINodes = GameObject.FindGameObjectsWithTag("OutsideAINode");
     }
 
     private void LogDebug(string msg)

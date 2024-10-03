@@ -1,69 +1,42 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using BepInEx.Logging;
+﻿using BepInEx.Logging;
 using GameNetcodeStuff;
 using LethalCompanyHarpGhost.EnforcerGhost;
 using LethalCompanyHarpGhost.HarpGhost;
 using LethalCompanyHarpGhost.Items;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
+using Logger = BepInEx.Logging.Logger;
 using Random = UnityEngine.Random;
 
 namespace LethalCompanyHarpGhost.BagpipesGhost;
 
-[SuppressMessage("ReSharper", "RedundantDefaultMemberInitializer")]
 public class BagpipesGhostAIServer : EnemyAI, IEscortee
 {
     private ManualLogSource _mls;
     private string _ghostId;
 
     private List<EnforcerGhostAIServer> _escorts = [];
+    
+#pragma warning disable 0649
+    [Header("Controllers and Managers")] [Space(5f)]
+    [SerializeField] private BagpipesGhostNetcodeController netcodeController;
+    [SerializeField] private Animator animator;
+#pragma warning restore 0649
 
-    [Header("AI and Pathfinding")]
-    [Space(5f)]
-    private float _agentCurrentSpeed;
-    private float _openDoorTimer = 0f;
-    private float _takeDamageCooldown = 0f;
-    private const float EscortHorizontalBaseLength = 5f;
-    private const float EscortRowSpacing = 3f;
+    [Header("AI and Pathfinding")] [Space(5f)]
     [SerializeField] private float agentMaxAcceleration = 200f;
     [SerializeField] private float agentMaxSpeed = 0.5f;
-
     [SerializeField] private float agentMaxAccelerationInEscapeMode = 30f;
     [SerializeField] private float agentMaxSpeedInEscapeMode = 10f;
     [SerializeField] private float openDoorSpeedMultiplierInEscapeMode = 6f;
     
-    private bool _agentIsMoving = false;
-    private bool _chosenEscapeDoor = false;
-    private bool _isNarrowPath = false;
-    private bool _inStunAnimation = false;
-    private bool _openDoorTimerActivated = false;
-    private bool _currentlyRetiringAllEscorts = false;
-    private bool _agroSfxPlayed = false;
-    private bool _tauntSfxPlayed = false;
-    
     [SerializeField] private int numberOfEscorts = 3;
     
-    private Vector3 _agentLastPosition;
-    private readonly List<Vector3> _escortAgentPathPoints = [];
-
-    private EntranceTeleport _escapeDoor;
-
-    private InstrumentBehaviour _heldBagpipes;
-    private NetworkObjectReference _instrumentObjectRef;
-
-    private Coroutine _teleportCoroutine = null;
-    
-    #pragma warning disable 0649
-    [Header("Controllers and Managers")] [Space(5f)]
-    [SerializeField] private BagpipesGhostNetcodeController netcodeController;
-    [SerializeField] private Animator animator;
-    #pragma warning restore 0649
-
     private enum States
     {
         PlayingMusicWhileEscorted,
@@ -72,6 +45,32 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         TeleportingOutOfMap,
         Dead
     }
+    
+    private Vector3 _agentLastPosition;
+    private readonly List<Vector3> _escortAgentPathPoints = [];
+
+    private EntranceTeleport _escapeDoor;
+
+    private NullableObject<InstrumentBehaviour> _heldBagpipes = new();
+    
+    private NetworkObjectReference _instrumentObjectRef;
+
+    private Coroutine _teleportCoroutine;
+    
+    private float _agentCurrentSpeed;
+    private float _openDoorTimer;
+    private float _takeDamageCooldown;
+    private const float EscortHorizontalBaseLength = 5f;
+    private const float EscortRowSpacing = 3f;
+    
+    private bool _agentIsMoving;
+    private bool _chosenEscapeDoor;
+    private bool _isNarrowPath;
+    private bool _inStunAnimation;
+    private bool _openDoorTimerActivated;
+    private bool _currentlyRetiringAllEscorts;
+    private bool _agroSfxPlayed;
+    private bool _tauntSfxPlayed;
 
     public override void Start()
     {
@@ -79,7 +78,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         if (!IsServer) return;
         
         _ghostId = Guid.NewGuid().ToString();
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Bagpipes Ghost AI {_ghostId} | Server");
+        _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Bagpipes Ghost AI {_ghostId} | Server");
         
         netcodeController = GetComponent<BagpipesGhostNetcodeController>();
         if (netcodeController == null) _mls.LogError("Netcode Controller is null");
@@ -89,8 +88,8 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         agent.enabled = true;
         
         netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
-        
-        Random.InitState(StartOfRound.Instance.randomMapSeed + thisEnemyIndex);
+
+        Random.InitState(StartOfRound.Instance.randomMapSeed + _ghostId.GetHashCode() - thisEnemyIndex);
         InitializeConfigValues();
         EnableEnemyMesh(true);
         
@@ -110,7 +109,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         
         // The ghost is already in this state, but calling the method will choose the ghost's first node to go to
         SwitchBehaviourStateLocally((int)States.PlayingMusicWhileEscorted);
-        _mls.LogInfo("Bagpipe Ghost Spawned");
+        LogDebug("Bagpipe Ghost Spawned");
     }
 
     public void OnEnable()
@@ -482,9 +481,9 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     private void HandleGrabBagpipes(string receivedGhostId)
     {
         if (_ghostId != receivedGhostId) return;
-        if (_heldBagpipes != null) return;
+        if (_heldBagpipes.IsNotNull) return;
         if (!_instrumentObjectRef.TryGet(out NetworkObject networkObject)) return;
-        _heldBagpipes = networkObject.gameObject.GetComponent<InstrumentBehaviour>();
+        _heldBagpipes.Value = networkObject.gameObject.GetComponent<InstrumentBehaviour>();
     }
 
     public override void SetEnemyStunned(
@@ -497,7 +496,6 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         if (currentBehaviourStateIndex is (int)States.TeleportingOutOfMap or (int)States.Dead) return;
         
         netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Stun, 2);
-        // netcodeController.DropBagpipesClientRpc(_ghostId, transform.position);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, true);
         netcodeController.DoAnimationClientRpc(_ghostId, BagpipesGhostAIClient.IsStunned);
         _inStunAnimation = true;
@@ -514,14 +512,12 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false, int hitId = -1)
     {
         base.HitEnemy(force, playerWhoHit, playHitSFX, hitId);
-        if (!IsServer) return;
-        if (isEnemyDead) return;
-        if (currentBehaviourStateIndex is (int)States.TeleportingOutOfMap or (int)States.Dead) return;
-        if (_takeDamageCooldown > 0) return;
+        if (!IsServer || isEnemyDead || _takeDamageCooldown > 0 || currentBehaviourStateIndex is (int)States.TeleportingOutOfMap or (int)States.Dead) return;
         if (playerWhoHit == null) return;
-
+        
         enemyHP -= force;
-        _takeDamageCooldown = 0.1f;
+        _takeDamageCooldown = 0.03f;
+        
         if (enemyHP > 0)
         {
             netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)BagpipesGhostAIClient.AudioClipTypes.Damage, 2);
@@ -535,7 +531,6 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
             return;
         }
         
-        // Ghost is dead
         netcodeController.EnterDeathStateClientRpc(_ghostId);
         KillEnemyClientRpc(false);
         SwitchBehaviourStateLocally((int)States.Dead);
@@ -675,9 +670,9 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
     }
 
-    public void EscorteeBreakoff(PlayerControllerB targetPlayer = null)
+    public void EscorteeBreakoff(PlayerControllerB targetPlayerReceived = null)
     {
-        RetireAllEscorts(targetPlayer);
+        RetireAllEscorts(targetPlayerReceived);
         if (!_agroSfxPlayed)
         {
             _agroSfxPlayed = true;
@@ -692,7 +687,4 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         _mls?.LogInfo(logMessage);
         #endif
     }
-    
-    public Vector3 TransformPosition => transform.position;
-    public static RoundManager RoundManagerInstance => RoundManager.Instance;
 }

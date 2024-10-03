@@ -1,3 +1,7 @@
+## 1.3.17
+* Performance updates, mainly for the Harpist.
+* Added config settings to let you change the power level of the Harpist and Piper.
+
 ## 1.3.16
 * Made the mod compatible with the newest version.
 

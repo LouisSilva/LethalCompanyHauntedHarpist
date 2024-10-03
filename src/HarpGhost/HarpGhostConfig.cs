@@ -60,6 +60,7 @@ public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
 
     public readonly ConfigEntry<bool> HarpGhostEnabled;
     public readonly ConfigEntry<string> HarpGhostSpawnRarity;
+    public readonly ConfigEntry<float> HarpGhostPowerLevel;
     public readonly ConfigEntry<int> MaxAmountOfHarpGhosts;
 
     public readonly ConfigEntry<bool> HarpGhostAngryEyesEnabled;
@@ -85,9 +86,16 @@ public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
         HarpGhostSpawnRarity = cfg.Bind(
             "Ghost Spawn Values", 
             "Haunted Harpist Spawn Rarity",
-            "Modded:25,ExperimentationLevel:0,AssuranceLevel:0,VowLevel:5,OffenseLevel:0,MarchLevel:5,RendLevel:200,DineLevel:200,TitanLevel:50,Adamance:5,Embrion:1,Artifice:35,Auralis:0,Atlantica:0,Acidir:200,Cosmocos:35,Asteroid:5,Desolation:60,Etern:0,Gloom:60,Gratar:0,Infernis:0,Junic:15,Oldred:0,Polarus:0,Seichi:20,Bozoros:15",
+            "Modded:25,ExperimentationLevel:0,AssuranceLevel:0,VowLevel:5,OffenseLevel:0,MarchLevel:5,RendLevel:200,DineLevel:200,TitanLevel:50,Adamance:5,Embrion:1,Artifice:35,Auralis:0,Atlantica:0,Acidir:200,Cosmocos:35,Asteroid:5,Desolation:60,Etern:0,Gloom:60,Gratar:0,Infernis:0,Junic:15,Oldred:1,Polarus:0,Seichi:20,Bozoros:15",
             "Spawn weight of the Haunted Harpist on all moons. You can to add to it any moon, just follow the format (also needs LLL installed for LE moons to work with this config)."
             );
+        
+        HarpGhostPowerLevel = cfg.Bind(
+            "Ghost Spawn Values",
+            "Haunted Harpist Power Level",
+            1f,
+            "The power level of the Haunted Harpist."
+        );
         
         HarpGhostInitialHealth = cfg.Bind(
             "Haunted Harpist General",

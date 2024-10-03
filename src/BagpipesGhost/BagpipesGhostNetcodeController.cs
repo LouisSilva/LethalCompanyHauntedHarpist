@@ -102,9 +102,9 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     {
         GameObject bagpipesObject = Instantiate(
             HarpGhostPlugin.BagpipesItem.spawnPrefab,
-            bagpipesGhostAIServer.TransformPosition,
+            bagpipesGhostAIServer.transform.position,
             Quaternion.identity,
-            BagpipesGhostAIServer.RoundManagerInstance.spawnedScrapContainer);
+            RoundManager.Instance.spawnedScrapContainer);
         
         AudioSource bagpipesAudioSource = bagpipesObject.GetComponentInChildren<AudioSource>();
         if (bagpipesAudioSource == null) _mls.LogError("bagpipesAudioSource is null");
@@ -113,9 +113,9 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
         if (bagpipesBehaviour == null) _mls.LogError("bagpipesBehaviour is null");
 
         int bagpipesScrapValue = UnityEngine.Random.Range(BagpipeGhostConfig.Instance.BagpipesMinValue.Value, BagpipeGhostConfig.Instance.BagpipesMaxValue.Value);
-        bagpipesObject.GetComponent<GrabbableObject>().fallTime = 0f;
-        bagpipesObject.GetComponent<GrabbableObject>().SetScrapValue(bagpipesScrapValue);
-        BagpipesGhostAIServer.RoundManagerInstance.totalScrapValueInLevel += bagpipesScrapValue;
+        bagpipesBehaviour.fallTime = 0f;
+        bagpipesBehaviour.SetScrapValue(bagpipesScrapValue);
+        RoundManager.Instance.totalScrapValueInLevel += bagpipesScrapValue;
 
         bagpipesObject.GetComponent<NetworkObject>().Spawn();
         SpawnBagpipesClientRpc(receivedGhostId, bagpipesObject, bagpipesScrapValue);
