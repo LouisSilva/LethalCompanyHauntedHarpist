@@ -1,7 +1,8 @@
-﻿using System.Collections;
-using BepInEx.Logging;
+﻿using BepInEx.Logging;
+using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
+using Logger = BepInEx.Logging.Logger;
 
 namespace LethalCompanyHarpGhost.HarpGhost;
 
@@ -10,11 +11,11 @@ public class HarpGhostAnimationController : MonoBehaviour
     private ManualLogSource _mls;
     private string _ghostId;
     
-    #pragma warning disable 0649
+#pragma warning disable 0649
     [SerializeField] private Animator animator;
     [SerializeField] private HarpGhostNetcodeController netcodeController;
     [SerializeField] private HarpGhostAudioManager audioManager;
-    #pragma warning restore 0649
+#pragma warning restore 0649
     
     public static readonly int IsRunning = Animator.StringToHash("Running");
     public static readonly int IsStunned = Animator.StringToHash("Stunned");
@@ -25,7 +26,7 @@ public class HarpGhostAnimationController : MonoBehaviour
 
     private void Start()
     {
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost Animation Controller {_ghostId}");
+        _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost Animation Controller {_ghostId}");
         
         animator = GetComponent<Animator>();
         if (animator == null) _mls.LogError("Animator is null");
@@ -39,6 +40,7 @@ public class HarpGhostAnimationController : MonoBehaviour
 
     private void OnEnable()
     {
+        if (netcodeController == null) return;
         netcodeController.OnDoAnimation += SetTrigger;
         netcodeController.OnChangeAnimationParameterBool += SetBool;
         netcodeController.OnEnterDeathState += HandleOnEnterDeathState;
@@ -93,7 +95,7 @@ public class HarpGhostAnimationController : MonoBehaviour
         animator.SetTrigger(parameter);
     }
     
-    public void OnAnimationEventFixAgentSpeedAfterAttack() // Is called by an animation event
+    public void OnAnimationEventFixAgentSpeedAfterAttack()
     {
         if (NetworkManager.Singleton.IsClient && netcodeController.IsOwner)
         {
@@ -101,7 +103,7 @@ public class HarpGhostAnimationController : MonoBehaviour
         }
     }
     
-    public void OnAnimationEventAttackShiftComplete() // Is called by an animation event
+    public void OnAnimationEventAttackShiftComplete()
     {
         if (!NetworkManager.Singleton.IsClient || !netcodeController.IsOwner) return;
         

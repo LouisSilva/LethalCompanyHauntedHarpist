@@ -8,11 +8,11 @@ namespace LethalCompanyHarpGhost.EnforcerGhost;
 public class EnforcerGhostNetcodeController : NetworkBehaviour
 {
     private ManualLogSource _mls;
-    
-    #pragma warning disable 0649
+
+#pragma warning disable 0649
     [SerializeField] private EnforcerGhostAIServer enforcerGhostAIServer;
-    #pragma warning restore 0649
-    
+#pragma warning restore 0649
+
     public event Action<string, int> OnDoAnimation;
     public event Action<string, int, bool> OnChangeAnimationParameterBool;
     public event Action<string> OnInitializeConfigValues;
@@ -22,7 +22,7 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     public event Action<string, NetworkObjectReference, int> OnSpawnShotgun;
     public event Action<string> OnGrabShotgun;
     public event Action<string> OnGrabShotgunPhaseTwo;
-    public event Action<string> OnGrabShotgunAfterStun; 
+    public event Action<string> OnGrabShotgunAfterStun;
     public event Action<string, Vector3> OnDropShotgun;
     public event Action<string, Vector3> OnDropShotgunWhenStunned;
     public event Action<string> OnIncreaseTargetPlayerFearLevel;
@@ -33,12 +33,12 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     public event Action<string, bool> OnSetMeshEnabled;
     public event Action<string> OnPlayTeleportVfx;
     public event Action<string> OnEnableShield;
-    public event Action<string> OnDisableShield; 
+    public event Action<string> OnDisableShield;
 
     private void Start()
     {
         _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Enforcer Ghost Netcode Controller");
-        
+
         enforcerGhostAIServer = GetComponent<EnforcerGhostAIServer>();
         if (enforcerGhostAIServer == null) _mls.LogError("enforcerGhostAI is null");
     }
@@ -66,7 +66,7 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     {
         OnGrabShotgunAfterStun?.Invoke(receivedGhostId);
     }
-    
+
     [ClientRpc]
     public void PlayTeleportVfxClientRpc(string receivedGhostId)
     {
@@ -78,7 +78,7 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     {
         OnSetMeshEnabled?.Invoke(receivedGhostId, meshEnabled);
     }
-    
+
     [ClientRpc]
     public void InitializeConfigValuesClientRpc(string receivedGhostId)
     {
@@ -90,22 +90,24 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     {
         GameObject shotgunObject = Instantiate(
             HarpGhostPlugin.ShotgunPrefab,
-            enforcerGhostAIServer.TransformPosition,
+            enforcerGhostAIServer.transform.position,
             Quaternion.identity,
-            EnforcerGhostAIServer.RoundManagerInstance.spawnedScrapContainer
-            );
+            RoundManager.Instance.spawnedScrapContainer
+        );
 
         int shotgunScrapValue = UnityEngine.Random.Range(EnforcerGhostConfig.Instance.ShotgunMinValue.Value, EnforcerGhostConfig.Instance.ShotgunMaxValue.Value);
-        shotgunObject.GetComponent<GrabbableObject>().fallTime = 0f;
-        shotgunObject.GetComponent<GrabbableObject>().SetScrapValue(shotgunScrapValue);
-        EnforcerGhostAIServer.RoundManagerInstance.totalScrapValueInLevel += shotgunScrapValue;
-        
+        GrabbableObject shotgun = shotgunObject.GetComponent<GrabbableObject>();
+        shotgun.fallTime = 0f;
+        shotgun.SetScrapValue(shotgunScrapValue);
+        RoundManager.Instance.totalScrapValueInLevel += shotgunScrapValue;
+
         shotgunObject.GetComponent<NetworkObject>().Spawn();
         SpawnShotgunClientRpc(receivedGhostId, shotgunObject, shotgunScrapValue);
     }
 
     [ClientRpc]
-    public void SpawnShotgunClientRpc(string receivedGhostId, NetworkObjectReference shotgunObject, int shotgunScrapValue)
+    public void SpawnShotgunClientRpc(string receivedGhostId, NetworkObjectReference shotgunObject,
+        int shotgunScrapValue)
     {
         OnSpawnShotgun?.Invoke(receivedGhostId, shotgunObject, shotgunScrapValue);
     }
@@ -121,13 +123,13 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     {
         GrabShotgunPhaseTwoClientRpc(receivedGhostId);
     }
-    
+
     [ClientRpc]
     public void ChangeTargetPlayerClientRpc(string receivedGhostId, int playerClientId)
     {
         OnChangeTargetPlayer?.Invoke(receivedGhostId, playerClientId);
     }
-    
+
     [ClientRpc]
     public void IncreaseTargetPlayerFearLevelClientRpc(string receivedGhostId)
     {
@@ -139,13 +141,13 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     {
         OnUpdateShotgunShellsLoaded?.Invoke(receivedGhostId, shells);
     }
-    
+
     [ServerRpc(RequireOwnership = false)]
     public void DoShotgunAnimationServerRpc(string receivedGhostId, string animationId)
     {
         DoShotgunAnimationClientRpc(receivedGhostId, animationId);
     }
-    
+
     [ClientRpc]
     public void DoShotgunAnimationClientRpc(string receivedGhostId, string animationId)
     {
@@ -157,7 +159,7 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     {
         OnGrabShotgunPhaseTwo?.Invoke(receivedGhostId);
     }
-    
+
     [ClientRpc]
     public void DropShotgunClientRpc(string receivedGhostId, Vector3 targetPosition)
     {
@@ -169,7 +171,7 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     {
         OnShootGun?.Invoke(receivedGhostId);
     }
-    
+
     [ClientRpc]
     public void ChangeAnimationParameterBoolClientRpc(string receivedGhostId, int animationId, bool value)
     {
@@ -181,21 +183,23 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     {
         OnDoAnimation?.Invoke(receivedGhostId, animationId);
     }
-    
+
     [ClientRpc]
     public void SyncGhostIdentifierClientRpc(string receivedGhostId)
     {
         OnUpdateGhostIdentifier?.Invoke(receivedGhostId);
     }
-    
+
     [ClientRpc]
-    public void PlayCreatureVoiceClientRpc(string receivedGhostId, int typeIndex, int clipArrayLength, bool interrupt = true)
+    public void PlayCreatureVoiceClientRpc(string receivedGhostId, int typeIndex, int clipArrayLength,
+        bool interrupt = true)
     {
         int randomNum = UnityEngine.Random.Range(0, clipArrayLength);
-        LogDebug($"Invoking OnPlayCreatureVoice | Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
+        LogDebug(
+            $"Invoking OnPlayCreatureVoice | Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
         OnPlayCreatureVoice?.Invoke(receivedGhostId, typeIndex, randomNum, interrupt);
     }
-    
+
     [ClientRpc]
     public void EnterDeathStateClientRpc(string receivedGhostId)
     {
@@ -204,8 +208,8 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
 
     private void LogDebug(string msg)
     {
-        #if DEBUG
+#if DEBUG
         _mls?.LogInfo(msg);
-        #endif
+#endif
     }
 }

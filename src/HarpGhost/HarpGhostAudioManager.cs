@@ -1,5 +1,6 @@
 ﻿using BepInEx.Logging;
 using UnityEngine;
+using Logger = BepInEx.Logging.Logger;
 using Random = UnityEngine.Random;
 
 namespace LethalCompanyHarpGhost.HarpGhost;
@@ -9,12 +10,11 @@ public class HarpGhostAudioManager : MonoBehaviour
     private ManualLogSource _mls;
     private string _ghostId;
     
-    [Header("Audio")]
-    [Space(5f)]
-    #pragma warning disable 0649
+    [Header("Audio")] [Space(5f)]
+#pragma warning disable 0649
     [SerializeField] private AudioSource creatureVoiceSource;
     [SerializeField] private AudioSource creatureSfxSource;
-    #pragma warning restore 0649
+#pragma warning restore 0649
     
     public AudioClip[] damageSfx;
     public AudioClip[] laughSfx;
@@ -22,13 +22,12 @@ public class HarpGhostAudioManager : MonoBehaviour
     public AudioClip[] upsetSfx;
     public AudioClip dieSfx;
 
-    [Space(5f)]
-    [Header("Controllers")]
-    #pragma warning disable 0649
+    [Space(5f)] [Header("Controllers")]
+#pragma warning disable 0649
     [SerializeField] private HarpGhostNetcodeController netcodeController;
-    #pragma warning restore 0649
+#pragma warning restore 0649
     
-    public enum AudioClipTypes
+    internal enum AudioClipTypes
     {
         Death = 0,
         Damage = 1,
@@ -67,7 +66,7 @@ public class HarpGhostAudioManager : MonoBehaviour
 
     private void Start()
     {
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost Audio Controller {_ghostId}");
+        _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost Audio Controller {_ghostId}");
         
         if (creatureSfxSource == null) _mls.LogError("creatureSfxSource is null");
         if (creatureVoiceSource == null) _mls.LogError("creatureVoiceSource is null");
@@ -81,6 +80,7 @@ public class HarpGhostAudioManager : MonoBehaviour
 
     private void OnEnable()
     {
+        if (netcodeController == null) return;
         netcodeController.OnInitializeConfigValues += HandleOnInitializeConfigValues;
         netcodeController.OnPlayCreatureVoice += PlayVoice;
         netcodeController.OnEnterDeathState += HandleOnEnterDeathState;
@@ -89,6 +89,7 @@ public class HarpGhostAudioManager : MonoBehaviour
 
     private void OnDisable()
     {
+        if (netcodeController == null) return;
         netcodeController.OnInitializeConfigValues -= HandleOnInitializeConfigValues;
         netcodeController.OnPlayCreatureVoice -= PlayVoice;
         netcodeController.OnEnterDeathState -= HandleOnEnterDeathState;
@@ -111,11 +112,11 @@ public class HarpGhostAudioManager : MonoBehaviour
         if (_ghostId != receivedGhostId) return;
         creatureVoiceSource.Stop(true);
         creatureSfxSource.Stop(true);
-        PlayVoice(_ghostId, (int)AudioClipTypes.Death, 1);
+        PlayVoice(_ghostId, (int)AudioClipTypes.Death, 1, audibleByEnemies: true);
         Destroy(this);
     }
 
-    private void PlayVoice(string receivedGhostId, int typeIndex, int randomNum, bool interrupt = true)
+    private void PlayVoice(string receivedGhostId, int typeIndex, int randomNum, bool interrupt = true, bool audibleByEnemies = false)
     {
         if (_ghostId != receivedGhostId) return;
         creatureVoiceSource.pitch = Random.Range(0.8f, 1.1f);
@@ -140,13 +141,7 @@ public class HarpGhostAudioManager : MonoBehaviour
         if (interrupt) creatureVoiceSource.Stop(true);
         creatureVoiceSource.PlayOneShot(audioClip);
         WalkieTalkie.TransmitOneShotAudio(creatureVoiceSource, audioClip, creatureVoiceSource.volume);
-    }
-    
-    private void PlaySfx(AudioClip clip, float volume = 1f)
-    {
-        creatureSfxSource.volume = volume;
-        creatureSfxSource.PlayOneShot(clip);
-        WalkieTalkie.TransmitOneShotAudio(creatureSfxSource, clip, volume);
+        if (audibleByEnemies) RoundManager.Instance.PlayAudibleNoise(creatureVoiceSource.transform.position);
     }
     
     private void LogDebug(string msg)

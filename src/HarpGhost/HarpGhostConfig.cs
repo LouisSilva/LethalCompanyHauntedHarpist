@@ -85,7 +85,7 @@ public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
         HarpGhostSpawnRarity = cfg.Bind(
             "Ghost Spawn Values", 
             "Haunted Harpist Spawn Rarity",
-            "Modded:25,ExperimentationLevel:0,AssuranceLevel:0,VowLevel:0,OffenseLevel:0,MarchLevel:0,RendLevel:200,DineLevel:200,TitanLevel:50,Adamance:0,Embrion:0,Artifice:35,Auralis:0,Atlantica:0,Acidir:200,Cosmocos:35,Asteroid:5,Desolation:60,Etern:0,Gloom:60,Gratar:0,Infernis:0,Junic:15,Oldred:0,Polarus:0",
+            "Modded:25,ExperimentationLevel:0,AssuranceLevel:0,VowLevel:5,OffenseLevel:0,MarchLevel:5,RendLevel:200,DineLevel:200,TitanLevel:50,Adamance:5,Embrion:1,Artifice:35,Auralis:0,Atlantica:0,Acidir:200,Cosmocos:35,Asteroid:5,Desolation:60,Etern:0,Gloom:60,Gratar:0,Infernis:0,Junic:15,Oldred:0,Polarus:0,Seichi:20,Bozoros:15",
             "Spawn weight of the Haunted Harpist on all moons. You can to add to it any moon, just follow the format (also needs LLL installed for LE moons to work with this config)."
             );
         
@@ -107,7 +107,7 @@ public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
             "Haunted Harpist General",
             "Friendly Fire",
             true,
-            "Whether the Haunted Harpist can be killed by something other than a player e.g. an eyeless dog, mine etc"
+            "Whether the Haunted Harpist can be killed by something other than a player e.g. an eyeless dog"
         );
         
         HarpGhostIsStunnable= cfg.Bind(
@@ -204,8 +204,8 @@ public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
         HarpGhostStunGameDifficultyMultiplier = cfg.Bind(
             "Haunted Harpist General",
             "Stun Game Difficulty Multiplier",
-            0f,
-            "Not sure what this does"
+            2f,
+            "Determines how difficult it is to use the zap gun on the Harpist."
         );
         
         HarpGhostAnnoyanceLevelDecayRate = cfg.Bind(

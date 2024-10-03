@@ -10,8 +10,6 @@ using Random = UnityEngine.Random;
 
 namespace LethalCompanyHarpGhost.Items;
 
-// Add a damage and speed boost for when the bagpipes are being played by a player
-
 public class InstrumentBehaviour : PhysicsProp
 {
     private ManualLogSource _mls;
@@ -27,11 +25,10 @@ public class InstrumentBehaviour : PhysicsProp
     [SerializeField] private AudioChorusFilter instrumentAudioChorusFilter;
     [SerializeField] private OccludeAudio instrumentOccludeAudio;
     
-    private RoundManager _roundManager;
-    
     private int _timesPlayedWithoutTurningOff;
     
     private float _noiseInterval;
+    private float _defaultPitch;
     
     private bool _isPlayingMusic;
     private bool _isInAltPlayerOffset;
@@ -69,8 +66,9 @@ public class InstrumentBehaviour : PhysicsProp
                 playerAltInstrumentOffset = new ItemOffset(new Vector3(-0.4f, 0.2f, -0.1f), new Vector3(-70, 115, -200));
                 enemyInstrumentOffset = new ItemOffset(new Vector3(0f, -0.6f, 0.6f));
                 
+                _defaultPitch = Mathf.Clamp(HarpGhostConfig.Default.HarpPitch.Value, -3f, 3f);
                 instrumentAudioSource.volume = Mathf.Clamp(HarpGhostConfig.Default.HarpVolume.Value, 0f, 1f);
-                instrumentAudioSource.pitch = Mathf.Clamp(HarpGhostConfig.Default.HarpPitch.Value, -3f, 3f);
+                instrumentAudioSource.pitch = _defaultPitch;
                 instrumentAudioSource.bypassReverbZones = HarpGhostConfig.Default.HarpBypassReverbZones.Value;
                 instrumentAudioSource.reverbZoneMix = Mathf.Clamp(HarpGhostConfig.Default.HarpReverbZoneMix.Value, 0f, 1.1f);
                 instrumentAudioSource.dopplerLevel = Mathf.Clamp(HarpGhostConfig.Default.HarpDopplerLevel.Value, 0f, 5f);
@@ -137,8 +135,7 @@ public class InstrumentBehaviour : PhysicsProp
         _instrumentId = Guid.NewGuid().ToString();
         _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Instrument {_instrumentId}");
         
-        _roundManager = FindObjectOfType<RoundManager>();
-        Random.InitState(FindObjectOfType<StartOfRound>().randomMapSeed - 10);
+        Random.InitState(StartOfRound.Instance.randomMapSeed + _instrumentId.GetHashCode());
         
         if (!IsOwner) return;
         
@@ -147,8 +144,7 @@ public class InstrumentBehaviour : PhysicsProp
             _mls.LogError("instrumentAudioSource is null!");
             return;
         }
-
-        // ReSharper disable once InvertIf
+        
         if (instrumentAudioClips == null || instrumentAudioClips.Length == 0)
         {
             _mls.LogError("instrumentAudioClips is null or empty!");
@@ -167,7 +163,13 @@ public class InstrumentBehaviour : PhysicsProp
         {
             _noiseInterval = 1f;
             ++_timesPlayedWithoutTurningOff;
-            _roundManager.PlayAudibleNoise(transform.position, 16f, 3f, _timesPlayedWithoutTurningOff, noiseID: 540);
+            RoundManager.Instance.PlayAudibleNoise(
+                transform.position,
+                16f,
+                3f,
+                _timesPlayedWithoutTurningOff,
+                isInShipRoom && StartOfRound.Instance.hangarDoorsClosed,
+                540);
         }
 
         else _noiseInterval -= Time.deltaTime;
@@ -244,15 +246,12 @@ public class InstrumentBehaviour : PhysicsProp
         }
         
         instrumentAudioSource.clip = selectedClip;
-        instrumentAudioSource.pitch = 1f;
+        instrumentAudioSource.pitch = _defaultPitch;
         instrumentAudioSource.Play();
+        
         WalkieTalkie.TransmitOneShotAudio(instrumentAudioSource, instrumentAudioSource.clip, instrumentAudioSource.volume);
+        
         _isPlayingMusic = true;
-    }
-
-    private void StartMusic()
-    {
-        StartMusic(Random.Range(0, instrumentAudioClips.Length));
     }
 
     private void StopMusic()
