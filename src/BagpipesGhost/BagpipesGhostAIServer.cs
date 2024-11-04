@@ -51,7 +51,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
 
     private EntranceTeleport _escapeDoor;
 
-    private NullableObject<InstrumentBehaviour> _heldBagpipes = new();
+    private readonly NullableObject<InstrumentBehaviour> _heldBagpipes = new();
     
     private NetworkObjectReference _instrumentObjectRef;
 

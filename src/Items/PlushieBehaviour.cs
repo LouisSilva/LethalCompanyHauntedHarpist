@@ -1,85 +1,101 @@
 ﻿using System;
-using BepInEx.Logging;
+using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
-using Logger = BepInEx.Logging.Logger;
 using Random = UnityEngine.Random;
 
 namespace LethalCompanyHarpGhost.Items;
 
 public class PlushieBehaviour : PhysicsProp
 {
-    private ManualLogSource _mls;
     private string _plushieId;
     
     #pragma warning disable 0649
     [SerializeField] private Material[] plushieMaterialVariants;
     #pragma warning restore 0649
-
-    private int _materialVariantIndex;
+    
+    private CachedValue<NetworkObject> _networkObject;
+    
+    private readonly NetworkVariable<int> _variantIndex = new(-1, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
     private bool _loadedVariantFromSave;
-    private bool _calledRpc;
+    private bool _networkEventsSubscribed;
+    
+    private void Awake()
+    {
+        _networkObject = new CachedValue<NetworkObject>(GetComponent<NetworkObject>, true);
+    }
+    
+    private void OnEnable()
+    {
+        SubscribeToNetworkEvents();
+    }
+
+    private void OnDisable()
+    {
+        UnsubscribeFromNetworkEvents();
+    }
 
     public override void Start()
     {
         base.Start();
 
-        _plushieId = Guid.NewGuid().ToString();
-        _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Plushie {_plushieId}");
-        Random.InitState(FindObjectOfType<StartOfRound>().randomMapSeed + _plushieId.GetHashCode());
-        if (!_calledRpc) ApplyRandomMaterialServerRpc();
+        if (IsServer)
+        {
+            _plushieId = Guid.NewGuid().ToString();
+            Random.InitState(StartOfRound.Instance.randomMapSeed + _plushieId.GetHashCode());
+            // SyncPoopIdClientRpc(_poopId);
+
+            if (!_loadedVariantFromSave)
+            {
+                _variantIndex.Value = Random.Range(0, plushieMaterialVariants.Length);
+            }
+        }
     }
-
-    [ServerRpc(RequireOwnership = false)]
-    private void ApplyRandomMaterialServerRpc()
+    
+    private void ApplyVariant(int chosenVariantIndex)
     {
-        ApplyRandomMaterialClientRpc();
-    }
-
-    [ClientRpc]
-    private void ApplyRandomMaterialClientRpc()
-    {
-        ApplyRandomMaterial();
-        _calledRpc = true;
-    }
-
-    private void ApplyRandomMaterial()
-    {
-        if (_loadedVariantFromSave) return;
-
         if (plushieMaterialVariants.Length > 0)
-        {
-            _materialVariantIndex = Random.Range(0, plushieMaterialVariants.Length);
-            mainObjectRenderer.material = plushieMaterialVariants[_materialVariantIndex];
-            LogDebug($"New random material applied: {plushieMaterialVariants[_materialVariantIndex].name}");
-        }
-        else
-        {
-            LogDebug("No material variants available.");
-        }
+            mainObjectRenderer.material = plushieMaterialVariants[chosenVariantIndex];
+    }
+    
+    private void OnVariantIndexChanged(int oldValue, int newValue)
+    {
+        ApplyVariant(newValue);
     }
 
     public override int GetItemDataToSave()
     {
-        base.GetItemDataToSave();
-        return _materialVariantIndex;
+        return _variantIndex.Value + 1;
     }
 
     public override void LoadItemSaveData(int saveData)
     {
-        base.LoadItemSaveData(saveData);
-        _materialVariantIndex = saveData;
-        mainObjectRenderer.material = plushieMaterialVariants[_materialVariantIndex];
         _loadedVariantFromSave = true;
-        LogDebug($"Material from save data applied: {plushieMaterialVariants[_materialVariantIndex].name}");
+        StartCoroutine(ApplyItemSaveData(saveData - 1));
     }
     
-    private void LogDebug(string msg)
+    private IEnumerator ApplyItemSaveData(int loadedVariantIndex)
     {
-        #if DEBUG
-        if (!IsOwner) return;
-        _mls.LogInfo(msg);
-        #endif
+        while (!_networkObject.Value.IsSpawned)
+        {
+            yield return new WaitForSeconds(0.2f);
+        }
+
+        _variantIndex.Value = loadedVariantIndex;
+    }
+    
+    private void SubscribeToNetworkEvents()
+    {
+        if (_networkEventsSubscribed) return;
+        _variantIndex.OnValueChanged += OnVariantIndexChanged;
+        _networkEventsSubscribed = true;
+    }
+
+    private void UnsubscribeFromNetworkEvents()
+    {
+        if (!_networkEventsSubscribed) return;
+        _variantIndex.OnValueChanged -= OnVariantIndexChanged;
+        _networkEventsSubscribed = false;
     }
 }

@@ -97,6 +97,12 @@ public class HarpGhostPlugin : BaseUnityPlugin
         Mls.LogInfo($"Plugin {ModName} is loaded!");
     }
 
+    // private void OnDisable()
+    // {
+    //     Assets.MainAssetBundle.Unload(false);
+    //     Mls.LogDebug($"Unloaded assetbundles.");
+    // }
+
     private void SetupHarpGhost()
     {
         _harpGhostEnemyType = Assets.MainAssetBundle.LoadAsset<EnemyType>("HarpGhost");
