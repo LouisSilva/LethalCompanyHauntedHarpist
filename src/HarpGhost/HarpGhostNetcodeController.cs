@@ -16,23 +16,23 @@ public class HarpGhostNetcodeController : NetworkBehaviour
 
     private ManualLogSource _mls;
     
-    public event Action<string, int> OnDoAnimation;
-    public event Action<string, int, bool> OnChangeAnimationParameterBool;
-    public event Action<string, int, int, bool, bool> OnPlayCreatureVoice;
-    public event Action<string> OnEnterDeathState;
-    public event Action<string> OnGrabHarp;
-    public event Action<string, NetworkObjectReference, int> OnSpawnHarp;
-    public event Action<string, Vector3> OnDropHarp;
-    public event Action<string> OnPlayHarpMusic;
-    public event Action<string> OnStopHarpMusic;
-    public event Action<string, ulong> OnChangeTargetPlayer;
-    public event Action<string, int, CauseOfDeath> OnDamageTargetPlayer;
-    public event Action<string, float, float> OnChangeAgentMaxSpeed;
-    public event Action<string> OnFixAgentSpeedAfterAttack;
-    public event Action<string> OnIncreaseTargetPlayerFearLevel;
-    public event Action<string> OnInitializeConfigValues;
-    public event Action<string> OnUpdateGhostIdentifier;
-    public event Action<string> OnGhostEyesTurnRed;
+    internal event Action<string, int> OnDoAnimation;
+    internal event Action<string, int, bool> OnChangeAnimationParameterBool;
+    internal event Action<string, int, int, bool, bool> OnPlayCreatureVoice;
+    internal event Action<string> OnEnterDeathState;
+    internal event Action<string> OnGrabHarp;
+    internal event Action<string, NetworkObjectReference, int> OnSpawnHarp;
+    internal event Action<string, Vector3> OnDropHarp;
+    internal event Action<string> OnPlayHarpMusic;
+    internal event Action<string> OnStopHarpMusic;
+    internal event Action<string, ulong> OnChangeTargetPlayer;
+    internal event Action<string, int, CauseOfDeath> OnDamageTargetPlayer;
+    internal event Action<string, float, float> OnChangeAgentMaxSpeed;
+    internal event Action<string> OnFixAgentSpeedAfterAttack;
+    internal event Action<string> OnIncreaseTargetPlayerFearLevel;
+    internal event Action<string> OnInitializeConfigValues;
+    internal event Action<string> OnUpdateGhostIdentifier;
+    internal event Action<string> OnGhostEyesTurnRed;
 
     private void Start()
     {
@@ -43,97 +43,97 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void SyncGhostIdentifierClientRpc(string receivedGhostId)
+    internal void SyncGhostIdentifierClientRpc(string receivedGhostId)
     {
         OnUpdateGhostIdentifier?.Invoke(receivedGhostId);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void FixAgentSpeedAfterAttackServerRpc(string receivedGhostId)
+    internal void FixAgentSpeedAfterAttackServerRpc(string receivedGhostId)
     {
         OnFixAgentSpeedAfterAttack?.Invoke(receivedGhostId);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void ChangeAgentMaxSpeedServerRpc(string receivedGhostId, float newMaxSpeed, float newMaxSpeed2)
+    internal void ChangeAgentMaxSpeedServerRpc(string receivedGhostId, float newMaxSpeed, float newMaxSpeed2)
     {
         OnChangeAgentMaxSpeed?.Invoke(receivedGhostId, newMaxSpeed, newMaxSpeed2);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void DamageTargetPlayerServerRpc(string receivedGhostId, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
+    internal void DamageTargetPlayerServerRpc(string receivedGhostId, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
     {
         DamageTargetPlayerClientRpc(receivedGhostId, damage, causeOfDeath);
     }
 
     [ClientRpc]
-    public void InitializeConfigValuesClientRpc(string receivedGhostId)
+    internal void InitializeConfigValuesClientRpc(string receivedGhostId)
     {
         OnInitializeConfigValues?.Invoke(receivedGhostId);
     }
 
     [ClientRpc]
-    public void DamageTargetPlayerClientRpc(string receivedGhostId, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
+    internal void DamageTargetPlayerClientRpc(string receivedGhostId, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
     {
         OnDamageTargetPlayer?.Invoke(receivedGhostId, damage, causeOfDeath);
     }
 
     [ClientRpc]
-    public void ChangeTargetPlayerClientRpc(string receivedGhostId, ulong playerClientId)
+    internal void ChangeTargetPlayerClientRpc(string receivedGhostId, ulong playerClientId)
     {
         OnChangeTargetPlayer?.Invoke(receivedGhostId, playerClientId);
     }
 
     [ClientRpc]
-    public void IncreaseTargetPlayerFearLevelClientRpc(string receivedGhostId)
+    internal void IncreaseTargetPlayerFearLevelClientRpc(string receivedGhostId)
     {
         OnIncreaseTargetPlayerFearLevel?.Invoke(receivedGhostId);
     }
 
     [ClientRpc]
-    public void EnterDeathStateClientRpc(string receivedGhostId)
+    internal void EnterDeathStateClientRpc(string receivedGhostId)
     {
         OnEnterDeathState?.Invoke(receivedGhostId);
     }
 
     [ClientRpc]
-    public void TurnGhostEyesRedClientRpc(string receivedGhostId)
+    internal void TurnGhostEyesRedClientRpc(string receivedGhostId)
     {
         OnGhostEyesTurnRed?.Invoke(receivedGhostId);
     }
 
     [ClientRpc]
-    public void ChangeAnimationParameterBoolClientRpc(string receivedGhostId, int animationId, bool value)
+    internal void ChangeAnimationParameterBoolClientRpc(string receivedGhostId, int animationId, bool value)
     {
         OnChangeAnimationParameterBool?.Invoke(receivedGhostId, animationId, value);
     }
 
     [ClientRpc]
-    public void DoAnimationClientRpc(string receivedGhostId, int animationId)
+    internal void DoAnimationClientRpc(string receivedGhostId, int animationId)
     {
         OnDoAnimation?.Invoke(receivedGhostId, animationId);
     }
 
     [ClientRpc]
-    public void GrabHarpClientRpc(string receivedGhostId)
+    internal void GrabHarpClientRpc(string receivedGhostId)
     {
         OnGrabHarp?.Invoke(receivedGhostId);
     }
 
     [ClientRpc]
-    public void PlayHarpMusicClientRpc(string receivedGhostId)
+    internal void PlayHarpMusicClientRpc(string receivedGhostId)
     {
         OnPlayHarpMusic?.Invoke(receivedGhostId);
     }
     
     [ClientRpc]
-    public void StopHarpMusicClientRpc(string receivedGhostId)
+    internal void StopHarpMusicClientRpc(string receivedGhostId)
     {
         OnStopHarpMusic?.Invoke(receivedGhostId);
     }
     
     [ServerRpc]
-    public void SpawnHarpServerRpc(string receivedGhostId)
+    internal void SpawnHarpServerRpc(string receivedGhostId)
     {
         GameObject harpObject = Instantiate(
             HarpGhostPlugin.HarpItem.spawnPrefab,
@@ -163,13 +163,13 @@ public class HarpGhostNetcodeController : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void DropHarpClientRpc(string receivedGhostId, Vector3 targetPosition)
+    internal void DropHarpClientRpc(string receivedGhostId, Vector3 targetPosition)
     {
         OnDropHarp?.Invoke(receivedGhostId, targetPosition);
     }
     
     [ClientRpc]
-    public void PlayCreatureVoiceClientRpc(string receivedGhostId, int typeIndex, int clipArrayLength, bool interrupt = true, bool audibleByEnemies = false)
+    internal void PlayCreatureVoiceClientRpc(string receivedGhostId, int typeIndex, int clipArrayLength, bool interrupt = true, bool audibleByEnemies = false)
     {
         int randomNum = Random.Range(0, clipArrayLength);
         LogDebug($"Invoking OnPlayCreatureVoice | Audio clip index: {typeIndex}, audio clip random number: {randomNum}");

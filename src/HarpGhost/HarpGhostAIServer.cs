@@ -194,17 +194,7 @@ public class HarpGhostAIServer : EnemyAI
             }
 
             case (int)States.SearchingForPlayers:
-            {
-                RunAnimation();
-                break;
-            }
-
             case (int)States.InvestigatingTargetPosition:
-            {
-                RunAnimation();
-                break;
-            }
-
             case (int)States.ChasingTargetPlayer:
             {
                 RunAnimation();

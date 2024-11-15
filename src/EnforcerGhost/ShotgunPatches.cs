@@ -28,7 +28,7 @@ internal static class GrabbableObjectPatches
     private static void UpdateItemOffsets(GrabbableObject __instance)
     {
         if (__instance is not ShotgunItem shotgun) return;
-        if (shotgun.heldByEnemy is not EnforcerGhostAIServer || shotgun.isHeldByEnemy || shotgun.parentObject == null) return;
+        if (shotgun.heldByEnemy is not EnforcerGhostAIServer || !shotgun.isHeldByEnemy || shotgun.parentObject == null) return;
 
         Vector3 positionOffset = new(0, 0, 0);
         Vector3 rotationOffset = new(-180f, 180f, -90f);

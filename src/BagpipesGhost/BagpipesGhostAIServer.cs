@@ -359,11 +359,11 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         _currentlyRetiringAllEscorts = true;
         for (int i = _escorts.Count - 1; i >= 0; i--)
         {
-            LogDebug($"Retiring escort {_escorts[i].ghostId}");
+            LogDebug($"Retiring escort {_escorts[i].GhostId}");
             if (targetPlayerToSet != null)
             {
                 _escorts[i].targetPlayer = targetPlayerToSet;
-                _escorts[i].targetPosition = targetPlayerToSet.transform.position;
+                _escorts[i].TargetPosition = targetPlayerToSet.transform.position;
                 _escorts[i].SwitchToBehaviourStateOnLocalClient((int)EnforcerGhostAIServer.States.InvestigatingTargetPosition);
             }
             else
@@ -392,7 +392,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
             _escorts[i].escorteePingTimer = 5f;
             
             // Check if the escort has finished its spawn animation before giving it orders
-            if (!_escorts[i].fullySpawned) continue;
+            if (!_escorts[i].FullySpawned) continue;
             
             // Check if the bagpipe ghost is moving, if not then don't bother making the escorts do anything
             if (!_agentIsMoving && (transform.position - _escorts[i].transform.position).magnitude < EscortRowSpacing) continue;
@@ -400,7 +400,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
             Vector3 targetPosition;
             if (!_isNarrowPath && _escorts.Count > 1) // triangle formation
             {
-                float lateralOffset = ((i % 2) * 2 - 1) * EscortHorizontalBaseLength / 2;
+                float lateralOffset = (i % 2 * 2 - 1) * EscortHorizontalBaseLength / 2;
                 int row = i / 2;
                 Vector3 directionOffset = transform.right * lateralOffset - transform.forward * (EscortRowSpacing * row);
                 targetPosition = transform.position + directionOffset;
@@ -447,7 +447,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         _escorts.Add(escort);
     }
 
-    public void RemoveEscort(int indexOfEscort)
+    internal void RemoveEscort(int indexOfEscort)
     {
         if (_escorts[indexOfEscort] == null) return;
         _escorts[indexOfEscort].Escortee = null;
@@ -493,7 +493,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     {
         base.SetEnemyStunned(setToStunned, setToStunTime, setStunnedByPlayer);
         if (!IsServer) return;
-        if (currentBehaviourStateIndex is (int)States.TeleportingOutOfMap or (int)States.Dead) return;
+        if (isEnemyDead || currentBehaviourStateIndex is (int)States.TeleportingOutOfMap or (int)States.Dead) return;
         
         netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Stun, 2);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, true);

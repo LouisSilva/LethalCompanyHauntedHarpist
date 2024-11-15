@@ -25,12 +25,12 @@ public class EnforcerGhostAIClient : MonoBehaviour
         ShieldBreak,
     }
 
-    public static readonly int IsRunning = Animator.StringToHash("Running");
-    public static readonly int IsStunned = Animator.StringToHash("Stunned");
-    public static readonly int IsDead = Animator.StringToHash("Dead");
-    public static readonly int IsHoldingShotgun = Animator.StringToHash("HoldingShotgun");
-    public static readonly int PickupShotgun = Animator.StringToHash("PickupShotgun");
-    public static readonly int ReloadShotgun = Animator.StringToHash("ReloadShotgun");
+    internal static readonly int IsRunning = Animator.StringToHash("Running");
+    internal static readonly int IsStunned = Animator.StringToHash("Stunned");
+    internal static readonly int IsDead = Animator.StringToHash("Dead");
+    internal static readonly int IsHoldingShotgun = Animator.StringToHash("HoldingShotgun");
+    internal static readonly int PickupShotgun = Animator.StringToHash("PickupShotgun");
+    internal static readonly int ReloadShotgun = Animator.StringToHash("ReloadShotgun");
 
 #pragma warning disable 0649
     [Header("Transforms")] [Space(3f)] 

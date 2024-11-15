@@ -38,7 +38,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
 {
     public const string ModGuid = $"LCM_HauntedHarpist|{ModVersion}";
     private const string ModName = "Lethal Company Haunted Harpist Mod";
-    private const string ModVersion = "1.3.17";
+    private const string ModVersion = "1.3.18";
 
     private readonly Harmony _harmony = new(ModGuid);
     
@@ -339,7 +339,6 @@ public class HarpGhostPlugin : BaseUnityPlugin
     }
 }
 
-// Got from https://lethal.wiki/dev/intermediate/custom-config-syncing
 [Serializable]
 public class SyncedInstance<T>
 {
@@ -470,17 +469,17 @@ public class SyncedInstance<T>
 internal static class Assets
 {
     private const string MainAssetBundleName = "Assets.harpghostbundle";
-    public static AssetBundle MainAssetBundle;
+    internal static AssetBundle MainAssetBundle;
 
     private static string GetAssemblyName() => Assembly.GetExecutingAssembly().FullName.Split(',')[0];
-    public static void PopulateAssetsFromEmbedded()
+    internal static void PopulateAssetsFromEmbedded()
     {
         if (MainAssetBundle != null) return;
         using Stream assetStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(GetAssemblyName() + "." + MainAssetBundleName);
         MainAssetBundle = AssetBundle.LoadFromStream(assetStream);
     }
 
-    public static void PopulateAssetsFromFile()
+    internal static void PopulateAssetsFromFile()
     {
         if (MainAssetBundle != null) return;
         string assemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -499,7 +498,7 @@ internal static class Assets
         }
     }
 
-    public static IEnumerator LoadAudioClipAsync(string clipName, Action<AudioClip> callback)
+    internal static IEnumerator LoadAudioClipAsync(string clipName, Action<AudioClip> callback)
     {
         if (MainAssetBundle == null) yield break;
 
@@ -511,12 +510,12 @@ internal static class Assets
     }
 }
 
-public static class LobbyCompatibilityChecker 
+internal static class LobbyCompatibilityChecker 
 {
-    public static bool Enabled => Chainloader.PluginInfos.ContainsKey("BMX.LobbyCompatibility");
+    internal static bool Enabled => Chainloader.PluginInfos.ContainsKey("BMX.LobbyCompatibility");
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    public static void Init() 
+    internal static void Init() 
     {
         PluginHelper.RegisterPlugin(PluginInfo.PLUGIN_GUID, Version.Parse(PluginInfo.PLUGIN_VERSION), CompatibilityLevel.Everyone, VersionStrictness.Patch);
     }

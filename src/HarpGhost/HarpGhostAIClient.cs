@@ -169,7 +169,7 @@ public class HarpGhostAIClient : MonoBehaviour
 
     private void HandleGrabInstrument(string receivedGhostId)
     {
-        if (_ghostId != receivedGhostId || !_heldInstrument.IsNotNull) return;
+        if (_ghostId != receivedGhostId || _heldInstrument.IsNotNull) return;
         if (!_instrumentObjectRef.TryGet(out NetworkObject networkObject)) return;
         _heldInstrument.Value = networkObject.gameObject.GetComponent<InstrumentBehaviour>();
 

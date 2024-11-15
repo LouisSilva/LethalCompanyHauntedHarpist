@@ -115,7 +115,7 @@ public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
             "Haunted Harpist General",
             "Friendly Fire",
             true,
-            "Whether the Haunted Harpist can be killed by something other than a player e.g. an eyeless dog"
+            "Whether the Haunted Harpist can be killed by something other than a player e.g. an eyeless dog. WARNING: May be incompatible with some mods, I suggest you leave this option as the default."
         );
         
         HarpGhostIsStunnable= cfg.Bind(
@@ -252,7 +252,7 @@ public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
         );
         
         HarpPitch = cfg.Bind(
-            "Harp - Advanced Audio Settings",
+            "Instrument Audio",
             "Harp Pitch",
             1f,
             "The pitch of the music played from the harp. Values are from -3 to 3"

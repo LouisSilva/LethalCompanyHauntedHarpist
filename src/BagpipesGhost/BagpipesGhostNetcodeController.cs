@@ -14,20 +14,20 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     [SerializeField] private BagpipesGhostAIServer bagpipesGhostAIServer;
 #pragma warning restore 0649
     
-    public event Action<string, int> OnDoAnimation;
-    public event Action<string, int, bool> OnChangeAnimationParameterBool;
-    public event Action<string> OnInitializeConfigValues;
-    public event Action<string> OnUpdateGhostIdentifier;
-    public event Action<string> OnGrabBagpipes;
-    public event Action<string, NetworkObjectReference, int> OnSpawnBagpipes;
-    public event Action<string, Vector3> OnDropBagpipes;
-    public event Action<string> OnDestroyBagpipes;
-    public event Action<string> OnPlayBagpipesMusic;
-    public event Action<string> OnStopBagpipesMusic;
-    public event Action<string> OnEnterDeathState;
-    public event Action<string> OnPlayTeleportVfx;
-    public event Action<string, int, int, bool> OnPlayCreatureVoice;
-    public event Action<string, bool> OnSetMeshEnabled; 
+    internal event Action<string, int> OnDoAnimation;
+    internal event Action<string, int, bool> OnChangeAnimationParameterBool;
+    internal event Action<string> OnInitializeConfigValues;
+    internal event Action<string> OnUpdateGhostIdentifier;
+    internal event Action<string> OnGrabBagpipes;
+    internal event Action<string, NetworkObjectReference, int> OnSpawnBagpipes;
+    internal event Action<string, Vector3> OnDropBagpipes;
+    internal event Action<string> OnDestroyBagpipes;
+    internal event Action<string> OnPlayBagpipesMusic;
+    internal event Action<string> OnStopBagpipesMusic;
+    internal event Action<string> OnEnterDeathState;
+    internal event Action<string> OnPlayTeleportVfx;
+    internal event Action<string, int, int, bool> OnPlayCreatureVoice;
+    internal event Action<string, bool> OnSetMeshEnabled; 
 
     private void Start()
     {
@@ -38,67 +38,67 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void SetMeshEnabledClientRpc(string receivedGhostId, bool meshEnabled)
+    internal void SetMeshEnabledClientRpc(string receivedGhostId, bool meshEnabled)
     {
         OnSetMeshEnabled?.Invoke(receivedGhostId, meshEnabled);
     }
     
     [ClientRpc]
-    public void InitializeConfigValuesClientRpc(string receivedGhostId)
+    internal void InitializeConfigValuesClientRpc(string receivedGhostId)
     {
         OnInitializeConfigValues?.Invoke(receivedGhostId);
     }
 
     [ClientRpc]
-    public void DespawnHeldBagpipesClientRpc(string receivedGhostId)
+    internal void DespawnHeldBagpipesClientRpc(string receivedGhostId)
     {
         OnDestroyBagpipes?.Invoke(receivedGhostId);
     }
     
     [ClientRpc]
-    public void ChangeAnimationParameterBoolClientRpc(string receivedGhostId, int animationId, bool value)
+    internal void ChangeAnimationParameterBoolClientRpc(string receivedGhostId, int animationId, bool value)
     {
         OnChangeAnimationParameterBool?.Invoke(receivedGhostId, animationId, value);
     }
 
     [ClientRpc]
-    public void DoAnimationClientRpc(string receivedGhostId, int animationId)
+    internal void DoAnimationClientRpc(string receivedGhostId, int animationId)
     {
         OnDoAnimation?.Invoke(receivedGhostId, animationId);
     }
 
     [ClientRpc]
-    public void PlayTeleportVfxClientRpc(string receivedGhostId)
+    internal void PlayTeleportVfxClientRpc(string receivedGhostId)
     {
         OnPlayTeleportVfx?.Invoke(receivedGhostId);
     }
     
     [ClientRpc]
-    public void SyncGhostIdentifierClientRpc(string receivedGhostId)
+    internal void SyncGhostIdentifierClientRpc(string receivedGhostId)
     {
         OnUpdateGhostIdentifier?.Invoke(receivedGhostId);
     }
     
     [ClientRpc]
-    public void GrabBagpipesClientRpc(string receivedGhostId)
+    internal void GrabBagpipesClientRpc(string receivedGhostId)
     {
         OnGrabBagpipes?.Invoke(receivedGhostId);
     }
 
     [ClientRpc]
-    public void PlayBagpipesMusicClientRpc(string receivedGhostId)
+    internal void PlayBagpipesMusicClientRpc(string receivedGhostId)
     {
         OnPlayBagpipesMusic?.Invoke(receivedGhostId);
     }
     
     [ClientRpc]
-    public void StopBagpipesMusicClientRpc(string receivedGhostId)
+    internal void StopBagpipesMusicClientRpc(string receivedGhostId)
     {
         OnStopBagpipesMusic?.Invoke(receivedGhostId);
     }
     
     [ServerRpc]
-    public void SpawnBagpipesServerRpc(string receivedGhostId)
+    internal void SpawnBagpipesServerRpc(string receivedGhostId)
     {
         GameObject bagpipesObject = Instantiate(
             HarpGhostPlugin.BagpipesItem.spawnPrefab,
@@ -128,13 +128,13 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void DropBagpipesClientRpc(string receivedGhostId, Vector3 targetPosition)
+    internal void DropBagpipesClientRpc(string receivedGhostId, Vector3 targetPosition)
     {
         OnDropBagpipes?.Invoke(receivedGhostId, targetPosition);
     }
     
     [ClientRpc]
-    public void PlayCreatureVoiceClientRpc(string receivedGhostId, int typeIndex, int clipArrayLength, bool interrupt = true)
+    internal void PlayCreatureVoiceClientRpc(string receivedGhostId, int typeIndex, int clipArrayLength, bool interrupt = true)
     {
         int randomNum = UnityEngine.Random.Range(0, clipArrayLength);
         LogDebug($"Invoking OnPlayCreatureVoice | Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
@@ -142,7 +142,7 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
     }
     
     [ClientRpc]
-    public void EnterDeathStateClientRpc(string receivedGhostId)
+    internal void EnterDeathStateClientRpc(string receivedGhostId)
     {
         OnEnterDeathState?.Invoke(receivedGhostId);
     }

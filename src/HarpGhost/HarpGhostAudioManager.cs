@@ -34,7 +34,7 @@ public class HarpGhostAudioManager : MonoBehaviour
         Upset = 4
     }
     
-    public enum NoiseIds
+    internal enum NoiseIds
     {
         PlayerFootstepsLocal = 6,
         PlayerFootstepsServer = 7,
@@ -53,7 +53,7 @@ public class HarpGhostAudioManager : MonoBehaviour
         DocileLocustBees = 14152,
     }
     
-    public enum NoiseIDToIgnore
+    internal enum NoiseIDToIgnore
     {
         Harp = 540,
         DoubleWing = 911,

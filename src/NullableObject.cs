@@ -6,7 +6,7 @@ namespace LethalCompanyHarpGhost;
 /// Represents an object that can hold a value of type <typeparamref name="T"/> or be null, with an indicator to check if the value is non-null.
 /// </summary>
 /// <typeparam name="T">The type of the value being held by this instance.</typeparam>
-public class NullableObject<T>
+internal class NullableObject<T>
 {
     private T _value;
 
@@ -19,7 +19,7 @@ public class NullableObject<T>
     /// <remarks>
     /// The value of <see cref="IsNotNull"/> is determined by comparing the stored value with the default value for type <typeparamref name="T"/>.
     /// </remarks>
-    public bool IsNotNull { get; private set; }
+    internal bool IsNotNull { get; private set; }
 
     /// <summary>
     /// Gets or sets the value of type <typeparamref name="T"/>.
@@ -30,7 +30,7 @@ public class NullableObject<T>
     /// If the value is set to <c>null</c> (for reference types) or the default value (for value types), <see cref="IsNotNull"/> will be set to <c>false</c>.
     /// Otherwise, it will be set to <c>true</c>.
     /// </remarks>
-    public T Value
+    internal T Value
     {
         get => _value;
         set
@@ -49,7 +49,7 @@ public class NullableObject<T>
     /// <remarks>
     /// The <see cref="IsNotNull"/> property will be initialized based on whether the provided value is the default value for type <typeparamref name="T"/>.
     /// </remarks>
-    public NullableObject(T value = default)
+    internal NullableObject(T value = default)
     {
         Value = value;
     }

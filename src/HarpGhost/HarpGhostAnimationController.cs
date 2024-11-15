@@ -17,10 +17,10 @@ public class HarpGhostAnimationController : MonoBehaviour
     [SerializeField] private HarpGhostAudioManager audioManager;
 #pragma warning restore 0649
     
-    public static readonly int IsRunning = Animator.StringToHash("Running");
-    public static readonly int IsStunned = Animator.StringToHash("Stunned");
-    public static readonly int IsDead = Animator.StringToHash("Dead");
-    public static readonly int Attack = Animator.StringToHash("Attack");
+    internal static readonly int IsRunning = Animator.StringToHash("Running");
+    internal static readonly int IsStunned = Animator.StringToHash("Stunned");
+    internal static readonly int IsDead = Animator.StringToHash("Dead");
+    internal static readonly int Attack = Animator.StringToHash("Attack");
 
     private int _attackDamage = 35;
 
@@ -84,7 +84,7 @@ public class HarpGhostAnimationController : MonoBehaviour
         animator.SetBool(parameter, value);
     }
 
-    public bool GetBool(int parameter)
+    internal bool GetBool(int parameter)
     {
         return animator.GetBool(parameter);
     }

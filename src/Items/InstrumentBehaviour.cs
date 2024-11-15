@@ -67,8 +67,8 @@ public class InstrumentBehaviour : PhysicsProp
                 enemyInstrumentOffset = new ItemOffset(new Vector3(0f, -0.6f, 0.6f));
                 
                 _defaultPitch = Mathf.Clamp(HarpGhostConfig.Default.HarpPitch.Value, -3f, 3f);
-                instrumentAudioSource.volume = Mathf.Clamp(HarpGhostConfig.Default.HarpVolume.Value, 0f, 1f);
                 instrumentAudioSource.pitch = _defaultPitch;
+                instrumentAudioSource.volume = Mathf.Clamp(HarpGhostConfig.Default.HarpVolume.Value, 0f, 1f);
                 instrumentAudioSource.bypassReverbZones = HarpGhostConfig.Default.HarpBypassReverbZones.Value;
                 instrumentAudioSource.reverbZoneMix = Mathf.Clamp(HarpGhostConfig.Default.HarpReverbZoneMix.Value, 0f, 1.1f);
                 instrumentAudioSource.dopplerLevel = Mathf.Clamp(HarpGhostConfig.Default.HarpDopplerLevel.Value, 0f, 5f);
@@ -114,6 +114,8 @@ public class InstrumentBehaviour : PhysicsProp
                 playerInstrumentOffset = new ItemOffset(new Vector3(-0.24f, 0.15f, 0.07f), new Vector3(-5f, 15f, -105f));
                 enemyInstrumentOffset = new ItemOffset(new Vector3(0.5f, -0.25f, 0.4f), new Vector3(0, 90, 0));
                 
+                _defaultPitch = Mathf.Clamp(BagpipeGhostConfig.Default.BagpipesPitch.Value, -3f, 3f);
+                instrumentAudioSource.pitch = _defaultPitch;
                 instrumentAudioSource.volume = Mathf.Clamp(BagpipeGhostConfig.Default.BagpipesVolume.Value, 0f, 1f);
                 instrumentAudioSource.maxDistance = Mathf.Clamp(BagpipeGhostConfig.Default.BagpipesSoundMaxDistance.Value, 0, Mathf.Infinity);
                 
@@ -208,14 +210,6 @@ public class InstrumentBehaviour : PhysicsProp
         }
         if (!(radarIcon != null)) return;
         radarIcon.position = transform.position;
-    }
-    
-    private void LogDebug(string msg)
-    {
-        #if DEBUG
-        if (!IsOwner) return;
-        _mls.LogInfo(msg);
-        #endif
     }
     
     public override void ItemActivate(bool used, bool buttonDown = true)
@@ -350,5 +344,13 @@ public class InstrumentBehaviour : PhysicsProp
     private void StartMusicClientRpc(int clipNumber)
     {
         StartMusic(clipNumber);
+    }
+    
+    private void LogDebug(string msg)
+    {
+#if DEBUG
+        if (!IsOwner) return;
+        _mls.LogInfo(msg);
+#endif
     }
 }

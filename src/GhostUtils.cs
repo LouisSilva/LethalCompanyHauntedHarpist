@@ -6,9 +6,9 @@ using UnityEngine;
 
 namespace LethalCompanyHarpGhost;
 
-public static class GhostUtils
+internal static class GhostUtils
 {
-    public enum PathStatus
+    internal enum PathStatus
     {
         Invalid, // Path is invalid or incomplete
         ValidButInLos, // Path is valid but obstructed by line of sight
@@ -16,7 +16,7 @@ public static class GhostUtils
         Unknown,
     }
 
-    public static void AssignCorrectAINodesType(EnemyAI enemyAI)
+    internal static void AssignCorrectAINodesType(EnemyAI enemyAI)
     {
         Vector3 enemyPos = enemyAI.transform.position;
         Vector3 closestOutsideNode = Vector3.positiveInfinity;
@@ -51,7 +51,7 @@ public static class GhostUtils
     /// Finds and returns the positions of all AI nodes tagged as "OutsideAINode".
     /// </summary>
     /// <returns>An enumerable collection of Vector3 positions for all outside AI nodes.</returns>
-    public static IEnumerable<Vector3> FindOutsideAINodePositions(GameObject[] outsideAINodes = null)
+    internal static IEnumerable<Vector3> FindOutsideAINodePositions(GameObject[] outsideAINodes = null)
     {
         outsideAINodes ??= GameObject.FindGameObjectsWithTag("OutsideAINode");
         Vector3[] outsideNodePositions = new Vector3[outsideAINodes.Length];
@@ -68,7 +68,7 @@ public static class GhostUtils
     /// Finds and returns the positions of all AI nodes tagged as "AINode".
     /// </summary>
     /// <returns>An enumerable collection of Vector3 positions for all inside AI nodes.</returns>
-    public static IEnumerable<Vector3> FindInsideAINodePositions(GameObject[] insideAINodes = null)
+    internal static IEnumerable<Vector3> FindInsideAINodePositions(GameObject[] insideAINodes = null)
     {
         insideAINodes ??= GameObject.FindGameObjectsWithTag("AINode");
         Vector3[] insideNodePositions = new Vector3[insideAINodes.Length];
@@ -81,7 +81,7 @@ public static class GhostUtils
         return insideNodePositions;
     }
     
-    public static void ChangeNetworkVar<T>(NetworkVariable<T> networkVariable, T newValue) where T : IEquatable<T>
+    internal static void ChangeNetworkVar<T>(NetworkVariable<T> networkVariable, T newValue) where T : IEquatable<T>
     {
         if (!EqualityComparer<T>.Default.Equals(networkVariable.Value, newValue))
         {
@@ -89,7 +89,7 @@ public static class GhostUtils
         }
     }
     
-    public static bool IsPlayerTargetable(PlayerControllerB player)
+    internal static bool IsPlayerTargetable(PlayerControllerB player)
     {
         if (player == null) return false;
         return !player.isPlayerDead && player.isPlayerControlled && !player.isInHangarShipRoom &&

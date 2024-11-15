@@ -7,7 +7,7 @@ namespace LethalCompanyHarpGhost;
 /// The value is only computed once and then stored until it is reset.
 /// </summary>
 /// <typeparam name="T">The type of the value to be cached.</typeparam>
-public class CachedValue<T>
+internal class CachedValue<T>
 {
     private readonly NullableObject<T> _cachedValue = new();
     private readonly Func<T> _computeValueFunction;
@@ -22,7 +22,7 @@ public class CachedValue<T>
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="computeValueFunction"/> is <c>null</c>.
     /// </exception>
-    public CachedValue(Func<T> computeValueFunction, bool eager = false)
+    internal CachedValue(Func<T> computeValueFunction, bool eager = false)
     {
         _computeValueFunction = computeValueFunction ?? throw new ArgumentNullException(nameof(computeValueFunction));
 
@@ -39,7 +39,7 @@ public class CachedValue<T>
     /// <remarks>
     /// The function is only invoked the first time this property is accessed, unless the value is reset.
     /// </remarks>
-    public T Value
+    internal T Value
     {
         get
         {
@@ -57,7 +57,7 @@ public class CachedValue<T>
     /// This method sets the cached value back to its default state. When <see cref="Value"/> is accessed again after calling this method,
     /// the value will be recomputed using the original function.
     /// </remarks>
-    public void Reset()
+    internal void Reset()
     {
         _cachedValue.Value = default;
     }

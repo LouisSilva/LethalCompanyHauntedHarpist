@@ -3,10 +3,9 @@ Assets/
 bin/
 dll/
 UnityProject/
+Thunderstore/Haunted Harpist/**
 Thunderstore/Haunted Harpist
-Thunderstore/Haunted_Harpist.zip
-Thunderstore/Haunted Harpist/*
-Thunderstore/harpghostbundle
+Thunderstore/
 
 .gitignore
 NuGet.Config

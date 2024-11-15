@@ -1,4 +1,10 @@
+# 1.3.18
+* Fixed bug where the harpist doesn't pick up the harp upon spawning.
+* Fixed bug where the bagpipes had a default pitch of 0.
+* Fixed bug where the enforcer ghosts don't hold the shotgun correctly.
+
 ## 1.3.17
+* Fixed the plushie global sound bug.
 * Performance updates, mainly for the Harpist.
 * Added config settings to let you change the power level of the Harpist and Piper.
 

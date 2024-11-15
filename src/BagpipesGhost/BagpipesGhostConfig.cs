@@ -16,6 +16,7 @@ public class BagpipeGhostConfig : SyncedInstance<BagpipeGhostConfig>
     public readonly ConfigEntry<float> BagpipeGhostVoiceSfxVolume;
     public readonly ConfigEntry<float> BagpipesVolume;
     public readonly ConfigEntry<int> BagpipesSoundMaxDistance;
+    public readonly ConfigEntry<float> BagpipesPitch;
     
     public readonly ConfigEntry<bool> BagpipeGhostEnabled;
     public readonly ConfigEntry<string> BagpipeGhostSpawnRarity;
@@ -126,6 +127,13 @@ public class BagpipeGhostConfig : SyncedInstance<BagpipeGhostConfig>
             "Bagpipes Sound Max Distance",
             65,
             "Values are from 0 to Infinity"
+        );
+        
+        BagpipesPitch = cfg.Bind(
+            "Instrument Audio",
+            "Bagpipes Pitch",
+            0.8f,
+            "The pitch of the music played from the bagpipes. Values are from -3 to 3"
         );
         
         MaxAmountOfBagpipeGhosts = cfg.Bind(
