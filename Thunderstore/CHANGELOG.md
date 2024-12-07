@@ -1,3 +1,7 @@
+# 1.3.19
+* Made the ghosts compatible with mods that do stuff when the ghosts die e.g. make their bodies sellable.
+* Changed the usage of `Physics.OverlapBox()` to `Physics.OverlapBoxNonAlloc()` for better performance (should've done this ages ago).
+
 # 1.3.18
 * Fixed bug where the harpist doesn't pick up the harp upon spawning.
 * Fixed bug where the bagpipes had a default pitch of 0.

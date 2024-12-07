@@ -506,9 +506,15 @@ public class EnforcerGhostAIServer : EnemyAI
         else
         {
             // Ghost is dead
-            SwitchBehaviourStateLocally((int)States.Dead);
             KillEnemyClientRpc(false);
         }
+    }
+
+    public override void KillEnemy(bool destroy = false)
+    {
+        base.KillEnemy(destroy);
+        if (!IsServer) return;
+        SwitchBehaviourStateLocally((int)States.Dead);
     }
 
     public override void SetEnemyStunned(

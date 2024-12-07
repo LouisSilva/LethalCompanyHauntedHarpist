@@ -531,8 +531,13 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
             return;
         }
         
-        netcodeController.EnterDeathStateClientRpc(_ghostId);
         KillEnemyClientRpc(false);
+    }
+
+    public override void KillEnemy(bool destroy = false)
+    {
+        base.KillEnemy(destroy);
+        if (!IsServer) return;
         SwitchBehaviourStateLocally((int)States.Dead);
     }
 
@@ -625,6 +630,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 agent.enabled = false;
                 isEnemyDead = true;
                 
+                netcodeController.EnterDeathStateClientRpc(_ghostId);
                 RetireAllEscorts();
                 break;
             }

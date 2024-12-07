@@ -450,45 +450,6 @@ public class HarpGhostAIServer : EnemyAI
         currentBehaviourStateIndex = state;
     }
 
-    private bool CheckForPath(Vector3 position)
-    {
-        position = RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, 1.75f);
-        path1 = new NavMeshPath();
-
-        // ReSharper disable once UseIndexFromEndExpression
-        return agent.CalculatePath(position, path1) && !(Vector3.Distance(path1.corners[path1.corners.Length - 1],
-                                                             RoundManager.Instance.GetNavMeshPosition(position,
-                                                                 RoundManager.Instance.navHit, 2.7f)) >
-                                                         1.5499999523162842);
-    }
-
-    private void CalculateAgentSpeed()
-    {
-        if (!IsServer) return;
-        if (stunNormalizedTimer > 0)
-        {
-            agent.speed = 0;
-            agent.acceleration = agentMaxAcceleration;
-            return;
-        }
-
-        if (currentBehaviourStateIndex != (int)States.Dead)
-        {
-            MoveWithAcceleration();
-        }
-    }
-
-    private void MoveWithAcceleration()
-    {
-        if (!IsServer) return;
-
-        float speedAdjustment = Time.deltaTime / 2f;
-        agent.speed = Mathf.Lerp(agent.speed, agentMaxSpeed, speedAdjustment);
-
-        float accelerationAdjustment = Time.deltaTime;
-        agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
-    }
-
     public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false,
         int hitId = -1)
     {
@@ -501,9 +462,7 @@ public class HarpGhostAIServer : EnemyAI
         enemyHP -= force;
         if (enemyHP <= 0)
         {
-            netcodeController.EnterDeathStateClientRpc(_ghostId);
             KillEnemyClientRpc(false);
-            SwitchBehaviourStateLocally((int)States.Dead);
             return;
         }
         
@@ -514,6 +473,15 @@ public class HarpGhostAIServer : EnemyAI
             audioManager.damageSfx.Length);
         netcodeController.ChangeTargetPlayerClientRpc(_ghostId, playerWhoHit!.playerClientId);
         SwitchBehaviourStateLocally((int)States.ChasingTargetPlayer);
+    }
+
+    public override void KillEnemy(bool destroy = false)
+    {
+        base.KillEnemy(destroy);
+        if (!IsServer) return;
+        
+        netcodeController.EnterDeathStateClientRpc(_ghostId);
+        SwitchBehaviourStateLocally((int)States.Dead);
     }
 
     public override void SetEnemyStunned(
@@ -560,11 +528,11 @@ public class HarpGhostAIServer : EnemyAI
             _timeSinceHittingLocalPlayer < attackCooldown ||
             _inStunAnimation) return;
 
-        Collider[] hitColliders = Physics.OverlapBox(attackArea.transform.position, attackArea.size * 0.5f,
-            Quaternion.identity, 1 << 3);
+        Collider[] collidersHit = [];
+        int numColldiersHit = Physics.OverlapBoxNonAlloc(attackArea.transform.position, attackArea.size * 0.5f, collidersHit, Quaternion.identity, 1 << 3);
 
-        if (hitColliders.Length <= 0) return;
-        foreach (Collider player in hitColliders)
+        if (numColldiersHit <= 0) return;
+        foreach (Collider player in collidersHit)
         {
             PlayerControllerB playerControllerB = PlayerMeetsStandardCollisionConditions(player);
             if (playerControllerB == null) continue;
@@ -770,6 +738,45 @@ public class HarpGhostAIServer : EnemyAI
         if (animationController.GetBool(HarpGhostAnimationController.IsRunning) != isRunning && !_inStunAnimation)
             netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning,
                 isRunning);
+    }
+    
+    private bool CheckForPath(Vector3 position)
+    {
+        position = RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, 1.75f);
+        path1 = new NavMeshPath();
+
+        // ReSharper disable once UseIndexFromEndExpression
+        return agent.CalculatePath(position, path1) && !(Vector3.Distance(path1.corners[path1.corners.Length - 1],
+                                                             RoundManager.Instance.GetNavMeshPosition(position,
+                                                                 RoundManager.Instance.navHit, 2.7f)) >
+                                                         1.5499999523162842);
+    }
+
+    private void CalculateAgentSpeed()
+    {
+        if (!IsServer) return;
+        if (stunNormalizedTimer > 0)
+        {
+            agent.speed = 0;
+            agent.acceleration = agentMaxAcceleration;
+            return;
+        }
+
+        if (currentBehaviourStateIndex != (int)States.Dead)
+        {
+            MoveWithAcceleration();
+        }
+    }
+
+    private void MoveWithAcceleration()
+    {
+        if (!IsServer) return;
+
+        float speedAdjustment = Time.deltaTime / 2f;
+        agent.speed = Mathf.Lerp(agent.speed, agentMaxSpeed, speedAdjustment);
+
+        float accelerationAdjustment = Time.deltaTime;
+        agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
     }
 
     private void LogDebug(string msg)
