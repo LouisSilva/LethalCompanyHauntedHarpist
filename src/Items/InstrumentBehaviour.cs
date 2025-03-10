@@ -345,12 +345,4 @@ public class InstrumentBehaviour : PhysicsProp
     {
         StartMusic(clipNumber);
     }
-    
-    private void LogDebug(string msg)
-    {
-#if DEBUG
-        if (!IsOwner) return;
-        _mls.LogInfo(msg);
-#endif
-    }
 }

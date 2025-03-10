@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LethalCompanyHarpGhost.Types;
+using System;
 using System.Collections;
 using Unity.Netcode;
 using UnityEngine;

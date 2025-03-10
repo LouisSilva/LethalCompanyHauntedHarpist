@@ -1,5 +1,6 @@
 ﻿using BepInEx.Logging;
 using System.Collections;
+using System.Runtime.CompilerServices;
 using Unity.Netcode;
 using UnityEngine;
 using Logger = BepInEx.Logging.Logger;
@@ -84,6 +85,7 @@ public class HarpGhostAnimationController : MonoBehaviour
         animator.SetBool(parameter, value);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool GetBool(int parameter)
     {
         return animator.GetBool(parameter);
@@ -116,12 +118,5 @@ public class HarpGhostAnimationController : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         netcodeController.DamageTargetPlayerServerRpc(_ghostId, damage, causeOfDeath);
-    }
-    
-    private void LogDebug(string msg)
-    {
-        #if DEBUG
-        _mls?.LogInfo(msg);
-        #endif
     }
 }

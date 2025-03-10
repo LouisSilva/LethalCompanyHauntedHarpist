@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using BepInEx.Logging;
 using GameNetcodeStuff;
+using LethalCompanyHarpGhost.Types;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.VFX;

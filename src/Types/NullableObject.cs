@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace LethalCompanyHarpGhost;
+namespace LethalCompanyHarpGhost.Types;
 
 /// <summary>
 /// Represents an object that can hold a value of type <typeparamref name="T"/> or be null, with an indicator to check if the value is non-null.

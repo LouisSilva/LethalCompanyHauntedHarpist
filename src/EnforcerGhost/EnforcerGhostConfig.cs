@@ -1,4 +1,5 @@
 ﻿using BepInEx.Configuration;
+using LethalCompanyHarpGhost.Types;
 
 namespace LethalCompanyHarpGhost.EnforcerGhost;
 

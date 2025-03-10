@@ -3,10 +3,12 @@ using GameNetcodeStuff;
 using LethalCompanyHarpGhost.EnforcerGhost;
 using LethalCompanyHarpGhost.HarpGhost;
 using LethalCompanyHarpGhost.Items;
+using LethalCompanyHarpGhost.Types;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
@@ -331,6 +333,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         
         LogDebug("Choosing escape door");
         _chosenEscapeDoor = true;
+        
         EntranceTeleport[] exits = FindObjectsOfType<EntranceTeleport>().Where(exit => exit != null && exit.exitPoint != null).ToArray();
         Dictionary<EntranceTeleport, float> exitDistances = exits.ToDictionary(exit => exit, exit => Vector3.Distance(transform.position, exit.exitPoint.position));
         
@@ -421,7 +424,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
             }
         }
     }
-
+    
     private void UpdateEscortAgentPathPoints()
     {
         if (_escorts.Count == 0) return;
@@ -432,6 +435,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         if (_escortAgentPathPoints.Count > 50) _escortAgentPathPoints.RemoveAt(0);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool CheckForNarrowPassages()
     {
         float sideLength = EscortHorizontalBaseLength * Mathf.Sqrt(2);
@@ -464,7 +468,19 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
             GameObject escort = Instantiate(HarpGhostPlugin.EnforcerGhostEnemyType.enemyPrefab, transform.position, Quaternion.identity);
             escort.GetComponentInChildren<NetworkObject>().Spawn(destroyWithScene: true);
             RoundManager.Instance.currentEnemyPower += HarpGhostPlugin.EnforcerGhostEnemyType.PowerLevel;
-            ++RoundManager.Instance.currentLevel.Enemies.FirstOrDefault(enemy => enemy.enemyType.name == "EnforcerGhost")!.enemyType.numberSpawned;
+            SpawnableEnemyWithRarity first = null;
+
+            for (int j = 0; j < RoundManager.Instance.currentLevel.Enemies.Count; j++)
+            {
+                SpawnableEnemyWithRarity enemy = RoundManager.Instance.currentLevel.Enemies[j];
+                if (enemy.enemyType.name == "EnforcerGhost")
+                {
+                    first = enemy;
+                    break;
+                }
+            }
+
+            ++first!.enemyType.numberSpawned;
 
             EnforcerGhostAIServer escortScript = escort.GetComponent<EnforcerGhostAIServer>();
             escortScript.agent.avoidancePriority = Mathf.Min(i + 1, 99); // Give the escort agents a different, descending priority
@@ -666,7 +682,8 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         }
     }
     
-    private void MoveWithAcceleration() {
+    private void MoveWithAcceleration() 
+    {
         if (!IsServer) return;
         
         float speedAdjustment = Time.deltaTime / 2f;

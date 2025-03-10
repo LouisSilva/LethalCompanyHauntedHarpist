@@ -1,5 +1,7 @@
 ﻿using BepInEx.Logging;
 using LethalCompanyHarpGhost.Items;
+using LethalCompanyHarpGhost.Types;
+using System.Runtime.CompilerServices;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.VFX;
@@ -214,6 +216,7 @@ public class BagpipesGhostAIClient : MonoBehaviour
         WalkieTalkie.TransmitOneShotAudio(creatureVoiceSource, audioClip, creatureVoiceSource.volume);
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void PlaySfx(AudioClip clip, float volume = 1f)
     {
         creatureSfxSource.volume = volume;

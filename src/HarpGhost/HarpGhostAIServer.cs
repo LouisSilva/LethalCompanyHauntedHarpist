@@ -1,8 +1,9 @@
 ﻿using BepInEx.Logging;
 using GameNetcodeStuff;
+using LethalCompanyHarpGhost.Types;
 using System;
 using System.Collections;
-using System.Linq;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.AI;
 using Logger = BepInEx.Logging.Logger;
@@ -89,10 +90,8 @@ public class HarpGhostAIServer : EnemyAI
         InitializeConfigValues();
 
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsDead, false);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned,
-            false);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning,
-            false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, false);
         
         netcodeController.SpawnHarpServerRpc(_ghostId);
         netcodeController.GrabHarpClientRpc(_ghostId);
@@ -155,15 +154,13 @@ public class HarpGhostAIServer : EnemyAI
         
         if (stunNormalizedTimer <= 0.0 && _inStunAnimation && !isEnemyDead)
         {
-            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned,
-                false);
+            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, false);
             _inStunAnimation = false;
         }
 
         if (StartOfRound.Instance.allPlayersDead)
         {
-            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning,
-                false);
+            netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, false);
             return;
         }
 
@@ -307,8 +304,18 @@ public class HarpGhostAIServer : EnemyAI
                 bool ourTargetFound;
                 if (playersInLineOfSight is { Length: > 0 })
                 {
-                    ourTargetFound = targetPlayer != null && playersInLineOfSight.Any(playerControllerB =>
-                        playerControllerB == targetPlayer && playerControllerB != null);
+                    bool any = false;
+                    for (int i = 0; i < playersInLineOfSight.Length; i++)
+                    {
+                        PlayerControllerB playerControllerB = playersInLineOfSight[i];
+                        if (playerControllerB == targetPlayer && playerControllerB != null)
+                        {
+                            any = true;
+                            break;
+                        }
+                    }
+
+                    ourTargetFound = targetPlayer != null && any;
                 }
 
                 // If no players were found, switch to state 2
@@ -532,8 +539,9 @@ public class HarpGhostAIServer : EnemyAI
         int numColldiersHit = Physics.OverlapBoxNonAlloc(attackArea.transform.position, attackArea.size * 0.5f, collidersHit, Quaternion.identity, 1 << 3);
 
         if (numColldiersHit <= 0) return;
-        foreach (Collider player in collidersHit)
+        for (int i = 0; i < collidersHit.Length; i++)
         {
+            Collider player = collidersHit[i];
             PlayerControllerB playerControllerB = PlayerMeetsStandardCollisionConditions(player);
             if (playerControllerB == null) continue;
 
@@ -665,6 +673,7 @@ public class HarpGhostAIServer : EnemyAI
 
         if ((double)stunNormalizedTimer > 0 || _hearNoiseCooldown > 0.0 ||
             Enum.IsDefined(typeof(HarpGhostAudioManager.NoiseIDToIgnore), noiseID)) return;
+        
         switch (currentBehaviourStateIndex)
         {
             case (int)States.PlayingMusic:
@@ -732,8 +741,6 @@ public class HarpGhostAIServer : EnemyAI
 
     private void RunAnimation()
     {
-        if (!IsServer) return;
-
         bool isRunning = _agentCurrentSpeed >= 3f;
         if (animationController.GetBool(HarpGhostAnimationController.IsRunning) != isRunning && !_inStunAnimation)
             netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning,
@@ -754,7 +761,6 @@ public class HarpGhostAIServer : EnemyAI
 
     private void CalculateAgentSpeed()
     {
-        if (!IsServer) return;
         if (stunNormalizedTimer > 0)
         {
             agent.speed = 0;
@@ -768,15 +774,12 @@ public class HarpGhostAIServer : EnemyAI
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void MoveWithAcceleration()
     {
-        if (!IsServer) return;
-
-        float speedAdjustment = Time.deltaTime / 2f;
-        agent.speed = Mathf.Lerp(agent.speed, agentMaxSpeed, speedAdjustment);
-
-        float accelerationAdjustment = Time.deltaTime;
-        agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
+        float t = Mathf.Clamp01(Time.deltaTime * 0.5f);
+        agent.speed = Mathf.SmoothStep(agent.speed, agentMaxSpeed, t);
+        agent.acceleration = Mathf.SmoothStep(agent.acceleration, agentMaxAcceleration, t);
     }
 
     private void LogDebug(string msg)

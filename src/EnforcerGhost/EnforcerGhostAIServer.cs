@@ -1,7 +1,9 @@
 ﻿using BepInEx.Logging;
 using GameNetcodeStuff;
+using LethalCompanyHarpGhost.Types;
 using System;
 using System.Collections;
+using System.Runtime.CompilerServices;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
@@ -608,15 +610,12 @@ public class EnforcerGhostAIServer : EnemyAI
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void MoveWithAcceleration()
     {
-        if (!IsServer) return;
-
-        float speedAdjustment = Time.deltaTime / 2f;
-        agent.speed = Mathf.Lerp(agent.speed, agentMaxSpeed, speedAdjustment);
-
-        float accelerationAdjustment = Time.deltaTime;
-        agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
+        float t = Mathf.Clamp01(Time.deltaTime * 0.5f);
+        agent.speed = Mathf.SmoothStep(agent.speed, agentMaxSpeed, t);
+        agent.acceleration = Mathf.SmoothStep(agent.acceleration, agentMaxAcceleration, t);
     }
 
     private void LogDebug(string msg)
