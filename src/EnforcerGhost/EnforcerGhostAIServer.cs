@@ -610,12 +610,17 @@ public class EnforcerGhostAIServer : EnemyAI
         }
     }
 
+    /// <summary>
+    /// Makes the agent move by using <see cref="Mathf.Lerp"/> to make the movement smooth
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void MoveWithAcceleration()
     {
-        float t = Mathf.Clamp01(Time.deltaTime * 0.5f);
-        agent.speed = Mathf.SmoothStep(agent.speed, agentMaxSpeed, t);
-        agent.acceleration = Mathf.SmoothStep(agent.acceleration, agentMaxAcceleration, t);
+        float speedAdjustment = Time.deltaTime / 2f;
+        agent.speed = Mathf.Lerp(agent.speed, agentMaxSpeed, speedAdjustment);
+        
+        float accelerationAdjustment = Time.deltaTime;
+        agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
     }
 
     private void LogDebug(string msg)

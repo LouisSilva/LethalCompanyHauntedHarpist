@@ -1,11 +1,8 @@
 ﻿obj/
 Assets/
+AssetBundles/
 bin/
-dll/
 UnityProject/
-Thunderstore/Haunted Harpist/**
-Thunderstore/Haunted Harpist
-Thunderstore/
 
 .gitignore
 NuGet.Config

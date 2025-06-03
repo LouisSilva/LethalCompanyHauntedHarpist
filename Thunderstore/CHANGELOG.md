@@ -1,5 +1,6 @@
 # 1.3.20
-
+* Compiled the mod with the latest version of LC (v70).
+* Updated readme.
 
 # 1.3.19
 * Made the ghosts compatible with mods that do stuff when the ghosts die e.g. make their bodies sellable.

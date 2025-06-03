@@ -1,6 +1,6 @@
 # Haunted Harpist
-**Adds to the game a new enemy/monster called the Haunted Harpist.**
-<p>The Haunted Harpist is an enemy that initially roams the map while playing its haunting melody on the harp. If provoked during its performance—whether by excessive noise, stunning, or direct attack—the Haunted Harpist will cease its serene music, dropping its harp to engage aggressively with anyone it perceives.</p>
+**Adds to the game a new enemy/creature called the Haunted Harpist.**
+<p>The Haunted Harpist is an enemy that initially roams the map while playing its haunting melody on the harp. If provoked during its performance, whether by excessive noise, stunning, or direct attack, the Haunted Harpist will cease its serene music, dropping its harp to engage aggressively with anyone it perceives.</p>
 
 <p>Dealing with the angry ghost may prove difficult, but it is worth it to obtain the harp.</p>
 
@@ -10,6 +10,24 @@ The Phantom Piper plays the bagpipes.
 Unlike the Haunted Harpist, the Phantom Piper is scared of players and will run away, bagpipes in hand, when provoked.
 
 Although luckily for him, he is always escorted by his own Ethereal Enforcers.
+
+# Future Updates
+
+- Add option to make harp music calm the maneater down (and possibly give players insanity resistance?)
+- Add option to make the harp music not audible to other creatures to avoid them attacking the Harpist (and other edge cases).
+- Add option to make all ghosts invincible and oblivious to non-player damage.
+- Add option to make the Harpist deaf to all non-player noise.
+
+
+- Fix the spawn curves.
+- Reduce the filesize of the assetbundle (I'll try, but no promises).
+- Change the "annoyance" threshold of the Harpist to be modelled as a normally distributed random variable (where $\mu \gg \sigma$).
+- Make the Harpist pick up the harp again if they find it lying about in the dungeon.
+- Possibly a couple more harp songs - suggestions are welcome.
+- General code cleanup and performance improvements.
+
+
+- New Harpist model.
 
 # FAQ
 
@@ -26,7 +44,7 @@ The Phantom Piper and his escorts are supposed to be a rare enemy in the game, w
 Even though they have a shield and 6 HP (configurable), they have big weaknesses which can be easily exploited (some are obvious, some of them aren't so).
 
 <br></br>
-**Does this mod support v66?**
+**Does this mod support v70?**
 
 Yes
 
@@ -37,6 +55,18 @@ I really appreciate bug reports, so feel free to report them in the Lethal Compa
 
 # Acknowledgements
 
+### Music
+- [The Dark Streets of Duskwall](https://youtu.be/uulf97Tvv8I?si=s7i9IvdiWJY2xtEq) by [Samantha Ballard](https://www.youtube.com/@SamanthaBallard)
+- [The Ghoste Tree Trance](https://www.youtube.com/watch?v=nOb7KsCclKE&t=719s) by [Nina Dante](https://www.youtube.com/@thesnakesaidtotheriver)
+- [Haunting Harp Music - October](https://www.youtube.com/watch?v=0oYL5Kg9I00) by [Landon Zientara](https://www.youtube.com/channel/UCViROVcD0YmajfRaIqir_BA)
+
+
+### Modelling and Animation
+- [Ghost Model](https://assetstore.unity.com/packages/3d/characters/creatures/ghost-character-free-267003) by [Sigmoid Button Assets](https://assetstore.unity.com/publishers/51615)
+- [Bagpipes Mesh](https://sketchfab.com/3d-models/bagpipes-mesh-free-to-download-48214a76a8694f64be9fe75225a51a57) by [torquemod](https://sketchfab.com/torquemod) -- License: [Attribution 4.0](https://creativecommons.org/licenses/by/4.0/)
+
+
+### Code
+- [Me](https://github.com/LouisSilva)
 - [Evaisa](https://github.com/EvaisaDev) for [LethalLib](https://github.com/EvaisaDev/LethalLib), the [Unity Template](https://github.com/EvaisaDev/LethalCompanyUnityTemplate) and the [Netcode Patcher](https://github.com/EvaisaDev/UnityNetcodePatcher)
 - [Hamunii](https://github.com/Hamunii) for the [Example Enemy](https://lethal.wiki/dev/apis/lethallib/custom-enemies/overview) enemy modding tutorial
-- [Bagpipes Mesh](https://sketchfab.com/3d-models/bagpipes-mesh-free-to-download-48214a76a8694f64be9fe75225a51a57) by [torquemod](https://sketchfab.com/torquemod) -- License: [Attribution 4.0](https://creativecommons.org/licenses/by/4.0/)

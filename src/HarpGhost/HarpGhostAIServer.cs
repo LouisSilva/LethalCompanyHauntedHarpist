@@ -72,17 +72,17 @@ public class HarpGhostAIServer : EnemyAI
         _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost AI {_ghostId} | Server");
 
         netcodeController = GetComponent<HarpGhostNetcodeController>();
-        if (netcodeController == null) _mls.LogError("Netcode Controller is null");
+        if (!netcodeController) _mls.LogError("Netcode Controller is null");
 
         agent = GetComponent<NavMeshAgent>();
-        if (agent == null) _mls.LogError("NavMeshAgent component not found on " + name);
+        if (!agent) _mls.LogError("NavMeshAgent component not found on " + name);
         agent.enabled = true;
 
         audioManager = GetComponent<HarpGhostAudioManager>();
-        if (audioManager == null) _mls.LogError("Audio Manger is null");
+        if (!audioManager) _mls.LogError("Audio Manger is null");
 
         animationController = GetComponent<HarpGhostAnimationController>();
-        if (animationController == null) _mls.LogError("Animation Controller is null");
+        if (!animationController) _mls.LogError("Animation Controller is null");
 
         netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
 
@@ -774,12 +774,17 @@ public class HarpGhostAIServer : EnemyAI
         }
     }
 
+    /// <summary>
+    /// Makes the agent move by using <see cref="Mathf.Lerp"/> to make the movement smooth
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void MoveWithAcceleration()
     {
-        float t = Mathf.Clamp01(Time.deltaTime * 0.5f);
-        agent.speed = Mathf.SmoothStep(agent.speed, agentMaxSpeed, t);
-        agent.acceleration = Mathf.SmoothStep(agent.acceleration, agentMaxAcceleration, t);
+        float speedAdjustment = Time.deltaTime / 2f;
+        agent.speed = Mathf.Lerp(agent.speed, agentMaxSpeed, speedAdjustment);
+        
+        float accelerationAdjustment = Time.deltaTime;
+        agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
     }
 
     private void LogDebug(string msg)
