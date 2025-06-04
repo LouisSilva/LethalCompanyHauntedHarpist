@@ -66,7 +66,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
 
         InitializeNetworkStuff();
 
-        Assets.PopulateAssetsFromFile();
+        Assets.LoadAssetBundle("harpghostbundle");
         if (Assets.MainAssetBundle == null)
         {
             Mls.LogError("MainAssetBundle is null");
@@ -359,52 +359,6 @@ public class HarpGhostPlugin : BaseUnityPlugin
                 }
             }
         }
-    }
-}
-
-internal static class Assets
-{
-    private const string MainAssetBundleName = "Assets.harpghostbundle";
-    internal static AssetBundle MainAssetBundle;
-
-    private static string GetAssemblyName() => Assembly.GetExecutingAssembly().FullName.Split(',')[0];
-
-    internal static void PopulateAssetsFromEmbedded()
-    {
-        if (MainAssetBundle != null) return;
-        using Stream assetStream = Assembly.GetExecutingAssembly()
-            .GetManifestResourceStream(GetAssemblyName() + "." + MainAssetBundleName);
-        MainAssetBundle = AssetBundle.LoadFromStream(assetStream);
-    }
-
-    internal static void PopulateAssetsFromFile()
-    {
-        if (MainAssetBundle != null) return;
-        string assemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        if (assemblyLocation != null)
-        {
-            MainAssetBundle = AssetBundle.LoadFromFile(Path.Combine(assemblyLocation, "harpghostbundle"));
-
-            if (MainAssetBundle != null) return;
-            string assetsPath = Path.Combine(assemblyLocation, "Assets");
-            MainAssetBundle = AssetBundle.LoadFromFile(Path.Combine(assetsPath, "harpghostbundle"));
-        }
-
-        if (MainAssetBundle == null)
-        {
-            Plugin.logger.LogError("Failed to load Haunted Harpist bundle");
-        }
-    }
-
-    internal static IEnumerator LoadAudioClipAsync(string clipName, Action<AudioClip> callback)
-    {
-        if (MainAssetBundle == null) yield break;
-
-        AssetBundleRequest request = MainAssetBundle.LoadAssetAsync<AudioClip>(clipName);
-        yield return request;
-
-        AudioClip clip = request.asset as AudioClip;
-        callback?.Invoke(clip);
     }
 }
 

@@ -1,3 +1,6 @@
+# 1.3.21
+* Fixed assetbundle loading issue.
+
 # 1.3.20
 * Compiled the mod with the latest version of LC (v70).
 * Updated readme.
