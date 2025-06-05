@@ -9,7 +9,6 @@ namespace LethalCompanyHarpGhost;
 
 internal static class Assets
 {
-    private const string MainAssetBundleName = "Assets.harpghostbundle";
     internal static AssetBundle MainAssetBundle;
 
     private static string GetAssemblyName() => Assembly.GetExecutingAssembly().FullName.Split(',')[0];
@@ -20,7 +19,7 @@ internal static class Assets
         {
             AssetBundle bundle = AssetBundle.LoadFromFile(Path.Combine(
                 Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ??
-                throw new InvalidOperationException($"Could not find assetbundle: {assetBundleName}"), "Assets",
+                throw new InvalidOperationException($"Could not find assetbundle: {assetBundleName}"), "AssetBundles",
                 assetBundleName));
 
             MainAssetBundle = bundle;

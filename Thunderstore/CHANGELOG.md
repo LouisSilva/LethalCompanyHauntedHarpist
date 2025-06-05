@@ -1,3 +1,10 @@
+## 1.3.23
+* Reduced the bundle size to 21MB
+* Actually fixed the assetbundle loading issue.
+
+## 1.3.22
+* Renamed the assetbundle folder from `Assets` to `AssetBundle`
+
 # 1.3.21
 * Fixed assetbundle loading issue.
 

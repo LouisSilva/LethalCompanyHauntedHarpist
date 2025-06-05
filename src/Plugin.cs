@@ -33,7 +33,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
 {
     public const string ModGuid = $"LCM_HauntedHarpist|{ModVersion}";
     private const string ModName = "Lethal Company Haunted Harpist Mod";
-    private const string ModVersion = "1.3.20";
+    private const string ModVersion = "1.3.23";
 
     private readonly Harmony _harmony = new(ModGuid);
 
@@ -176,11 +176,24 @@ public class HarpGhostPlugin : BaseUnityPlugin
             return;
         }
 
+        if (HarpItem.spawnPrefab == null)
+        {
+            Mls.LogError("Failed to load spawnPrefab from HarpItemData.");
+            return;
+        }
+
         NetworkPrefabs.RegisterNetworkPrefab(HarpItem.spawnPrefab);
         Utilities.FixMixerGroups(HarpItem.spawnPrefab);
 
         // Async load audio clips to get rid of lag spike
-        AudioClip[] audioClips = HarpItem.spawnPrefab.GetComponent<InstrumentBehaviour>().instrumentAudioClips;
+        InstrumentBehaviour harpBehaviour = HarpItem.spawnPrefab.GetComponent<InstrumentBehaviour>();
+        if (!harpBehaviour)
+        {
+            Mls.LogError("Failed to load harp item behaviour script from harp spawnPrefab.");
+            return;
+        }
+        
+        AudioClip[] audioClips = harpBehaviour.instrumentAudioClips;
         List<string> audioClipNames = [];
         audioClipNames.AddRange(audioClips.Select(curAudioClip => curAudioClip.name));
         LoadInstrumentAudioClipsAsync(HarpItem.itemName, audioClipNames);
