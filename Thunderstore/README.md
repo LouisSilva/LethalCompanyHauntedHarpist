@@ -20,7 +20,6 @@ Although luckily for him, he is always escorted by his own Ethereal Enforcers.
 
 
 - Fix the spawn curves.
-- Reduce the filesize of the assetbundle (I'll try, but no promises).
 - Change the "annoyance" threshold of the Harpist to be modelled as a normally distributed random variable (where $\mu \gg \sigma$).
 - Make the Harpist pick up the harp again if they find it lying about in the dungeon.
 - Possibly a couple more harp songs - suggestions are welcome.
