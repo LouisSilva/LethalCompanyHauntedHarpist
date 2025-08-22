@@ -39,7 +39,7 @@ public class HarpGhostNetcodeController : NetworkBehaviour
         _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost Netcode Controller");
         
         harpGhostAIServer = GetComponent<HarpGhostAIServer>();
-        if (harpGhostAIServer == null) _mls.LogError("harpGhostAI is null");
+        if (!harpGhostAIServer) _mls.LogError("harpGhostAI is null");
     }
 
     [ClientRpc]
@@ -142,10 +142,10 @@ public class HarpGhostNetcodeController : NetworkBehaviour
             RoundManager.Instance.spawnedScrapContainer);
         
         AudioSource harpAudioSource = harpObject.GetComponent<AudioSource>();
-        if (harpAudioSource == null) _mls.LogError("harpAudioSource is null");
+        if (!harpAudioSource) _mls.LogError("harpAudioSource is null");
 
         InstrumentBehaviour harpBehaviour = harpObject.GetComponent<InstrumentBehaviour>();
-        if (harpBehaviour == null) _mls.LogError("harpBehaviour is null");
+        if (!harpBehaviour) _mls.LogError("harpBehaviour is null");
 
         int harpScrapValue = Random.Range(HarpGhostConfig.Instance.HarpMinValue.Value, HarpGhostConfig.Instance.HarpMaxValue.Value + 1);
         harpBehaviour.fallTime = 0f;

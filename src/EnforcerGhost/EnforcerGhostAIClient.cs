@@ -87,7 +87,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
 
     private void OnEnable()
     {
-        if (netcodeController == null) return;
+        if (!netcodeController) return;
         netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
         netcodeController.OnInitializeConfigValues += HandleInitializeConfigValues;
         netcodeController.OnEnterDeathState += HandleEnterDeathState;
@@ -113,7 +113,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
 
     private void OnDisable()
     {
-        if (netcodeController == null) return;
+        if (!netcodeController) return;
         netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
         netcodeController.OnInitializeConfigValues -= HandleInitializeConfigValues;
         netcodeController.OnEnterDeathState -= HandleEnterDeathState;
@@ -143,21 +143,21 @@ public class EnforcerGhostAIClient : MonoBehaviour
             $"{HarpGhostPlugin.ModGuid} | Enforcer Ghost AI {_ghostId} | Client");
 
         animator = GetComponent<Animator>();
-        if (animator == null) _mls.LogError("Animator is null");
+        if (!animator) _mls.LogError("Animator is null");
 
         netcodeController = GetComponent<EnforcerGhostNetcodeController>();
-        if (netcodeController == null) _mls.LogError("netcodeController is null");
+        if (!netcodeController) _mls.LogError("netcodeController is null");
 
-        if (creatureSfxSource == null) _mls.LogError("creatureSfxSource is null");
-        if (creatureVoiceSource == null) _mls.LogError("creatureVoiceSource is null");
+        if (!creatureSfxSource) _mls.LogError("creatureSfxSource is null");
+        if (!creatureVoiceSource) _mls.LogError("creatureVoiceSource is null");
 
-        if (dieSfx == null) _mls.LogError("DieSfx is null");
-        if (shotgunOpenBarrelSfx == null) _mls.LogError("ShotgunOpenBarrelSfx is null");
-        if (shotgunReloadSfx == null) _mls.LogError("ShotgunReloadSfx is null");
-        if (shotgunCloseBarrelSfx == null) _mls.LogError("ShotgunCloseBarrelSfx is null");
-        if (shotgunGrabShellSfx == null) _mls.LogError("ShotgunGrabShellSfx is null");
-        if (shotgunDropShellSfx == null) _mls.LogError("ShotgunDropShellSfx is null");
-        if (grabShotgunSfx == null) _mls.LogError("GrabShotgunSfx is null");
+        if (!dieSfx) _mls.LogError("DieSfx is null");
+        if (!shotgunOpenBarrelSfx) _mls.LogError("ShotgunOpenBarrelSfx is null");
+        if (!shotgunReloadSfx) _mls.LogError("ShotgunReloadSfx is null");
+        if (!shotgunCloseBarrelSfx) _mls.LogError("ShotgunCloseBarrelSfx is null");
+        if (!shotgunGrabShellSfx) _mls.LogError("ShotgunGrabShellSfx is null");
+        if (!shotgunDropShellSfx) _mls.LogError("ShotgunDropShellSfx is null");
+        if (!grabShotgunSfx) _mls.LogError("GrabShotgunSfx is null");
 
         shieldRenderer.enabled = false;
     }
@@ -206,7 +206,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
         StartCoroutine(ShieldAnimation(0f, 0.005f, 1f, 0f));
         creatureSfxSource.pitch = Random.Range(0.8f, 1.1f);
         PlaySfx(shieldBreakSfx[0], false);
-        LogDebug("disable shield");
+        LogDebug("Disable shield");
     }
 
     private void HandleEnableShield(string receivedGhostId)
@@ -217,7 +217,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
         StartCoroutine(ShieldAnimation(0.005f, 0f, 0f, 1f));
         creatureSfxSource.pitch = Random.Range(0.8f, 1.1f);
         PlaySfx(shieldBreakSfx[Random.Range(0, 2)], false);
-        LogDebug("enable shield");
+        LogDebug("Enable shield");
     }
 
     private void HandlePlayTeleportVfx(string receivedGhostId)
@@ -364,16 +364,16 @@ public class EnforcerGhostAIClient : MonoBehaviour
         }
     }
 
-    private void HandleChangeTargetPlayer(string receivedGhostId, int targetPlayerObjectId)
+    private void HandleChangeTargetPlayer(string receivedGhostId, ulong playerClientId)
     {
         if (_ghostId != receivedGhostId) return;
-        if (targetPlayerObjectId == -69420)
+        if (playerClientId == MusicalGhost.NullPlayerId)
         {
             _targetPlayer.Value = null;
             return;
         }
 
-        PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[targetPlayerObjectId];
+        PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[playerClientId];
         _targetPlayer.Value = player;
     }
 
@@ -473,7 +473,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
             _ => null
         };
 
-        if (audioClip == null)
+        if (!audioClip)
         {
             _mls.LogError($"Enforcer ghost voice audio clip index '{typeIndex}' and randomNum: '{randomNum}' is null");
             return;
@@ -485,7 +485,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private void PlayVoice(AudioClip clip, bool interrupt = true)
     {
         LogDebug($"Playing audio clip: {clip.name}");
-        if (clip == null) return;
+        if (!clip) return;
         if (interrupt) creatureVoiceSource.Stop(true);
         creatureVoiceSource.pitch = clip == fartSfx[0] ? Random.Range(0.6f, 1.3f) : Random.Range(0.8f, 1.1f);
         creatureVoiceSource.PlayOneShot(clip);
@@ -495,7 +495,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private void PlaySfx(AudioClip clip, bool interrupt = true)
     {
         LogDebug($"Playing audio clip: {clip.name}");
-        if (clip == null) return;
+        if (!clip) return;
         if (interrupt) creatureVoiceSource.Stop(true);
         creatureSfxSource.PlayOneShot(clip);
         WalkieTalkie.TransmitOneShotAudio(creatureSfxSource, clip, creatureSfxSource.volume);

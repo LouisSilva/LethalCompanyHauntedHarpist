@@ -11,9 +11,7 @@ using LethalLib.Modules;
 using LobbyCompatibility.Enums;
 using LobbyCompatibility.Features;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -66,7 +64,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
         InitializeNetworkStuff();
 
         Assets.LoadAssetBundle("harpghostbundle");
-        if (Assets.MainAssetBundle == null)
+        if (!Assets.MainAssetBundle)
         {
             Mls.LogError("MainAssetBundle is null");
             return;
@@ -169,13 +167,13 @@ public class HarpGhostPlugin : BaseUnityPlugin
     private void SetupHarp()
     {
         HarpItem = Assets.MainAssetBundle.LoadAsset<Item>("HarpItemData");
-        if (HarpItem == null)
+        if (!HarpItem)
         {
             Mls.LogError("Failed to load HarpItemData from AssetBundle.");
             return;
         }
 
-        if (HarpItem.spawnPrefab == null)
+        if (!HarpItem.spawnPrefab)
         {
             Mls.LogError("Failed to load spawnPrefab from HarpItemData.");
             return;
@@ -203,7 +201,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
     private void SetupBagpipes()
     {
         BagpipesItem = Assets.MainAssetBundle.LoadAsset<Item>("BagpipesItemData");
-        if (BagpipesItem == null)
+        if (!BagpipesItem)
         {
             Mls.LogError("Failed to load BagpipesItemData from AssetBundle");
             return;
@@ -223,7 +221,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
     private static void SetupTuba()
     {
         TubaItem = Assets.MainAssetBundle.LoadAsset<Item>("TubaItemData");
-        if (TubaItem == null)
+        if (!TubaItem)
         {
             Mls.LogError("Failed to load TubaItemData from AssetBundle");
             return;
@@ -237,7 +235,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
     private static void SetupPlushie()
     {
         _plushieItem = Assets.MainAssetBundle.LoadAsset<Item>("GhostPlushieItemData");
-        if (_plushieItem == null)
+        if (!_plushieItem)
         {
             Mls.LogError("Failed to load GhostPlushieItemData from AssetBundle");
             return;

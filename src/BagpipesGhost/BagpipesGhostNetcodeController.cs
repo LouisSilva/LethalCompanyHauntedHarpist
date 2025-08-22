@@ -34,7 +34,7 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
         _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Bagpipe Ghost Netcode Controller");
         
         bagpipesGhostAIServer = GetComponent<BagpipesGhostAIServer>();
-        if (bagpipesGhostAIServer == null) _mls.LogError("bagpipesGhostAI is null");
+        if (!bagpipesGhostAIServer) _mls.LogError("bagpipesGhostAI is null");
     }
 
     [ClientRpc]
@@ -107,10 +107,10 @@ public class BagpipesGhostNetcodeController : NetworkBehaviour
             RoundManager.Instance.spawnedScrapContainer);
         
         AudioSource bagpipesAudioSource = bagpipesObject.GetComponentInChildren<AudioSource>();
-        if (bagpipesAudioSource == null) _mls.LogError("bagpipesAudioSource is null");
+        if (!bagpipesAudioSource) _mls.LogError("bagpipesAudioSource is null");
 
         InstrumentBehaviour bagpipesBehaviour = bagpipesObject.GetComponent<InstrumentBehaviour>();
-        if (bagpipesBehaviour == null) _mls.LogError("bagpipesBehaviour is null");
+        if (!bagpipesBehaviour) _mls.LogError("bagpipesBehaviour is null");
 
         int bagpipesScrapValue = UnityEngine.Random.Range(BagpipeGhostConfig.Instance.BagpipesMinValue.Value, BagpipeGhostConfig.Instance.BagpipesMaxValue.Value);
         bagpipesBehaviour.fallTime = 0f;

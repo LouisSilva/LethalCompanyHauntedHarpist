@@ -191,7 +191,7 @@ public class HarpGhostAIClient : MonoBehaviour
     private void HandleChangeTargetPlayer(string receivedGhostId, ulong targetPlayerObjectId)
     {
         if (_ghostId != receivedGhostId) return;
-        if (targetPlayerObjectId == 69420)
+        if (targetPlayerObjectId == MusicalGhost.NullPlayerId)
         {
             _targetPlayer.Value = null;
             return;

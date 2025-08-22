@@ -45,7 +45,6 @@ public class PlushieBehaviour : PhysicsProp
         {
             _plushieId = Guid.NewGuid().ToString();
             Random.InitState(StartOfRound.Instance.randomMapSeed + _plushieId.GetHashCode());
-            // SyncPoopIdClientRpc(_poopId);
 
             if (!_loadedVariantFromSave)
             {

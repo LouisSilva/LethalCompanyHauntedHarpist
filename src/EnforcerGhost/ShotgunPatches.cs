@@ -14,7 +14,7 @@ internal static class ShotgunPatches
     [HarmonyPostfix]
     private static void GetDefaultShotgunAnimator(ShotgunItem __instance)
     {
-        if (DefaultShotgunAnimationController == null)
+        if (!DefaultShotgunAnimationController)
             DefaultShotgunAnimationController = __instance.gunAnimator.runtimeAnimatorController;
     }
 }
@@ -28,7 +28,7 @@ internal static class GrabbableObjectPatches
     private static void UpdateItemOffsets(GrabbableObject __instance)
     {
         if (__instance is not ShotgunItem shotgun) return;
-        if (shotgun.heldByEnemy is not EnforcerGhostAIServer || !shotgun.isHeldByEnemy || shotgun.parentObject == null) return;
+        if (!shotgun.isHeldByEnemy || shotgun.heldByEnemy is not EnforcerGhostAIServer || !shotgun.parentObject) return;
 
         Vector3 positionOffset = new(0, 0, 0);
         Vector3 rotationOffset = new(-180f, 180f, -90f);
@@ -38,7 +38,7 @@ internal static class GrabbableObjectPatches
         shotgun.transform.position = shotgun.parentObject.position;
         shotgun.transform.position += shotgun.parentObject.rotation * positionOffset;
 
-        if (!(shotgun.radarIcon != null)) return;
+        if (!shotgun.radarIcon) return;
         shotgun.radarIcon.position = shotgun.transform.position;
     }
 }

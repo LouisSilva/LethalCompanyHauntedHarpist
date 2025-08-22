@@ -137,11 +137,9 @@ public class InstrumentBehaviour : PhysicsProp
         _instrumentId = Guid.NewGuid().ToString();
         _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Instrument {_instrumentId}");
         
-        Random.InitState(StartOfRound.Instance.randomMapSeed + _instrumentId.GetHashCode());
-        
         if (!IsOwner) return;
         
-        if (instrumentAudioSource == null)
+        if (!instrumentAudioSource)
         {
             _mls.LogError("instrumentAudioSource is null!");
             return;
@@ -165,12 +163,9 @@ public class InstrumentBehaviour : PhysicsProp
         {
             _noiseInterval = 1f;
             ++_timesPlayedWithoutTurningOff;
-            RoundManager.Instance.PlayAudibleNoise(
-                transform.position,
-                16f,
-                3f,
-                _timesPlayedWithoutTurningOff,
-                isInShipRoom && StartOfRound.Instance.hangarDoorsClosed,
+            if (isHeldByEnemy && HarpGhostConfig.Instance.HarpAudibleByEnemies.Value)
+                RoundManager.Instance.PlayAudibleNoise(transform.position, 16f, 3f,
+                _timesPlayedWithoutTurningOff, isInShipRoom && StartOfRound.Instance.hangarDoorsClosed,
                 540);
         }
 
@@ -179,37 +174,32 @@ public class InstrumentBehaviour : PhysicsProp
     
     public override void LateUpdate()
     {
-        if (parentObject != null)
+        Vector3 rotationOffset;
+        Vector3 positionOffset;
+        
+        if (isHeldByEnemy)
         {
-            Vector3 rotationOffset;
-            Vector3 positionOffset;
-            if (isHeldByEnemy)
+            rotationOffset = enemyInstrumentOffset.rotationOffset;
+            positionOffset = enemyInstrumentOffset.positionOffset;
+        }
+        else
+        {
+            if (_isInAltPlayerOffset)
             {
-                rotationOffset = enemyInstrumentOffset.rotationOffset;
-                positionOffset = enemyInstrumentOffset.positionOffset;
+                rotationOffset = playerAltInstrumentOffset.rotationOffset;
+                positionOffset = playerAltInstrumentOffset.positionOffset;
             }
             else
             {
-                if (_isInAltPlayerOffset)
-                {
-                    rotationOffset = playerAltInstrumentOffset.rotationOffset;
-                    positionOffset = playerAltInstrumentOffset.positionOffset;
-                }
-                else
-                {
-                    rotationOffset = playerInstrumentOffset.rotationOffset;
-                    positionOffset = playerInstrumentOffset.positionOffset;
-                }
+                rotationOffset = playerInstrumentOffset.rotationOffset;
+                positionOffset = playerInstrumentOffset.positionOffset;
             }
-            
-            transform.rotation = parentObject.rotation;
-            transform.Rotate(rotationOffset);
-            transform.position = parentObject.position;
-            transform.position += parentObject.rotation * positionOffset;
-            
         }
-        if (!(radarIcon != null)) return;
-        radarIcon.position = transform.position;
+        
+        itemProperties.positionOffset = positionOffset;
+        itemProperties.rotationOffset = rotationOffset;
+        
+        base.LateUpdate();
     }
     
     public override void ItemActivate(bool used, bool buttonDown = true)
@@ -233,7 +223,7 @@ public class InstrumentBehaviour : PhysicsProp
     private void StartMusic(int clipIndex)
     {
         AudioClip selectedClip = HarpGhostPlugin.GetInstrumentAudioClip(itemProperties.itemName, clipIndex);
-        if (selectedClip == null)
+        if (!selectedClip)
         {
             _mls.LogWarning($"{itemProperties.itemName} audio clips not loaded yet!");
             selectedClip = instrumentAudioClips[clipIndex];

@@ -66,19 +66,19 @@ public class HarpGhostAudioManager : MonoBehaviour
     {
         _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost Audio Controller {_ghostId}");
         
-        if (creatureSfxSource == null) _mls.LogError("creatureSfxSource is null");
-        if (creatureVoiceSource == null) _mls.LogError("creatureVoiceSource is null");
+        if (!creatureSfxSource) _mls.LogError("creatureSfxSource is null");
+        if (!creatureVoiceSource) _mls.LogError("creatureVoiceSource is null");
         
         if (damageSfx == null || damageSfx.Length == 0) _mls.LogError("DamageSfx is null or empty");
         if (laughSfx == null || laughSfx.Length == 0) _mls.LogError("LaughSfx is null or empty");
         if (stunSfx == null || stunSfx.Length == 0) _mls.LogError("StunSfx is null or empty");
         if (upsetSfx == null || upsetSfx.Length == 0) _mls.LogError("UpsetSfx is null or empty");
-        if (dieSfx == null) _mls.LogError("DieSfx is null");
+        if (!dieSfx) _mls.LogError("DieSfx is null");
     }
 
     private void OnEnable()
     {
-        if (netcodeController == null) return;
+        if (!netcodeController) return;
         netcodeController.OnInitializeConfigValues += HandleOnInitializeConfigValues;
         netcodeController.OnPlayCreatureVoice += PlayVoice;
         netcodeController.OnEnterDeathState += HandleOnEnterDeathState;
@@ -87,7 +87,7 @@ public class HarpGhostAudioManager : MonoBehaviour
 
     private void OnDisable()
     {
-        if (netcodeController == null) return;
+        if (!netcodeController) return;
         netcodeController.OnInitializeConfigValues -= HandleOnInitializeConfigValues;
         netcodeController.OnPlayCreatureVoice -= PlayVoice;
         netcodeController.OnEnterDeathState -= HandleOnEnterDeathState;
@@ -129,7 +129,7 @@ public class HarpGhostAudioManager : MonoBehaviour
             _ => null
         };
 
-        if (audioClip == null)
+        if (!audioClip)
         {
             _mls.LogError($"Harp ghost voice audio clip index '{typeIndex}' and randomNum: '{randomNum}' is null");
             return;

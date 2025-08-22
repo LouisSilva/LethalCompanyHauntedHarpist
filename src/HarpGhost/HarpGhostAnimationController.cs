@@ -30,18 +30,18 @@ public class HarpGhostAnimationController : MonoBehaviour
         _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost Animation Controller {_ghostId}");
         
         animator = GetComponent<Animator>();
-        if (animator == null) _mls.LogError("Animator is null");
+        if (!animator) _mls.LogError("Animator is null");
 
         netcodeController = GetComponent<HarpGhostNetcodeController>();
-        if (netcodeController == null) _mls.LogError("netcodeController is null");
+        if (!netcodeController) _mls.LogError("netcodeController is null");
 
         audioManager = GetComponent<HarpGhostAudioManager>();
-        if (audioManager == null) _mls.LogError("audioManager is null");
+        if (!audioManager) _mls.LogError("audioManager is null");
     }
 
     private void OnEnable()
     {
-        if (netcodeController == null) return;
+        if (!netcodeController) return;
         netcodeController.OnDoAnimation += SetTrigger;
         netcodeController.OnChangeAnimationParameterBool += SetBool;
         netcodeController.OnEnterDeathState += HandleOnEnterDeathState;
@@ -51,7 +51,7 @@ public class HarpGhostAnimationController : MonoBehaviour
 
     private void OnDisable()
     {
-        if (netcodeController == null) return;
+        if (!netcodeController) return;
         netcodeController.OnDoAnimation -= SetTrigger;
         netcodeController.OnChangeAnimationParameterBool -= SetBool;
         netcodeController.OnEnterDeathState -= HandleOnEnterDeathState;

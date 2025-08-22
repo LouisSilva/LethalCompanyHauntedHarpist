@@ -26,7 +26,7 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     internal event Action<string, Vector3> OnDropShotgun;
     internal event Action<string, Vector3> OnDropShotgunWhenStunned;
     internal event Action<string> OnIncreaseTargetPlayerFearLevel;
-    internal event Action<string, int> OnChangeTargetPlayer;
+    internal event Action<string, ulong> OnChangeTargetPlayer;
     internal event Action<string> OnShootGun;
     internal event Action<string, int> OnUpdateShotgunShellsLoaded;
     internal event Action<string, string> OnDoShotgunAnimation;
@@ -125,7 +125,7 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
     }
 
     [ClientRpc]
-    internal void ChangeTargetPlayerClientRpc(string receivedGhostId, int playerClientId)
+    internal void ChangeTargetPlayerClientRpc(string receivedGhostId, ulong playerClientId)
     {
         OnChangeTargetPlayer?.Invoke(receivedGhostId, playerClientId);
     }

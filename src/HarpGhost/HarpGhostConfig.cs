@@ -29,6 +29,7 @@ public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
 
     public readonly ConfigEntry<float> HarpGhostVoiceSfxVolume;
     public readonly ConfigEntry<float> HarpVolume;
+    public readonly ConfigEntry<bool> HarpAudibleByEnemies;
     public readonly ConfigEntry<bool> HarpBypassReverbZones;
     public readonly ConfigEntry<float> HarpPitch;
     public readonly ConfigEntry<float> HarpReverbZoneMix;
@@ -115,8 +116,8 @@ public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
         HarpGhostFriendlyFire = cfg.Bind(
             "Haunted Harpist General",
             "Friendly Fire",
-            true,
-            "Whether the Haunted Harpist can be killed by something other than a player e.g. an eyeless dog. WARNING: May be incompatible with some mods, I suggest you leave this option as the default."
+            false,
+            "Whether the Haunted Harpist can be killed by something other than a player e.g. an eyeless dog. WARNING: May be incompatible with weapons from some mods."
         );
         
         HarpGhostIsStunnable= cfg.Bind(
@@ -250,6 +251,13 @@ public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
             "Harp Volume",
             0.8f,
             "The volume of the music played from the harp. Values are from 0-1"
+        );
+        
+        HarpAudibleByEnemies = cfg.Bind(
+            "Instrument Audio",
+            "Harp Audible By Enemies",
+            false,
+            "Whether the harp can be heard by other creatures/enemies whilst the Haunted Harpist is playing music with it."
         );
         
         HarpPitch = cfg.Bind(

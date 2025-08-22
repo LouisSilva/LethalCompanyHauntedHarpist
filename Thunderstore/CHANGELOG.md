@@ -1,9 +1,13 @@
+## 1.3.24
+* Added option (on by default) to make the harp music not audible to other creatures if the harp is being played by the Harpist.
+* Minor performance improvements.
+
 ## 1.3.23
-* Reduced the bundle size to 21MB
+* Reduced the bundle size to 21MB.
 * Actually fixed the assetbundle loading issue.
 
 ## 1.3.22
-* Renamed the assetbundle folder from `Assets` to `AssetBundle`
+* Renamed the assetbundle folder from `Assets` to `AssetBundle`.
 
 # 1.3.21
 * Fixed assetbundle loading issue.
@@ -65,22 +69,22 @@
 * Added code to delete old config values that aren't used anymore.
 
 ## 1.3.9 Phantom Piper & Ethereal Enforcer OUT OF BETA
-* Updated the mod to work with the newest v50 update
-* A few minor bug fixes
-* There is still a small thing I want to fix to do with how the Ethereal Enforcers escort the Phantom Piper, but apart from that I am happy with taking these ghosts out of beta
+* Updated the mod to work with the newest v50 update.
+* A few minor bug fixes.
+* There is still a small thing I want to fix to do with how the Ethereal Enforcers escort the Phantom Piper, but apart from that I am happy with taking these ghosts out of beta.
 
 ## 1.3.8
-* Fixed bug where the enforcer ghost shield would still show even after disabling it in the config
-* Lowered the spawn rates of the ghosts due to v50 changing how they work in some way
+* Fixed bug where the enforcer ghost shield would still show even after disabling it in the config.
+* Lowered the spawn rates of the ghosts due to v50 changing how they work in some way.
 
 ## 1.3.7
-* Fixed bug stopping the mod to be loaded because v50 doesn't have the enemy power level variable for some reason
+* Fixed bug stopping the mod to be loaded because v50 doesn't have the enemy power level variable for some reason.
 
 ## 1.3.6 
-* Accidentally uploaded the wrong version. I'm incrementing the version to 1.3.6 for clarity
+* Accidentally uploaded the wrong version. I'm incrementing the version to 1.3.6 for clarity.
 
 ## 1.3.5
-* The Lethallib version has been updated the Haunted Harpist works with v50, but the Phantom Piper is a bit buggy (in v50)
+* The Lethallib version has been updated the Haunted Harpist works with v50, but the Phantom Piper is a bit buggy (in v50).
 
 ## 1.3.4
 * Made the Phantom Piper's exit teleport bigger.
@@ -123,59 +127,59 @@
 
 ## 1.2.8
 * Added the following configs:
-    * Harp Ghost's max speed in chase mode
-    * Harp Ghost's max acceleration in chase mode
-    * Harp Ghost enable red eyes when angry (its true by default)
-    * Harp Ghost's attack cooldown
-    * Harp Ghost's attack area length (how far the attack area reaches out pretty much)
-    * Harp Ghost's ability to hear players to aid its search when angry (true by default)
+    * Harp Ghost's max speed in chase mode.
+    * Harp Ghost's max acceleration in chase mode.
+    * Harp Ghost enable red eyes when angry (its true by default).
+    * Harp Ghost's attack cooldown.
+    * Harp Ghost's attack area length (how far the attack area reaches out pretty much).
+    * Harp Ghost's ability to hear players to aid its search when angry (true by default).
   
-* Changed the max open door speed config to "open door speed multiplier when in chase mode" because the previous one was a bit useless and didnt really make sense
-* Fixed bug where only the host player would see the ghost's eyes turn red
+* Changed the max open door speed config to "open door speed multiplier when in chase mode" because the previous one was a bit useless and didnt really make sense.
+* Fixed bug where only the host player would see the ghost's eyes turn red.
 
 ## 1.2.7
-* The harp ghost's eyes turn red when angry
-* Reduced lag when the harp spawns (hopefully)
+* The harp ghost's eyes turn red when angry.
+* Reduced lag when the harp spawns (hopefully).
 
 ## 1.2.6
-* Removed DissonanceLagFix as a hard dependency
+* Removed DissonanceLagFix as a hard dependency.
 
 ## 1.2.5
-* Thunderstore bugging out, ignore this
+* Thunderstore bugging out, ignore this.
 
 ## 1.2.4
-* Fixed bug that makes the harp play different music for different people
-* Changed the harp ghost's default attack damage to 45 from 35 (you can change the value with configs)
+* Fixed bug that makes the harp play different music for different people.
+* Changed the harp ghost's default attack damage to 45 from 35 (you can change the value with configs).
 * Made the plugin try to load the instruments' audio files on startup to hopefully kill the lag caused when a harp is first played (music) in a game. The DissonanceLagFix mod is also now added as a dependency to help with the lag just in-case the plugin was unable to load the audio files on startup.   
 
 ## 1.2.3
-* Fixed disappearing harps bug
-* Fixed double harps appearing when ghost gets annoyed
-* Changed network events to not static (which caused a plethora of other bugs)
-* Fixed harp item offset bug
+* Fixed disappearing harps bug.
+* Fixed double harps appearing when ghost gets annoyed.
+* Changed network events to not static (which caused a plethora of other bugs).
+* Fixed harp item offset bug.
 
 ## 1.2.2
-* Added LevelTypes config
-* Fixed bug where ghost won't spawn, but for now he only spawns on Dine
-* Removed delay at the beginning of one of the harp songs 
+* Added LevelTypes config.
+* Fixed bug where ghost won't spawn, but for now he only spawns on Dine.
+* Removed delay at the beginning of one of the harp songs.
 
 ## 1.2.1
-* Added more configs
+* Added more configs.
 
 ## 1.2.0 Out of Beta
-* Configs added, more will be added upon request 
-* Better scrap icon (one that isn't a white square)
+* Configs added, more will be added upon request.
+* Better scrap icon (one that isn't a white square).
 
 ## 1.1.3
-* Two more harp songs added
-* Shotgun now does damage 
-* Now spawns on Rend as well as Dine
+* Two more harp songs added.
+* Shotgun now does damage.
+* Now spawns on Rend as well as Dine.
 
 ## 1.1.2
-* Fear mechanic works
-* Ghost can now hear players if near (when its in search mode)
+* Fear mechanic works.
+* Ghost can now hear players if near (when its in search mode).
 
 ## 1.1.1
-* Updated readme
+* Updated readme.
 
 ## 1.1.0 Beta Release

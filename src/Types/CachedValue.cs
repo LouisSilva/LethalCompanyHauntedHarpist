@@ -1,16 +1,21 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace LethalCompanyHarpGhost.Types;
 
 /// <summary>
-/// Provides a mechanism to cache the result of a function and retrieve it efficiently on subsequent accesses.
-/// The value is only computed once and then stored until it is reset.
+/// Provides a thread-safe mechanism to cache the result of a function and retrieve it efficiently.
+/// The value is computed lazily on first access (unless eager loading is specified)
+/// and stored until reset. Uses locking to ensure thread safety.
 /// </summary>
 /// <typeparam name="T">The type of the value to be cached.</typeparam>
-internal class CachedValue<T>
+public class CachedValue<T>
 {
-    private readonly NullableObject<T> _cachedValue = new();
     private readonly Func<T> _computeValueFunction;
+    private readonly object _lock = new();
+
+    private T _cachedValue;
+    private bool _hasValue;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CachedValue{T}"/> class with the specified function to compute the value.
@@ -22,11 +27,14 @@ internal class CachedValue<T>
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="computeValueFunction"/> is <c>null</c>.
     /// </exception>
-    internal CachedValue(Func<T> computeValueFunction, bool eager = false)
+    public CachedValue(Func<T> computeValueFunction, bool eager = false)
     {
         _computeValueFunction = computeValueFunction ?? throw new ArgumentNullException(nameof(computeValueFunction));
+        _cachedValue = default;
+        _hasValue = false;
 
-        if (eager) _cachedValue.Value = _computeValueFunction();
+        if (eager)
+            ComputeAndCacheValueInternal();
     }
 
     /// <summary>
@@ -39,26 +47,69 @@ internal class CachedValue<T>
     /// <remarks>
     /// The function is only invoked the first time this property is accessed, unless the value is reset.
     /// </remarks>
-    internal T Value
+    public T Value
     {
+        [SuppressMessage("ReSharper", "InconsistentlySynchronizedField", Justification = "The usage of '_hasValue' outside of the lock is just for performance. The value is checked again inside the lock for correctness.")]
         get
         {
-            if (!_cachedValue.IsNotNull)
-                _cachedValue.Value = _computeValueFunction();
+            if (!_hasValue)
+            {
+                lock (_lock)
+                {
+                    if (!_hasValue)
+                    {
+                        ComputeAndCacheValueInternal();
+                    }
+                }
+            }
 
-            return _cachedValue.Value;
+            return _cachedValue;
         }
     }
 
     /// <summary>
-    /// Resets the cached value, causing the next access to <see cref="Value"/> to recompute the value using the provided function.
+    /// Gets a value indicating whether the value has been computed and cached.
+    /// Thread-safe access.
     /// </summary>
-    /// <remarks>
-    /// This method sets the cached value back to its default state. When <see cref="Value"/> is accessed again after calling this method,
-    /// the value will be recomputed using the original function.
-    /// </remarks>
-    internal void Reset()
+    public bool HasValue
     {
-        _cachedValue.Value = default;
+        get
+        {
+            lock (_lock)
+            {
+                return _hasValue;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resets the cached value, causing the next access to <see cref="Value"/> to recompute.
+    /// Thread-safe.
+    /// </summary>
+    public void Reset()
+    {
+        lock (_lock)
+        {
+            _cachedValue = default;
+            _hasValue = false;
+        }
+    }
+
+    /// <summary>
+    /// Internal helper to perform computation.
+    /// MUST be called within a lock.
+    /// </summary>
+    private void ComputeAndCacheValueInternal()
+    {
+        try
+        {
+            _cachedValue = _computeValueFunction();
+            _hasValue = true;
+        }
+        catch
+        {
+            _hasValue = false;
+            throw;
+        }
     }
 }

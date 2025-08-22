@@ -204,7 +204,7 @@ public class BagpipesGhostAIClient : MonoBehaviour
             _ => null
         };
 
-        if (audioClip == null)
+        if (!audioClip)
         {
             _mls.LogError($"Bagpipes ghost voice audio clip index '{typeIndex}' and randomNum: '{randomNum}' is null");
             return;

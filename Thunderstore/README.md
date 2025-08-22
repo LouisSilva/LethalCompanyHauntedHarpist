@@ -14,13 +14,10 @@ Although luckily for him, he is always escorted by his own Ethereal Enforcers.
 # Future Updates
 
 - Add option to make harp music calm the maneater down (and possibly give players insanity resistance?)
-- Add option to make the harp music not audible to other creatures to avoid them attacking the Harpist (and other edge cases).
-- Add option to make all ghosts invincible and oblivious to non-player damage.
-- Add option to make the Harpist deaf to all non-player noise.
 
 
 - Fix the spawn curves.
-- Change the "annoyance" threshold of the Harpist to be modelled as a normally distributed random variable (where $\mu \gg \sigma$).
+- Change the "annoyance" threshold of the Harpist.
 - Make the Harpist pick up the harp again if they find it lying about in the dungeon.
 - Possibly a couple more harp songs - suggestions are welcome.
 - General code cleanup and performance improvements.

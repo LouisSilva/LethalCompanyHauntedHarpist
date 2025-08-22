@@ -1,6 +1,7 @@
 ﻿using GameNetcodeStuff;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -81,18 +82,40 @@ internal static class GhostUtils
         return insideNodePositions;
     }
     
-    internal static void ChangeNetworkVar<T>(NetworkVariable<T> networkVariable, T newValue) where T : IEquatable<T>
+    /// <summary>
+    /// Safely updates a NetworkVariable value if different from the current value.
+    /// </summary>
+    /// <typeparam name="T">The type implementing IEquatable.</typeparam>
+    /// <param name="networkVariable">The NetworkVariable to update.</param>
+    /// <param name="newValue">The new value to potentially set.</param>
+    /// <remarks> Prevents unnecessary network updates by checking equality before setting.</remarks>
+    public static void SafeSet<T>(this NetworkVariable<T> networkVariable, T newValue) 
+        where T : IEquatable<T>
     {
         if (!EqualityComparer<T>.Default.Equals(networkVariable.Value, newValue))
-        {
             networkVariable.Value = newValue;
-        }
     }
     
-    internal static bool IsPlayerTargetable(PlayerControllerB player)
+    /// <summary>
+    /// Determines whether the specified player is dead.
+    /// </summary>
+    /// <param name="player">The player to check.</param>
+    /// <returns>Returns true if the player is dead or not controlled; otherwise, false.</returns>
+    internal static bool IsPlayerDead(PlayerControllerB player)
     {
-        if (player == null) return false;
-        return !player.isPlayerDead && player.isPlayerControlled && !player.isInHangarShipRoom &&
-               !(player.sinkingValue >= 0.7300000190734863);
+        return player.isPlayerDead || !player.isPlayerControlled;
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static PlayerControllerB GetPlayerFromClientId(ulong playerClientId) 
+    {
+        return StartOfRound.Instance.allPlayerScripts[playerClientId];
+    }
+    
+    // Used so I dont mix up `PlayerControllerB.playerClientId` and `PlayerControllerB.actualClientId`
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ulong GetClientIdFromPlayer(PlayerControllerB player)
+    {
+        return player.playerClientId;
     }
 }

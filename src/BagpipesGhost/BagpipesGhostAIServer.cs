@@ -17,7 +17,7 @@ using Random = UnityEngine.Random;
 
 namespace LethalCompanyHarpGhost.BagpipesGhost;
 
-public class BagpipesGhostAIServer : EnemyAI, IEscortee
+public class BagpipesGhostAIServer : MusicalGhost, IEscortee
 {
     private ManualLogSource _mls;
     private string _ghostId;
@@ -47,9 +47,13 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         TeleportingOutOfMap,
         Dead
     }
+
+    private CachedList<EntranceTeleport> _allExitsInLevel;
+
+    private CachedValue<float> _escortRowSpacingSqr;
     
     private Vector3 _agentLastPosition;
-    private readonly List<Vector3> _escortAgentPathPoints = [];
+    private readonly Queue<Vector3> _escortAgentPathPoints = new();
 
     private EntranceTeleport _escapeDoor;
 
@@ -58,6 +62,8 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     private NetworkObjectReference _instrumentObjectRef;
 
     private Coroutine _teleportCoroutine;
+
+    private const int MaxPathPoints = 50;
     
     private float _agentCurrentSpeed;
     private float _openDoorTimer;
@@ -83,10 +89,10 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Bagpipes Ghost AI {_ghostId} | Server");
         
         netcodeController = GetComponent<BagpipesGhostNetcodeController>();
-        if (netcodeController == null) _mls.LogError("Netcode Controller is null");
+        if (!netcodeController) _mls.LogError("Netcode Controller is null");
         
         agent = GetComponent<NavMeshAgent>();
-        if (agent == null) _mls.LogError("NavMeshAgent component not found on " + name);
+        if (!agent) _mls.LogError("NavMeshAgent component not found on " + name);
         agent.enabled = true;
         
         netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
@@ -94,6 +100,9 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         Random.InitState(StartOfRound.Instance.randomMapSeed + _ghostId.GetHashCode() - thisEnemyIndex);
         InitializeConfigValues();
         EnableEnemyMesh(true);
+
+        _allExitsInLevel = new CachedList<EntranceTeleport>(() => FindObjectsOfType<EntranceTeleport>().ToList());
+        _escortRowSpacingSqr = new CachedValue<float>(() => EscortRowSpacing * EscortRowSpacing);
         
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAIClient.IsDead, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, BagpipesGhostAIClient.IsStunned, false);
@@ -117,14 +126,14 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     public void OnEnable()
     {
         if (!IsServer) return;
-        if (netcodeController == null) return;
+        if (!netcodeController) return;
         netcodeController.OnGrabBagpipes += HandleGrabBagpipes;
     }
 
     public void OnDisable()
     {
         if (!IsServer) return;
-        if (netcodeController == null) return;
+        if (!netcodeController) return;
         netcodeController.OnGrabBagpipes -= HandleGrabBagpipes;
     }
 
@@ -226,7 +235,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
             case (int)States.PlayingMusicWhileEscorted:
             {
                 // Check if the ghost has reached its destination
-                if (Vector3.Distance(transform.position, targetNode.position) <= 5)
+                if ((transform.position - targetNode.position).sqrMagnitude <= 25f) // 5f * 5f = 25f
                 {
                     // Pick next node to go to
                     int maxOffset = Mathf.Max(1, Mathf.FloorToInt(allAINodes.Length * 0.3f));
@@ -234,7 +243,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                     targetNode = farAwayTransform;
                     if (!SetDestinationToPosition(farAwayTransform.position, true))
                     {
-                        _mls.LogWarning("Bagpipe ghost pathfinding has failed, as a fail-safe the ghost is now running away. This should not happen, contact the mod developer if you see this");
+                        _mls.LogWarning("Bagpipe ghost pathfinding has failed, as a fail-safe the ghost is now running away. This should never happen.");
                         SwitchBehaviourStateLocally((int)States.RunningToEscapeDoor);
                         break;
                     }
@@ -251,7 +260,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
                 if (isOutside) SwitchBehaviourStateLocally((int)States.RunningToEdgeOfOutsideMap);
                 if (!_chosenEscapeDoor) ChooseEscapeDoor();
 
-                if (Vector3.Distance(transform.position, _escapeDoor.exitPoint.position) <= 3 &&
+                if ((transform.position - _escapeDoor.exitPoint.position).sqrMagnitude <= 9f && // 3f * 3f = 9f
                     !_openDoorTimerActivated)
                 {
                     if (!_tauntSfxPlayed)
@@ -333,24 +342,49 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         
         LogDebug("Choosing escape door");
         _chosenEscapeDoor = true;
-        
-        EntranceTeleport[] exits = FindObjectsOfType<EntranceTeleport>().Where(exit => exit != null && exit.exitPoint != null).ToArray();
-        Dictionary<EntranceTeleport, float> exitDistances = exits.ToDictionary(exit => exit, exit => Vector3.Distance(transform.position, exit.exitPoint.position));
-        
-        EntranceTeleport closestExit = exitDistances.Aggregate((l, r) => l.Value < r.Value ? l : r).Key;
-        _escapeDoor = closestExit;
-        
-        // Avoid the escape door being the main door if possible
-        if (closestExit.entranceId == 0)
+
+        EntranceTeleport closestExit = null;
+        float closestDistanceSqr = float.MaxValue;
+
+        for (int i = 0; i < _allExitsInLevel.Value.Count; i++)
         {
-            if (Vector3.Distance(transform.position, closestExit.exitPoint.position) > 30f)
+            EntranceTeleport exit = _allExitsInLevel.Value[i];
+            if (!exit || !exit.exitPoint) continue;
+
+            float distanceSqr = (transform.position - exit.exitPoint.position).sqrMagnitude;
+            if (distanceSqr < closestDistanceSqr)
             {
-                exitDistances.Remove(closestExit);
-                _escapeDoor = exitDistances.Aggregate((l, r) => l.Value < r.Value ? l : r).Key;
+                closestDistanceSqr = distanceSqr;
+                closestExit = exit;
             }
         }
+
+        if (!closestExit)
+        {
+            _mls.LogError("No valid escape doors found!");
+            return;
+        }
+
+        _escapeDoor = closestExit;
         
+        // The "Avoid the escape door being the main door if possible" logic has been removed
         SetDestinationToPosition(_escapeDoor.exitPoint.position);
+        
+        // EntranceTeleport[] exits = FindObjectsOfType<EntranceTeleport>().Where(exit => exit != null && exit.exitPoint != null).ToArray();
+        // Dictionary<EntranceTeleport, float> exitDistances = exits.ToDictionary(exit => exit, exit => Vector3.Distance(transform.position, exit.exitPoint.position));
+        //
+        // EntranceTeleport closestExit = exitDistances.Aggregate((l, r) => l.Value < r.Value ? l : r).Key;
+        // _escapeDoor = closestExit;
+        //
+        // // Avoid the escape door being the main door if possible
+        // if (closestExit.entranceId == 0)
+        // {
+        //     if (Vector3.Distance(transform.position, closestExit.exitPoint.position) > 30f)
+        //     {
+        //         exitDistances.Remove(closestExit);
+        //         _escapeDoor = exitDistances.Aggregate((l, r) => l.Value < r.Value ? l : r).Key;
+        //     }
+        // }
     }
 
     // Makes the escorts enter rambo state and removes them from the escort list
@@ -363,7 +397,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
         for (int i = _escorts.Count - 1; i >= 0; i--)
         {
             LogDebug($"Retiring escort {_escorts[i].GhostId}");
-            if (targetPlayerToSet != null)
+            if (targetPlayerToSet)
             {
                 _escorts[i].targetPlayer = targetPlayerToSet;
                 _escorts[i].TargetPosition = targetPlayerToSet.transform.position;
@@ -382,11 +416,13 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
 
     private void UpdateAgentFormation()
     {
+        Vector3[] escortAgentPathPointsArray = _escortAgentPathPoints.ToArray();
         _isNarrowPath = CheckForNarrowPassages();
+        
         for (int i = _escorts.Count - 1; i >= 0; i--)
         {
-            // Check if escort is dead and if so remove them from the escort list
-            if (_escorts[i].isEnemyDead || _escorts[i] == null)
+            // Check if escort is null/dead and if so remove them from the escort list
+            if (!_escorts[i]|| _escorts[i].isEnemyDead)
             {
                 _escorts.RemoveAt(i);
                 continue;
@@ -398,7 +434,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
             if (!_escorts[i].FullySpawned) continue;
             
             // Check if the bagpipe ghost is moving, if not then don't bother making the escorts do anything
-            if (!_agentIsMoving && (transform.position - _escorts[i].transform.position).magnitude < EscortRowSpacing) continue;
+            if (!_agentIsMoving && (transform.position - _escorts[i].transform.position).sqrMagnitude < _escortRowSpacingSqr.Value) continue;
 
             Vector3 targetPosition;
             if (!_isNarrowPath && _escorts.Count > 1) // triangle formation
@@ -412,9 +448,11 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
             {
                 const float closenessToEscorteeFactor = 0.5f;
                 const float increasedGapBetweenEscortersFactor = 2f;
+
+                int pathPointsLength = escortAgentPathPointsArray.Length;
+                int targetIndex = Mathf.Max(0, Mathf.RoundToInt(pathPointsLength - 1 - i * increasedGapBetweenEscortersFactor));
                 
-                int targetIndex = Mathf.Max(0, Mathf.RoundToInt(_escortAgentPathPoints.Count - 1 - i * increasedGapBetweenEscortersFactor));
-                targetPosition = _escortAgentPathPoints[Mathf.Clamp(targetIndex, 0, _escortAgentPathPoints.Count - 1)];
+                targetPosition = escortAgentPathPointsArray[Mathf.Clamp(targetIndex, 0, pathPointsLength - 1)];
                 targetPosition = Vector3.Lerp(targetPosition, transform.position, closenessToEscorteeFactor);
             }
 
@@ -428,11 +466,18 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     private void UpdateEscortAgentPathPoints()
     {
         if (_escorts.Count == 0) return;
-        if (_escortAgentPathPoints.Count == 0) _escortAgentPathPoints.Add(transform.position);
-        if (Vector3.Distance(_escortAgentPathPoints[^1], transform.position) > 0.25f)
-            _escortAgentPathPoints.Add(transform.position);
 
-        if (_escortAgentPathPoints.Count > 50) _escortAgentPathPoints.RemoveAt(0);
+        if (_escortAgentPathPoints.Count == 0 ||
+            Vector3.Distance(_escortAgentPathPoints.Peek(), transform.position) > 0.25f)
+        {
+            _escortAgentPathPoints.Enqueue(transform.position);
+        }
+        
+        // Dequeue when the queue is full
+        if (_escortAgentPathPoints.Count > MaxPathPoints)
+        {
+            _escortAgentPathPoints.Dequeue();
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -453,7 +498,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
 
     internal void RemoveEscort(int indexOfEscort)
     {
-        if (_escorts[indexOfEscort] == null) return;
+        if (!_escorts[indexOfEscort]) return;
         _escorts[indexOfEscort].Escortee = null;
         _escorts.RemoveAt(indexOfEscort);
     }
@@ -529,7 +574,7 @@ public class BagpipesGhostAIServer : EnemyAI, IEscortee
     {
         base.HitEnemy(force, playerWhoHit, playHitSFX, hitId);
         if (!IsServer || isEnemyDead || _takeDamageCooldown > 0 || currentBehaviourStateIndex is (int)States.TeleportingOutOfMap or (int)States.Dead) return;
-        if (playerWhoHit == null) return;
+        if (!playerWhoHit) return;
         
         enemyHP -= force;
         _takeDamageCooldown = 0.03f;
