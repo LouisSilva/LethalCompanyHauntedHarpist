@@ -71,11 +71,11 @@ public class EnforcerGhostAIClient : MonoBehaviour
     [SerializeField] private EnforcerGhostAIServer enforcerGhostAIServer;
 #pragma warning restore 0649
 
-    private readonly NullableObject<ShotgunItem> _heldShotgun = new();
+    private ShotgunItem _heldShotgun;
     
     private NetworkObjectReference _shotgunObjectRef;
     
-    private readonly NullableObject<PlayerControllerB> _targetPlayer = new();
+    private PlayerControllerB _targetPlayer;
     
     private int _shotgunScrapValue;
 
@@ -235,20 +235,20 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private void HandleUpdateShotgunShellsLoaded(string receivedGhostId, int shells)
     {
         if (_ghostId != receivedGhostId) return;
-        LogDebug($"current shells: {_heldShotgun.Value.shellsLoaded}, changing to: {shells}");
-        _heldShotgun.Value.shellsLoaded = shells;
+        LogDebug($"current shells: {_heldShotgun.shellsLoaded}, changing to: {shells}");
+        _heldShotgun.shellsLoaded = shells;
     }
 
     private void HandleShootShotgun(string receivedGhostId)
     {
         if (_ghostId != receivedGhostId) return;
-        _heldShotgun.Value.ShootGun(_heldShotgun.Value.transform.position, _heldShotgun.Value.transform.forward);
+        _heldShotgun.ShootGun(_heldShotgun.transform.position, _heldShotgun.transform.forward);
     }
 
     private void HandleDoShotgunAnimation(string receivedGhostId, string animationId)
     {
         if (_ghostId != receivedGhostId) return;
-        _heldShotgun.Value.gunAnimator.SetTrigger(animationId);
+        _heldShotgun.gunAnimator.SetTrigger(animationId);
     }
 
     private void HandleGrabShotgun(string receivedGhostId)
@@ -268,99 +268,99 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private void HandleGrabShotgunPhaseTwo(string receivedGhostId)
     {
         if (_ghostId != receivedGhostId) return;
-        if (_heldShotgun.IsNotNull) return;
+        if (_heldShotgun) return;
         if (!_shotgunObjectRef.TryGet(out NetworkObject networkObject)) return;
-        _heldShotgun.Value = networkObject.gameObject.GetComponent<ShotgunItem>();
+        _heldShotgun = networkObject.gameObject.GetComponent<ShotgunItem>();
 
-        _heldShotgun.Value.SetScrapValue(_shotgunScrapValue);
-        _heldShotgun.Value.gunAnimator.runtimeAnimatorController = HarpGhostPlugin.CustomShotgunAnimator;
-        _heldShotgun.Value.parentObject = grabTarget;
-        _heldShotgun.Value.isHeldByEnemy = true;
-        _heldShotgun.Value.grabbableToEnemies = false;
-        _heldShotgun.Value.grabbable = false;
-        _heldShotgun.Value.shellsLoaded = 2;
-        _heldShotgun.Value.GrabItemFromEnemy(enforcerGhostAIServer);
+        _heldShotgun.SetScrapValue(_shotgunScrapValue);
+        _heldShotgun.gunAnimator.runtimeAnimatorController = HarpGhostPlugin.CustomShotgunAnimator;
+        _heldShotgun.parentObject = grabTarget;
+        _heldShotgun.isHeldByEnemy = true;
+        _heldShotgun.grabbableToEnemies = false;
+        _heldShotgun.grabbable = false;
+        _heldShotgun.shellsLoaded = 2;
+        _heldShotgun.GrabItemFromEnemy(enforcerGhostAIServer);
         PlaySfx(grabShotgunSfx);
     }
 
     private void HandleGrabShotgunAfterStun(string receivedGhostId)
     {
         if (_ghostId != receivedGhostId) return;
-        if (_heldShotgun.Value.isHeld)
+        if (_heldShotgun.isHeld)
         {
             LogDebug("Someone else already picked it up!");
             return;
         }
 
-        _heldShotgun.Value.gunAnimator.runtimeAnimatorController = HarpGhostPlugin.CustomShotgunAnimator;
-        _heldShotgun.Value.parentObject = grabTarget;
-        _heldShotgun.Value.isHeldByEnemy = true;
-        _heldShotgun.Value.grabbableToEnemies = false;
-        _heldShotgun.Value.grabbable = false;
-        _heldShotgun.Value.GrabItemFromEnemy(enforcerGhostAIServer);
+        _heldShotgun.gunAnimator.runtimeAnimatorController = HarpGhostPlugin.CustomShotgunAnimator;
+        _heldShotgun.parentObject = grabTarget;
+        _heldShotgun.isHeldByEnemy = true;
+        _heldShotgun.grabbableToEnemies = false;
+        _heldShotgun.grabbable = false;
+        _heldShotgun.GrabItemFromEnemy(enforcerGhostAIServer);
         PlaySfx(grabShotgunSfx);
     }
 
     private void HandleDropShotgun(string receivedGhostId, Vector3 dropPosition)
     {
         if (_ghostId != receivedGhostId) return;
-        if (!_heldShotgun.IsNotNull) return;
-        _heldShotgun.Value.parentObject = null;
-        _heldShotgun.Value.transform.SetParent(StartOfRound.Instance.propsContainer, true);
-        _heldShotgun.Value.gunAnimator.runtimeAnimatorController = ShotgunPatches.DefaultShotgunAnimationController;
-        _heldShotgun.Value.EnablePhysics(true);
-        _heldShotgun.Value.fallTime = 0f;
+        if (!_heldShotgun) return;
+        _heldShotgun.parentObject = null;
+        _heldShotgun.transform.SetParent(StartOfRound.Instance.propsContainer, true);
+        _heldShotgun.gunAnimator.runtimeAnimatorController = ShotgunPatches.DefaultShotgunAnimationController;
+        _heldShotgun.EnablePhysics(true);
+        _heldShotgun.fallTime = 0f;
 
         Transform parent;
-        _heldShotgun.Value.startFallingPosition =
-            (parent = _heldShotgun.Value.transform.parent).InverseTransformPoint(_heldShotgun.Value.transform.position);
-        _heldShotgun.Value.targetFloorPosition = parent.InverseTransformPoint(dropPosition);
-        _heldShotgun.Value.floorYRot = -1;
-        _heldShotgun.Value.grabbable = true;
-        _heldShotgun.Value.grabbableToEnemies = true;
-        _heldShotgun.Value.isHeld = false;
-        _heldShotgun.Value.isHeldByEnemy = false;
-        _heldShotgun.Value = null;
+        _heldShotgun.startFallingPosition =
+            (parent = _heldShotgun.transform.parent).InverseTransformPoint(_heldShotgun.transform.position);
+        _heldShotgun.targetFloorPosition = parent.InverseTransformPoint(dropPosition);
+        _heldShotgun.floorYRot = -1;
+        _heldShotgun.grabbable = true;
+        _heldShotgun.grabbableToEnemies = true;
+        _heldShotgun.isHeld = false;
+        _heldShotgun.isHeldByEnemy = false;
+        _heldShotgun = null;
     }
 
     private void HandleDropShotgunWhenStunned(string receivedGhostId, Vector3 dropPosition)
     {
         if (_ghostId != receivedGhostId) return;
-        if (!_heldShotgun.IsNotNull) return;
-        _heldShotgun.Value.parentObject = null;
-        _heldShotgun.Value.transform.SetParent(StartOfRound.Instance.propsContainer, true);
-        _heldShotgun.Value.gunAnimator.runtimeAnimatorController = ShotgunPatches.DefaultShotgunAnimationController;
-        _heldShotgun.Value.EnablePhysics(true);
-        _heldShotgun.Value.fallTime = 0f;
+        if (!_heldShotgun) return;
+        _heldShotgun.parentObject = null;
+        _heldShotgun.transform.SetParent(StartOfRound.Instance.propsContainer, true);
+        _heldShotgun.gunAnimator.runtimeAnimatorController = ShotgunPatches.DefaultShotgunAnimationController;
+        _heldShotgun.EnablePhysics(true);
+        _heldShotgun.fallTime = 0f;
 
         Transform parent;
-        _heldShotgun.Value.startFallingPosition =
-            (parent = _heldShotgun.Value.transform.parent).InverseTransformPoint(_heldShotgun.Value.transform.position);
-        _heldShotgun.Value.targetFloorPosition = parent.InverseTransformPoint(dropPosition);
-        _heldShotgun.Value.floorYRot = -1;
-        _heldShotgun.Value.grabbable = true;
-        _heldShotgun.Value.grabbableToEnemies = false;
-        _heldShotgun.Value.isHeld = false;
-        _heldShotgun.Value.isHeldByEnemy = false;
+        _heldShotgun.startFallingPosition =
+            (parent = _heldShotgun.transform.parent).InverseTransformPoint(_heldShotgun.transform.position);
+        _heldShotgun.targetFloorPosition = parent.InverseTransformPoint(dropPosition);
+        _heldShotgun.floorYRot = -1;
+        _heldShotgun.grabbable = true;
+        _heldShotgun.grabbableToEnemies = false;
+        _heldShotgun.isHeld = false;
+        _heldShotgun.isHeldByEnemy = false;
     }
 
     private void HandleIncreaseTargetPlayerFearLevel(string receivedGhostId)
     {
         if (_ghostId != receivedGhostId) return;
-        if (GameNetworkManager.Instance.localPlayerController != _targetPlayer.Value) return;
+        if (GameNetworkManager.Instance.localPlayerController != _targetPlayer) return;
 
-        if (!_targetPlayer.IsNotNull) return;
+        if (!_targetPlayer) return;
 
-        if (_targetPlayer.Value.HasLineOfSightToPosition(eye.position, 90f, 40, 3f))
+        if (_targetPlayer.HasLineOfSightToPosition(eye.position, 90f, 40, 3f))
         {
-            _targetPlayer.Value.JumpToFearLevel(0.7f);
-            _targetPlayer.Value.IncreaseFearLevelOverTime(0.5f);
+            _targetPlayer.JumpToFearLevel(0.7f);
+            _targetPlayer.IncreaseFearLevelOverTime(0.5f);
         }
 
-        else if (Vector3.Distance(eye.transform.position, _targetPlayer.Value.transform.position) < 3)
+        else if (Vector3.Distance(eye.transform.position, _targetPlayer.transform.position) < 3)
         {
-            _targetPlayer.Value.JumpToFearLevel(0.3f);
-            _targetPlayer.Value.IncreaseFearLevelOverTime(0.3f);
+            _targetPlayer.JumpToFearLevel(0.3f);
+            _targetPlayer.IncreaseFearLevelOverTime(0.3f);
         }
     }
 
@@ -369,12 +369,12 @@ public class EnforcerGhostAIClient : MonoBehaviour
         if (_ghostId != receivedGhostId) return;
         if (playerClientId == MusicalGhost.NullPlayerId)
         {
-            _targetPlayer.Value = null;
+            _targetPlayer = null;
             return;
         }
 
         PlayerControllerB player = StartOfRound.Instance.allPlayerScripts[playerClientId];
-        _targetPlayer.Value = player;
+        _targetPlayer = player;
     }
 
     private void HandleEnterDeathState(string receivedGhostId)

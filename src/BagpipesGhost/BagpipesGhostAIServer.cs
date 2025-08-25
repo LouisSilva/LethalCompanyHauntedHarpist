@@ -57,7 +57,7 @@ public class BagpipesGhostAIServer : MusicalGhost, IEscortee
 
     private EntranceTeleport _escapeDoor;
 
-    private readonly NullableObject<InstrumentBehaviour> _heldBagpipes = new();
+    private InstrumentBehaviour _heldBagpipes;
     
     private NetworkObjectReference _instrumentObjectRef;
 
@@ -542,9 +542,9 @@ public class BagpipesGhostAIServer : MusicalGhost, IEscortee
     private void HandleGrabBagpipes(string receivedGhostId)
     {
         if (_ghostId != receivedGhostId) return;
-        if (_heldBagpipes.IsNotNull) return;
+        if (_heldBagpipes) return;
         if (!_instrumentObjectRef.TryGet(out NetworkObject networkObject)) return;
-        _heldBagpipes.Value = networkObject.gameObject.GetComponent<InstrumentBehaviour>();
+        _heldBagpipes = networkObject.gameObject.GetComponent<InstrumentBehaviour>();
     }
 
     public override void SetEnemyStunned(
@@ -573,8 +573,11 @@ public class BagpipesGhostAIServer : MusicalGhost, IEscortee
     public override void HitEnemy(int force = 1, PlayerControllerB playerWhoHit = null, bool playHitSFX = false, int hitId = -1)
     {
         base.HitEnemy(force, playerWhoHit, playHitSFX, hitId);
-        if (!IsServer || isEnemyDead || _takeDamageCooldown > 0 || currentBehaviourStateIndex is (int)States.TeleportingOutOfMap or (int)States.Dead) return;
-        if (!playerWhoHit) return;
+        if (!IsServer || isEnemyDead || _takeDamageCooldown > 0 || currentBehaviourStateIndex is (int)States.TeleportingOutOfMap or (int)States.Dead) 
+            return;
+        
+        if (!BagpipeGhostConfig.Instance.BagpipeGhostFriendlyFire.Value && playerWhoHit)
+            return;
         
         enemyHP -= force;
         _takeDamageCooldown = 0.03f;

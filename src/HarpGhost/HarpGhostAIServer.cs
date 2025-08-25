@@ -415,8 +415,9 @@ public class HarpGhostAIServer : MusicalGhost
         base.HitEnemy(force, playerWhoHit, playHitSFX, hitId);
         if (!IsServer || isEnemyDead) return;
 
-        NullableObject<PlayerControllerB> playerWhoHitNullable = new(playerWhoHit);
-        if (!friendlyFire && !playerWhoHitNullable.IsNotNull) return;
+        // If friendly fire is disabled, and we weren't hit by a player, then ignore the hit
+        bool isPlayerWhoHitNull = !playerWhoHit;
+        if (!friendlyFire && isPlayerWhoHitNull) return;
 
         enemyHP -= force;
         if (enemyHP <= 0)
@@ -425,7 +426,7 @@ public class HarpGhostAIServer : MusicalGhost
             return;
         }
         
-        if (!playerWhoHitNullable.IsNotNull) return;
+        if (isPlayerWhoHitNull) return;
         
         TurnGhostEyesRed();
         netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Damage, 

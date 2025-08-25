@@ -1,6 +1,5 @@
 ﻿using BepInEx.Logging;
 using LethalCompanyHarpGhost.Items;
-using LethalCompanyHarpGhost.Types;
 using System.Runtime.CompilerServices;
 using Unity.Netcode;
 using UnityEngine;
@@ -59,11 +58,11 @@ public class BagpipesGhostAIClient : MonoBehaviour
     
     private int _instrumentScrapValue;
     
-    private readonly NullableObject<InstrumentBehaviour> _heldInstrument = new();
+    private InstrumentBehaviour _heldInstrument;
     
     private void OnEnable()
     {
-        if (netcodeController == null) return;
+        if (!netcodeController) return;
         netcodeController.OnDropBagpipes += HandleDropInstrument;
         netcodeController.OnSpawnBagpipes += HandleSpawnInstrument;
         netcodeController.OnGrabBagpipes += HandleGrabInstrument;
@@ -84,7 +83,7 @@ public class BagpipesGhostAIClient : MonoBehaviour
 
     private void OnDisable()
     {
-        if (netcodeController == null) return;
+        if (!netcodeController) return;
         netcodeController.OnDropBagpipes -= HandleDropInstrument;
         netcodeController.OnSpawnBagpipes -= HandleSpawnInstrument;
         netcodeController.OnGrabBagpipes -= HandleGrabInstrument;
@@ -119,58 +118,60 @@ public class BagpipesGhostAIClient : MonoBehaviour
     private void HandleDestroyBagpipes(string receivedGhostId)
     {
         if (_ghostId != receivedGhostId) return;
-        if (_heldInstrument.IsNotNull) Destroy(_heldInstrument.Value.gameObject);
-        _heldInstrument.Value = null;
+        if (_heldInstrument)
+            Destroy(_heldInstrument.gameObject);
+
+        _heldInstrument = null;
     }
 
     private void HandleOnPlayInstrumentMusic(string receivedGhostId)
     {
         if (_ghostId != receivedGhostId) return;
-        if (!_heldInstrument.IsNotNull) return;
-        _heldInstrument.Value.StartMusicServerRpc();
+        if (!_heldInstrument) return;
+        _heldInstrument.StartMusicServerRpc();
     }
     
     private void HandleOnStopInstrumentMusic(string receivedGhostId)
     {
         if (_ghostId != receivedGhostId) return;
-        if (!_heldInstrument.IsNotNull) return;
-        _heldInstrument.Value.StopMusicServerRpc();
+        if (!_heldInstrument) return;
+        _heldInstrument.StopMusicServerRpc();
     }
 
     private void HandleDropInstrument(string receivedGhostId, Vector3 dropPosition)
     {
         if (_ghostId != receivedGhostId) return;
-        if (!_heldInstrument.IsNotNull) return;
-        _heldInstrument.Value.parentObject = null;
-        _heldInstrument.Value.transform.SetParent(StartOfRound.Instance.propsContainer, true);
-        _heldInstrument.Value.EnablePhysics(true);
-        _heldInstrument.Value.fallTime = 0f;
+        if (!_heldInstrument) return;
+        _heldInstrument.parentObject = null;
+        _heldInstrument.transform.SetParent(StartOfRound.Instance.propsContainer, true);
+        _heldInstrument.EnablePhysics(true);
+        _heldInstrument.fallTime = 0f;
         
         Transform parent;
-        _heldInstrument.Value.startFallingPosition =
-            (parent = _heldInstrument.Value.transform.parent).InverseTransformPoint(_heldInstrument.Value.transform.position);
-        _heldInstrument.Value.targetFloorPosition = parent.InverseTransformPoint(dropPosition);
-        _heldInstrument.Value.floorYRot = -1;
-        _heldInstrument.Value.grabbable = true;
-        _heldInstrument.Value.grabbableToEnemies = true;
-        _heldInstrument.Value.isHeld = false;
-        _heldInstrument.Value.isHeldByEnemy = false;
-        _heldInstrument.Value.StopMusicServerRpc();
-        _heldInstrument.Value = null;
+        _heldInstrument.startFallingPosition =
+            (parent = _heldInstrument.transform.parent).InverseTransformPoint(_heldInstrument.transform.position);
+        _heldInstrument.targetFloorPosition = parent.InverseTransformPoint(dropPosition);
+        _heldInstrument.floorYRot = -1;
+        _heldInstrument.grabbable = true;
+        _heldInstrument.grabbableToEnemies = true;
+        _heldInstrument.isHeld = false;
+        _heldInstrument.isHeldByEnemy = false;
+        _heldInstrument.StopMusicServerRpc();
+        _heldInstrument = null;
     }
 
     private void HandleGrabInstrument(string receivedGhostId)
     {
         if (_ghostId != receivedGhostId) return;
-        if (_heldInstrument.IsNotNull) return;
+        if (!_heldInstrument) return;
         if (!_instrumentObjectRef.TryGet(out NetworkObject networkObject)) return;
-        _heldInstrument.Value = networkObject.gameObject.GetComponent<InstrumentBehaviour>();
+        _heldInstrument = networkObject.gameObject.GetComponent<InstrumentBehaviour>();
 
-        _heldInstrument.Value.SetScrapValue(_instrumentScrapValue);
-        _heldInstrument.Value.parentObject = grabTarget;
-        _heldInstrument.Value.isHeldByEnemy = true;
-        _heldInstrument.Value.grabbableToEnemies = false;
-        _heldInstrument.Value.grabbable = false;
+        _heldInstrument.SetScrapValue(_instrumentScrapValue);
+        _heldInstrument.parentObject = grabTarget;
+        _heldInstrument.isHeldByEnemy = true;
+        _heldInstrument.grabbableToEnemies = false;
+        _heldInstrument.grabbable = false;
     }
     
     private void HandleSpawnInstrument(string receivedGhostId, NetworkObjectReference instrumentObject, int instrumentScrapValue)

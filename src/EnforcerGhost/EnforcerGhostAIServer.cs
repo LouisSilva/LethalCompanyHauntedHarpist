@@ -1,6 +1,5 @@
 ﻿using BepInEx.Logging;
 using GameNetcodeStuff;
-using LethalCompanyHarpGhost.Types;
 using System;
 using System.Collections;
 using System.Runtime.CompilerServices;
@@ -48,7 +47,7 @@ public class EnforcerGhostAIServer : MusicalGhost
     internal Vector3 TargetPosition;
     private Vector3 _agentLastPosition;
 
-    private readonly NullableObject<ShotgunItem> _heldShotgun = new();
+    private ShotgunItem _heldShotgun;
     private NetworkObjectReference _shotgunObjectRef;
     
     private float _agentCurrentSpeed;
@@ -281,13 +280,13 @@ public class EnforcerGhostAIServer : MusicalGhost
                     movingTowardsTargetPlayer = true;
                 }
 
-                if (!_heldShotgun.IsNotNull)
+                if (!_heldShotgun)
                 {
                     _mls.LogError("Missing shotgun.");
                     return;
                 }
 
-                if (_heldShotgun.Value.shellsLoaded <= 0 && !_isReloading)
+                if (_heldShotgun.shellsLoaded <= 0 && !_isReloading)
                 {
                     LogDebug("The shotgun has no more bullets! Reloading!");
                     _isReloading = true;
@@ -299,11 +298,11 @@ public class EnforcerGhostAIServer : MusicalGhost
                 if (_shootTimer > 0) break;
 
                 // Check if the enforcer ghost is aiming at the player
-                Vector3 directionToPlayer = targetPlayer.transform.position - _heldShotgun.Value.transform.position;
+                Vector3 directionToPlayer = targetPlayer.transform.position - _heldShotgun.transform.position;
                 directionToPlayer.Normalize();
-                float dotProduct = Vector3.Dot(_heldShotgun.Value.transform.forward, directionToPlayer);
+                float dotProduct = Vector3.Dot(_heldShotgun.transform.forward, directionToPlayer);
                 float distanceToPlayer =
-                    Vector3.Distance(_heldShotgun.Value.transform.position, targetPlayer.transform.position);
+                    Vector3.Distance(_heldShotgun.transform.position, targetPlayer.transform.position);
 
                 float accuracyThreshold = 0.875f;
                 if (distanceToPlayer < 3f)
@@ -314,8 +313,8 @@ public class EnforcerGhostAIServer : MusicalGhost
                 {
                     netcodeController.ShootGunClientRpc(GhostId);
                     _shootTimer = shootDelay;
-                    _heldShotgun.Value.shellsLoaded = Mathf.Clamp(_heldShotgun.Value.shellsLoaded - 1, 0, 2);
-                    netcodeController.UpdateShotgunShellsLoadedClientRpc(GhostId, _heldShotgun.Value.shellsLoaded);
+                    _heldShotgun.shellsLoaded = Mathf.Clamp(_heldShotgun.shellsLoaded - 1, 0, 2);
+                    netcodeController.UpdateShotgunShellsLoadedClientRpc(GhostId, _heldShotgun.shellsLoaded);
                 }
 
                 break;
@@ -362,7 +361,7 @@ public class EnforcerGhostAIServer : MusicalGhost
         netcodeController.DoAnimationClientRpc(GhostId, EnforcerGhostAIClient.ReloadShotgun);
 
         yield return new WaitForSeconds(reloadTime - 0.3f);
-        _heldShotgun.Value.shellsLoaded = 2;
+        _heldShotgun.shellsLoaded = 2;
         agentMaxSpeed = previousSpeed;
         yield return new WaitForSeconds(reloadTime);
         _shootTimer = shootDelay;
@@ -492,8 +491,11 @@ public class EnforcerGhostAIServer : MusicalGhost
         int hitId = -1)
     {
         base.HitEnemy(force, playerWhoHit, playHitSFX, hitId);
-        if (!IsServer || isEnemyDead || currentBehaviourStateIndex is (int)States.Dead || _takeDamageCooldown > 0 ||
-            !playerWhoHit) return;
+        if (!IsServer || isEnemyDead || currentBehaviourStateIndex is (int)States.Dead || _takeDamageCooldown > 0) 
+            return;
+
+        if (!EnforcerGhostConfig.Instance.EnforcerGhostFriendlyFire.Value && playerWhoHit)
+            return;
 
         _takeDamageCooldown = 0.03f;
         Escortee?.EscorteeBreakoff(playerWhoHit);
@@ -547,14 +549,14 @@ public class EnforcerGhostAIServer : MusicalGhost
 
     private void HandleGrabShotgunPhaseTwo(string receivedGhostId)
     {
-        if (!IsServer || GhostId != receivedGhostId || _heldShotgun.IsNotNull) return;
+        if (!IsServer || GhostId != receivedGhostId || _heldShotgun) return;
         if (!_shotgunObjectRef.TryGet(out NetworkObject networkObject))
         {
             LogDebug("Could not get shotgun object reference");
             return;
         }
 
-        _heldShotgun.Value = networkObject.gameObject.GetComponent<ShotgunItem>();
+        _heldShotgun = networkObject.gameObject.GetComponent<ShotgunItem>();
     }
 
     private void HandleSpawnShotgun(string receivedGhostId, NetworkObjectReference shotgunObject, int shotgunScrapValue)

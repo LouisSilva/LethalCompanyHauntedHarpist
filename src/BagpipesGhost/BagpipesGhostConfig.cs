@@ -13,6 +13,7 @@ public class BagpipeGhostConfig : SyncedInstance<BagpipeGhostConfig>
     public readonly ConfigEntry<float> BagpipeGhostStunGameDifficultyMultiplier;
     public readonly ConfigEntry<bool> BagpipeGhostIsStunnable;
     public readonly ConfigEntry<bool> BagpipeGhostIsKillable;
+    public readonly ConfigEntry<bool> BagpipeGhostFriendlyFire;
 
     public readonly ConfigEntry<float> BagpipeGhostVoiceSfxVolume;
     public readonly ConfigEntry<float> BagpipesVolume;
@@ -65,6 +66,13 @@ public class BagpipeGhostConfig : SyncedInstance<BagpipeGhostConfig>
             "Killable",
             true,
             "Whether a Phantom Piper can be killed or not"
+        );
+        
+        BagpipeGhostFriendlyFire = cfg.Bind(
+            "Phantom Piper General",
+            "Friendly Fire",
+            false,
+            "Whether the Phantom Piper can be killed by something other than a player e.g. an eyeless dog. WARNING: May be incompatible with weapons from some mods (if friendly fire is off)."
         );
         
         BagpipeGhostIsStunnable= cfg.Bind(

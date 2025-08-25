@@ -17,6 +17,7 @@ public class EnforcerGhostConfig : SyncedInstance<EnforcerGhostConfig>
     public readonly ConfigEntry<float> EnforcerGhostShootDelay;
     public readonly ConfigEntry<bool> EnforcerGhostShieldEnabled;
     public readonly ConfigEntry<float> EnforcerGhostShieldRegenTime;
+    public readonly ConfigEntry<bool> EnforcerGhostFriendlyFire;
 
     public readonly ConfigEntry<float> EnforcerGhostVoiceSfxVolume;
     public readonly ConfigEntry<float> EnforcerGhostSfxVolume;
@@ -66,6 +67,13 @@ public class EnforcerGhostConfig : SyncedInstance<EnforcerGhostConfig>
             "Killable",
             true,
             "Whether an Enforcer Ghost can be killed or not."
+        );
+        
+        EnforcerGhostFriendlyFire = cfg.Bind(
+            "Ethereal Enforcer General",
+            "Friendly Fire",
+            false,
+            "Whether the Ethereal Enforcer can be killed by something other than a player e.g. an eyeless dog. WARNING: May be incompatible with weapons from some mods (if friendly fire is off)."
         );
         
         EnforcerGhostIsStunnable= cfg.Bind(

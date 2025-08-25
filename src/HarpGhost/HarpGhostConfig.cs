@@ -117,7 +117,7 @@ public class HarpGhostConfig : SyncedInstance<HarpGhostConfig>
             "Haunted Harpist General",
             "Friendly Fire",
             false,
-            "Whether the Haunted Harpist can be killed by something other than a player e.g. an eyeless dog. WARNING: May be incompatible with weapons from some mods."
+            "Whether the Haunted Harpist can be killed by something other than a player e.g. an eyeless dog. WARNING: May be incompatible with weapons from some mods (if friendly fire is off)."
         );
         
         HarpGhostIsStunnable= cfg.Bind(
