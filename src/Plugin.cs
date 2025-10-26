@@ -189,7 +189,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
             Mls.LogError("Failed to load harp item behaviour script from harp spawnPrefab.");
             return;
         }
-        
+
         AudioClip[] audioClips = harpBehaviour.instrumentAudioClips;
         List<string> audioClipNames = [];
         audioClipNames.AddRange(audioClips.Select(curAudioClip => curAudioClip.name));
@@ -258,7 +258,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
         {
             Item item = StartOfRound.Instance.allItemsList.itemsList[i];
             if (item.name.ToLower() != "shotgun") continue;
-            
+
             ShotgunPrefab = item.spawnPrefab;
             break;
         }
@@ -301,8 +301,8 @@ public class HarpGhostPlugin : BaseUnityPlugin
         }
     }
 
-    private static (Dictionary<LevelTypes, int> spawnRateByLevelType, Dictionary<string, int> spawnRateByCustomLevelType
-        ) ConfigParsing(string configMoonRarity)
+    private static (Dictionary<LevelTypes, int> spawnRateByLevelType, Dictionary<string, int> spawnRateByCustomLevelType)
+        ConfigParsing(string configMoonRarity)
     {
         Dictionary<LevelTypes, int> spawnRateByLevelType = new();
         Dictionary<string, int> spawnRateByCustomLevelType = new();
@@ -314,11 +314,11 @@ public class HarpGhostPlugin : BaseUnityPlugin
             string entry = s.Trim();
             string[] entryParts = entry.Split(':');
 
-            if (entryParts.Length != 2) 
+            if (entryParts.Length != 2)
                 continue;
             string name = entryParts[0];
-            
-            if (!int.TryParse(entryParts[1], out int spawnrate)) 
+
+            if (!int.TryParse(entryParts[1], out int spawnrate))
                 continue;
 
             if (Enum.TryParse(name, true, out LevelTypes levelType))

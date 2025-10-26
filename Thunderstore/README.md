@@ -40,7 +40,7 @@ The Phantom Piper and his escorts are supposed to be a rare enemy in the game, w
 Even though they have a shield and 6 HP (configurable), they have big weaknesses which can be easily exploited (some are obvious, some of them aren't so).
 
 <br></br>
-**Does this mod support v70?**
+**Does this mod support v73?**
 
 Yes
 

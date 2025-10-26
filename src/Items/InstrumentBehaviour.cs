@@ -58,7 +58,7 @@ public class InstrumentBehaviour : PhysicsProp
 
     private void Awake()
     {
-        // This has to be done because for some reason the ItemOffset values in the unity inspector just get overriden for some reason
+        // This has to be done because the ItemOffset values in the unity inspector just get overriden for some reason
         switch (itemProperties.itemName)
         {
             case "Harp":

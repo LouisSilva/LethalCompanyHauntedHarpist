@@ -15,7 +15,7 @@ public class EnforcerGhostAIServer : MusicalGhost
 {
     private ManualLogSource _mls;
     internal string GhostId;
-    
+
     internal enum States
     {
         Escorting = 0,
@@ -25,8 +25,8 @@ public class EnforcerGhostAIServer : MusicalGhost
         Dead = 4
     }
 
-    [Header("AI and Pathfinding")] 
-    [Space(5f)] 
+    [Header("AI and Pathfinding")]
+    [Space(5f)]
     public AISearchRoutine searchForPlayers;
 
     [SerializeField] private float agentMaxAcceleration = 50f;
@@ -38,18 +38,18 @@ public class EnforcerGhostAIServer : MusicalGhost
     [SerializeField] private bool shieldBehaviourEnabled = true;
 
 #pragma warning disable 0649
-    [Header("Controllers")] [Space(5f)] 
+    [Header("Controllers")] [Space(5f)]
     [SerializeField] private EnforcerGhostNetcodeController netcodeController;
 
     internal IEscortee Escortee { private get; set; }
 #pragma warning restore 0649
-    
+
     internal Vector3 TargetPosition;
     private Vector3 _agentLastPosition;
 
     private ShotgunItem _heldShotgun;
     private NetworkObjectReference _shotgunObjectRef;
-    
+
     private float _agentCurrentSpeed;
     private float _shootTimer;
     private float _takeDamageCooldown;
@@ -491,10 +491,10 @@ public class EnforcerGhostAIServer : MusicalGhost
         int hitId = -1)
     {
         base.HitEnemy(force, playerWhoHit, playHitSFX, hitId);
-        if (!IsServer || isEnemyDead || currentBehaviourStateIndex is (int)States.Dead || _takeDamageCooldown > 0) 
+        if (!IsServer || isEnemyDead || _takeDamageCooldown > 0)
             return;
 
-        if (!EnforcerGhostConfig.Instance.EnforcerGhostFriendlyFire.Value && playerWhoHit)
+        if (!EnforcerGhostConfig.Instance.EnforcerGhostFriendlyFire.Value && !playerWhoHit)
             return;
 
         _takeDamageCooldown = 0.03f;
@@ -623,7 +623,7 @@ public class EnforcerGhostAIServer : MusicalGhost
     {
         float speedAdjustment = Time.deltaTime / 2f;
         agent.speed = Mathf.Lerp(agent.speed, agentMaxSpeed, speedAdjustment);
-        
+
         float accelerationAdjustment = Time.deltaTime;
         agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
     }

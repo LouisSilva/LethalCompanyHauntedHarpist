@@ -15,7 +15,7 @@ public class HarpGhostAIServer : MusicalGhost
 {
     private ManualLogSource _mls;
     private string _ghostId;
-    
+
     private enum States
     {
         PlayingMusic = 0,
@@ -25,7 +25,7 @@ public class HarpGhostAIServer : MusicalGhost
         Dead = 4
     }
 
-    [Header("AI and Pathfinding")] [Space(5f)] 
+    [Header("AI and Pathfinding")] [Space(5f)]
     public AISearchRoutine roamMap;
     public AISearchRoutine searchForPlayers;
 
@@ -43,20 +43,20 @@ public class HarpGhostAIServer : MusicalGhost
     [SerializeField] private bool friendlyFire = true;
 
 #pragma warning disable 0649
-    [Header("Transforms")] [Space(5f)] 
+    [Header("Transforms")] [Space(5f)]
     [SerializeField] private BoxCollider attackArea;
 
-    [Header("Controllers and Managers")] [Space(5f)] 
+    [Header("Controllers and Managers")] [Space(5f)]
     [SerializeField] private HarpGhostAudioManager audioManager;
     [SerializeField] private HarpGhostNetcodeController netcodeController;
     [SerializeField] private HarpGhostAnimationController animationController;
 #pragma warning restore 0649
 
     private Collider[] attackHitBuffer;
-    
+
     private Vector3 _targetPosition;
     private Vector3 _agentLastPosition;
-    
+
     private float _agentCurrentSpeed;
     private float _timeSinceHittingLocalPlayer;
     private float _hearNoiseCooldown;
@@ -65,7 +65,7 @@ public class HarpGhostAIServer : MusicalGhost
     private bool _inStunAnimation;
     private bool _hasTransitionedMaterial;
     private bool _areNetworkEventsSubscribed;
-    
+
     public void OnEnable()
     {
         SubscribeToNetworkEvents();
@@ -96,7 +96,7 @@ public class HarpGhostAIServer : MusicalGhost
 
         animationController = GetComponent<HarpGhostAnimationController>();
         if (!animationController) _mls.LogError("Animation Controller is null");
-        
+
         SubscribeToNetworkEvents();
         netcodeController.SyncGhostIdentifierClientRpc(_ghostId);
 
@@ -104,7 +104,7 @@ public class HarpGhostAIServer : MusicalGhost
         InitializeConfigValues();
 
         attackHitBuffer = new Collider[20];
-        
+
         PlayerTargetableConditions.AddCondition(player => !GhostUtils.IsPlayerDead(player));
         PlayerTargetableConditions.AddCondition(player => !player.isInHangarShipRoom);
         PlayerTargetableConditions.AddCondition(player => player.sinkingValue < 0.7300000190734863);
@@ -112,7 +112,7 @@ public class HarpGhostAIServer : MusicalGhost
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsDead, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, false);
         netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning, false);
-        
+
         netcodeController.SpawnHarpServerRpc(_ghostId);
         netcodeController.GrabHarpClientRpc(_ghostId);
         StartCoroutine(DelayedHarpMusicActivate());
@@ -134,9 +134,9 @@ public class HarpGhostAIServer : MusicalGhost
     {
         base.Update();
         if (!IsServer) return;
-        
+
         CalculateAgentSpeed();
-        
+
         if (stunNormalizedTimer <= 0.0 && _inStunAnimation && !isEnemyDead)
         {
             netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsStunned, false);
@@ -296,16 +296,16 @@ public class HarpGhostAIServer : MusicalGhost
                 {
                     BeginChasingPlayer(GhostUtils.GetClientIdFromPlayer(visiblePlayer));
                 }
-                
+
                 _targetPosition = targetPlayer.transform.position;
-                
+
                 netcodeController.IncreaseTargetPlayerFearLevelClientRpc(_ghostId);
 
                 // Check if a player is in attack area and if so, attack
                 if (Vector3.Distance(transform.position, targetPlayer.transform.position) < 8) AttackPlayerIfClose();
                 break;
             }
-            
+
             case (int)States.Dead:
             {
                 if (roamMap.inProgress) StopSearch(roamMap);
@@ -395,7 +395,7 @@ public class HarpGhostAIServer : MusicalGhost
                 _hasBegunInvestigating = false;
                 _targetPosition = default;
 
-                netcodeController.ChangeTargetPlayerClientRpc(_ghostId, MusicalGhost.NullPlayerId);
+                netcodeController.ChangeTargetPlayerClientRpc(_ghostId, NullPlayerId);
                 netcodeController.DropHarpClientRpc(_ghostId, transform.position);
                 netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsDead,
                     true);
@@ -425,11 +425,11 @@ public class HarpGhostAIServer : MusicalGhost
             KillEnemyClientRpc(false);
             return;
         }
-        
+
         if (isPlayerWhoHitNull) return;
-        
+
         TurnGhostEyesRed();
-        netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Damage, 
+        netcodeController.PlayCreatureVoiceClientRpc(_ghostId, (int)HarpGhostAudioManager.AudioClipTypes.Damage,
             audioManager.damageSfx.Length);
         netcodeController.ChangeTargetPlayerClientRpc(_ghostId, playerWhoHit!.playerClientId);
         SwitchBehaviourStateLocally((int)States.ChasingTargetPlayer);
@@ -439,7 +439,7 @@ public class HarpGhostAIServer : MusicalGhost
     {
         base.KillEnemy(destroy);
         if (!IsServer) return;
-        
+
         netcodeController.EnterDeathStateClientRpc(_ghostId);
         SwitchBehaviourStateLocally((int)States.Dead);
     }
@@ -487,8 +487,8 @@ public class HarpGhostAIServer : MusicalGhost
         if (currentBehaviourStateIndex != (int)States.ChasingTargetPlayer ||
             _timeSinceHittingLocalPlayer < attackCooldown ||
             _inStunAnimation) return;
-        
-        int numColldiersHit = Physics.OverlapBoxNonAlloc(attackArea.transform.position, attackArea.size * 0.5f, 
+
+        int numColldiersHit = Physics.OverlapBoxNonAlloc(attackArea.transform.position, attackArea.size * 0.5f,
             attackHitBuffer, Quaternion.identity, 1 << 3, QueryTriggerInteraction.Ignore);
 
         if (numColldiersHit <= 0) return;
@@ -619,7 +619,7 @@ public class HarpGhostAIServer : MusicalGhost
 
         if ((double)stunNormalizedTimer > 0 || _hearNoiseCooldown > 0.0 ||
             Enum.IsDefined(typeof(HarpGhostAudioManager.NoiseIDToIgnore), noiseID)) return;
-        
+
         switch (currentBehaviourStateIndex)
         {
             case (int)States.PlayingMusic:
@@ -692,7 +692,7 @@ public class HarpGhostAIServer : MusicalGhost
             netcodeController.ChangeAnimationParameterBoolClientRpc(_ghostId, HarpGhostAnimationController.IsRunning,
                 isRunning);
     }
-    
+
     private bool CheckForPath(Vector3 position)
     {
         position = RoundManager.Instance.GetNavMeshPosition(position, RoundManager.Instance.navHit, 1.75f);
@@ -718,7 +718,7 @@ public class HarpGhostAIServer : MusicalGhost
             MoveWithAcceleration();
         }
     }
-    
+
     private void InitializeConfigValues()
     {
         if (!IsServer) return;
@@ -746,18 +746,18 @@ public class HarpGhostAIServer : MusicalGhost
     {
         float speedAdjustment = Time.deltaTime / 2f;
         agent.speed = Mathf.Lerp(agent.speed, agentMaxSpeed, speedAdjustment);
-        
+
         float accelerationAdjustment = Time.deltaTime;
         agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
     }
-    
+
     /// <summary>
     /// Subscribe to the needed network events.
     /// </summary>
     private void SubscribeToNetworkEvents()
     {
         if (!IsServer || _areNetworkEventsSubscribed) return;
-        
+
         netcodeController.OnChangeTargetPlayer += HandleChangeTargetPlayer;
         netcodeController.OnChangeAgentMaxSpeed += HandleChangeAgentMaxSpeed;
         netcodeController.OnFixAgentSpeedAfterAttack += HandleFixAgentSpeedAfterAttack;
@@ -771,11 +771,11 @@ public class HarpGhostAIServer : MusicalGhost
     private void UnsubscribeFromNetworkEvents()
     {
         if (!IsServer || !_areNetworkEventsSubscribed) return;
-        
+
         netcodeController.OnChangeTargetPlayer -= HandleChangeTargetPlayer;
         netcodeController.OnChangeAgentMaxSpeed -= HandleChangeAgentMaxSpeed;
         netcodeController.OnFixAgentSpeedAfterAttack -= HandleFixAgentSpeedAfterAttack;
-        
+
         _areNetworkEventsSubscribed = false;
     }
 

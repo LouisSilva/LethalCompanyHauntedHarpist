@@ -1,4 +1,5 @@
 ## 1.3.24
+* Works with the latest version of LC (v73)
 * Added option (on by default) to make the harp music not audible to other creatures if the harp is being played by the Harpist.
 * Minor performance improvements.
 

@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    
+
     <PropertyGroup>
         <TargetFramework>netstandard2.1</TargetFramework>
         <AssemblyName>LethalCompanyHarpGhost</AssemblyName>
@@ -18,7 +18,7 @@
         <ThunderstoreTeam>Bob123</ThunderstoreTeam>
         <!-- Configure description for Thunderstore at ./Thunderstore/thunderstore.toml -->
     </PropertyGroup>
-    
+
     <!-- Set NuGet Sources -->
     <PropertyGroup>
         <RestoreAdditionalProjectSources>
@@ -26,7 +26,7 @@
             https://nuget.bepinex.dev/v3/index.json
         </RestoreAdditionalProjectSources>
     </PropertyGroup>
-    
+
     <!-- Disable Publicizer Warnings -->
     <PropertyGroup>
         <NoWarn>$(NoWarn);CS0436</NoWarn>
@@ -42,37 +42,37 @@
         -->
         <PathMap>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)'))=./</PathMap>
     </PropertyGroup>
-    
+
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
         <DefineConstants>TRACE;DEBUG;</DefineConstants>
     </PropertyGroup>
-    
+
     <ItemGroup>
         <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
         <PackageReference Include="BepInEx.Core" Version="5.*" PrivateAssets="all" />
         <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" />
         <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" PrivateAssets="all" />
-        <PackageReference Include="LethalCompany.GameLibs.Steam" Version="70.0.0-ngd.0" Publicize="true" PrivateAssets="all" />
+        <PackageReference Include="LethalCompany.GameLibs.Steam" Version="73.0.0-ngd.0" Publicize="true" PrivateAssets="all" />
         <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
         <PackageReference Include="UnityEngine.Modules" Version="2022.3.9" IncludeAssets="compile" PrivateAssets="all" />
-        <PackageReference Include="TeamBMX.LobbyCompatibility" Version="1.*" PrivateAssets="all" />
 
         <!-- Mod Package References -->
         <PackageReference Include="Evaisa.LethalLib" Version="1.1.1" Publicize="true" />
+        <PackageReference Include="TeamBMX.LobbyCompatibility" Version="1.*" PrivateAssets="all" />
     </ItemGroup>
-    
+
     <ItemGroup>
         <None Remove="UnityProject\**" />
         <Compile Remove="UnityProject\**" />
     </ItemGroup>
-    
+
     <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
         <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
     </ItemGroup>
 
     <!-- Netcode Patcher Post-Build Event -->
     <Target Name="NetcodePatch" AfterTargets="PostBuildEvent">
-        <Exec Command="netcode-patch &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')" />
+        <Exec Command="netcode-patch -uv 2022.3.62 -nv 1.12.0 -tv 1.0.0 &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')" />
     </Target>
 
     <Target Name="CleanAssetBundles" AfterTargets="NetcodePatch">
