@@ -1,7 +1,5 @@
 ﻿using System.Collections;
-using BepInEx.Logging;
 using GameNetcodeStuff;
-using LethalCompanyHarpGhost.Types;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.VFX;
@@ -10,9 +8,6 @@ namespace LethalCompanyHarpGhost.EnforcerGhost;
 
 public class EnforcerGhostAIClient : MonoBehaviour
 {
-    private ManualLogSource _mls;
-    private string _ghostId;
-
     internal enum AudioClipTypes
     {
         Death = 0,
@@ -34,7 +29,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
     internal static readonly int ReloadShotgun = Animator.StringToHash("ReloadShotgun");
 
 #pragma warning disable 0649
-    [Header("Transforms")] [Space(3f)] 
+    [Header("Transforms")] [Space(3f)]
     [SerializeField] private Transform grabTarget;
     [SerializeField] private Transform eye;
 
@@ -59,36 +54,35 @@ public class EnforcerGhostAIClient : MonoBehaviour
     public AudioClip shotgunDropShellSfx;
     public AudioClip grabShotgunSfx;
 
-    [Header("Animations, Vfx and Renderers")] [Space(5f)] 
+    [Header("Animations, Vfx and Renderers")] [Space(5f)]
     [SerializeField] private Animator animator;
     [SerializeField] private SkinnedMeshRenderer bodyRenderer;
     [SerializeField] private VisualEffect teleportVfx;
     [SerializeField] private VisualEffect shieldVfx;
     [SerializeField] private Renderer shieldRenderer;
 
-    [Header("Controllers")] [Space(5f)] 
+    [Header("Controllers")] [Space(5f)]
     [SerializeField] private EnforcerGhostNetcodeController netcodeController;
     [SerializeField] private EnforcerGhostAIServer enforcerGhostAIServer;
 #pragma warning restore 0649
 
     private ShotgunItem _heldShotgun;
-    
+
     private NetworkObjectReference _shotgunObjectRef;
-    
+
     private PlayerControllerB _targetPlayer;
-    
+
     private int _shotgunScrapValue;
 
     private bool _shieldBehaviourEnabled = true;
     private bool _isShieldAnimationPlaying;
-    
+
     private const float ShieldAnimationDuration = 0.25f;
-    
+
 
     private void OnEnable()
     {
         if (!netcodeController) return;
-        netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
         netcodeController.OnInitializeConfigValues += HandleInitializeConfigValues;
         netcodeController.OnEnterDeathState += HandleEnterDeathState;
         netcodeController.OnSpawnShotgun += HandleSpawnShotgun;
@@ -114,7 +108,6 @@ public class EnforcerGhostAIClient : MonoBehaviour
     private void OnDisable()
     {
         if (!netcodeController) return;
-        netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
         netcodeController.OnInitializeConfigValues -= HandleInitializeConfigValues;
         netcodeController.OnEnterDeathState -= HandleEnterDeathState;
         netcodeController.OnSpawnShotgun -= HandleSpawnShotgun;
@@ -139,25 +132,22 @@ public class EnforcerGhostAIClient : MonoBehaviour
 
     private void Start()
     {
-        _mls = BepInEx.Logging.Logger.CreateLogSource(
-            $"{HarpGhostPlugin.ModGuid} | Enforcer Ghost AI {_ghostId} | Client");
-
         animator = GetComponent<Animator>();
-        if (!animator) _mls.LogError("Animator is null");
+        if (!animator) HarpGhostPlugin.Logger.LogError("Animator is null");
 
         netcodeController = GetComponent<EnforcerGhostNetcodeController>();
-        if (!netcodeController) _mls.LogError("netcodeController is null");
+        if (!netcodeController) HarpGhostPlugin.Logger.LogError("netcodeController is null");
 
-        if (!creatureSfxSource) _mls.LogError("creatureSfxSource is null");
-        if (!creatureVoiceSource) _mls.LogError("creatureVoiceSource is null");
+        if (!creatureSfxSource) HarpGhostPlugin.Logger.LogError("creatureSfxSource is null");
+        if (!creatureVoiceSource) HarpGhostPlugin.Logger.LogError("creatureVoiceSource is null");
 
-        if (!dieSfx) _mls.LogError("DieSfx is null");
-        if (!shotgunOpenBarrelSfx) _mls.LogError("ShotgunOpenBarrelSfx is null");
-        if (!shotgunReloadSfx) _mls.LogError("ShotgunReloadSfx is null");
-        if (!shotgunCloseBarrelSfx) _mls.LogError("ShotgunCloseBarrelSfx is null");
-        if (!shotgunGrabShellSfx) _mls.LogError("ShotgunGrabShellSfx is null");
-        if (!shotgunDropShellSfx) _mls.LogError("ShotgunDropShellSfx is null");
-        if (!grabShotgunSfx) _mls.LogError("GrabShotgunSfx is null");
+        if (!dieSfx) HarpGhostPlugin.Logger.LogError("DieSfx is null");
+        if (!shotgunOpenBarrelSfx) HarpGhostPlugin.Logger.LogError("ShotgunOpenBarrelSfx is null");
+        if (!shotgunReloadSfx) HarpGhostPlugin.Logger.LogError("ShotgunReloadSfx is null");
+        if (!shotgunCloseBarrelSfx) HarpGhostPlugin.Logger.LogError("ShotgunCloseBarrelSfx is null");
+        if (!shotgunGrabShellSfx) HarpGhostPlugin.Logger.LogError("ShotgunGrabShellSfx is null");
+        if (!shotgunDropShellSfx) HarpGhostPlugin.Logger.LogError("ShotgunDropShellSfx is null");
+        if (!grabShotgunSfx) HarpGhostPlugin.Logger.LogError("GrabShotgunSfx is null");
 
         shieldRenderer.enabled = false;
     }
@@ -198,76 +188,66 @@ public class EnforcerGhostAIClient : MonoBehaviour
         _isShieldAnimationPlaying = false;
     }
 
-    private void HandleDisableShield(string receivedGhostId)
+    private void HandleDisableShield()
     {
-        if (_ghostId != receivedGhostId) return;
         if (!_shieldBehaviourEnabled || _isShieldAnimationPlaying) return;
 
         StartCoroutine(ShieldAnimation(0f, 0.005f, 1f, 0f));
         creatureSfxSource.pitch = Random.Range(0.8f, 1.1f);
         PlaySfx(shieldBreakSfx[0], false);
-        LogDebug("Disable shield");
+        HarpGhostPlugin.LogVerbose("Disable shield");
     }
 
-    private void HandleEnableShield(string receivedGhostId)
+    private void HandleEnableShield()
     {
-        if (_ghostId != receivedGhostId) return;
         if (!_shieldBehaviourEnabled || _isShieldAnimationPlaying) return;
 
         StartCoroutine(ShieldAnimation(0.005f, 0f, 0f, 1f));
         creatureSfxSource.pitch = Random.Range(0.8f, 1.1f);
         PlaySfx(shieldBreakSfx[Random.Range(0, 2)], false);
-        LogDebug("Enable shield");
+        HarpGhostPlugin.LogVerbose("Enable shield");
     }
 
-    private void HandlePlayTeleportVfx(string receivedGhostId)
+    private void HandlePlayTeleportVfx()
     {
-        if (_ghostId != receivedGhostId) return;
         teleportVfx.SendEvent("OnPlayTeleport");
     }
 
-    private void HandleSetMeshEnabled(string receivedGhostId, bool meshEnabled)
+    private void HandleSetMeshEnabled(bool meshEnabled)
     {
-        if (_ghostId != receivedGhostId) return;
         bodyRenderer.enabled = meshEnabled;
     }
 
-    private void HandleUpdateShotgunShellsLoaded(string receivedGhostId, int shells)
+    private void HandleUpdateShotgunShellsLoaded(int shells)
     {
-        if (_ghostId != receivedGhostId) return;
-        LogDebug($"current shells: {_heldShotgun.shellsLoaded}, changing to: {shells}");
+        HarpGhostPlugin.LogVerbose($"current shells: {_heldShotgun.shellsLoaded}, changing to: {shells}");
         _heldShotgun.shellsLoaded = shells;
     }
 
-    private void HandleShootShotgun(string receivedGhostId)
+    private void HandleShootShotgun()
     {
-        if (_ghostId != receivedGhostId) return;
         _heldShotgun.ShootGun(_heldShotgun.transform.position, _heldShotgun.transform.forward);
     }
 
-    private void HandleDoShotgunAnimation(string receivedGhostId, string animationId)
+    private void HandleDoShotgunAnimation(string animationId)
     {
-        if (_ghostId != receivedGhostId) return;
         _heldShotgun.gunAnimator.SetTrigger(animationId);
     }
 
-    private void HandleGrabShotgun(string receivedGhostId)
+    private void HandleGrabShotgun()
     {
-        if (_ghostId != receivedGhostId) return;
-        SetTrigger(_ghostId, PickupShotgun);
-        SetBool(_ghostId, IsHoldingShotgun, true);
+        SetTrigger(PickupShotgun);
+        SetBool(IsHoldingShotgun, true);
     }
 
-    private void HandleSpawnShotgun(string receivedGhostId, NetworkObjectReference shotgunObject, int shotgunScrapValue)
+    private void HandleSpawnShotgun(NetworkObjectReference shotgunObject, int shotgunScrapValue)
     {
-        if (_ghostId != receivedGhostId) return;
         _shotgunObjectRef = shotgunObject;
         _shotgunScrapValue = shotgunScrapValue;
     }
 
-    private void HandleGrabShotgunPhaseTwo(string receivedGhostId)
+    private void HandleGrabShotgunPhaseTwo()
     {
-        if (_ghostId != receivedGhostId) return;
         if (_heldShotgun) return;
         if (!_shotgunObjectRef.TryGet(out NetworkObject networkObject)) return;
         _heldShotgun = networkObject.gameObject.GetComponent<ShotgunItem>();
@@ -283,12 +263,11 @@ public class EnforcerGhostAIClient : MonoBehaviour
         PlaySfx(grabShotgunSfx);
     }
 
-    private void HandleGrabShotgunAfterStun(string receivedGhostId)
+    private void HandleGrabShotgunAfterStun()
     {
-        if (_ghostId != receivedGhostId) return;
         if (_heldShotgun.isHeld)
         {
-            LogDebug("Someone else already picked it up!");
+            HarpGhostPlugin.LogVerbose("Someone else already picked it up!");
             return;
         }
 
@@ -301,9 +280,8 @@ public class EnforcerGhostAIClient : MonoBehaviour
         PlaySfx(grabShotgunSfx);
     }
 
-    private void HandleDropShotgun(string receivedGhostId, Vector3 dropPosition)
+    private void HandleDropShotgun(Vector3 dropPosition)
     {
-        if (_ghostId != receivedGhostId) return;
         if (!_heldShotgun) return;
         _heldShotgun.parentObject = null;
         _heldShotgun.transform.SetParent(StartOfRound.Instance.propsContainer, true);
@@ -323,9 +301,8 @@ public class EnforcerGhostAIClient : MonoBehaviour
         _heldShotgun = null;
     }
 
-    private void HandleDropShotgunWhenStunned(string receivedGhostId, Vector3 dropPosition)
+    private void HandleDropShotgunWhenStunned(Vector3 dropPosition)
     {
-        if (_ghostId != receivedGhostId) return;
         if (!_heldShotgun) return;
         _heldShotgun.parentObject = null;
         _heldShotgun.transform.SetParent(StartOfRound.Instance.propsContainer, true);
@@ -344,9 +321,8 @@ public class EnforcerGhostAIClient : MonoBehaviour
         _heldShotgun.isHeldByEnemy = false;
     }
 
-    private void HandleIncreaseTargetPlayerFearLevel(string receivedGhostId)
+    private void HandleIncreaseTargetPlayerFearLevel()
     {
-        if (_ghostId != receivedGhostId) return;
         if (GameNetworkManager.Instance.localPlayerController != _targetPlayer) return;
 
         if (!_targetPlayer) return;
@@ -364,9 +340,8 @@ public class EnforcerGhostAIClient : MonoBehaviour
         }
     }
 
-    private void HandleChangeTargetPlayer(string receivedGhostId, ulong playerClientId)
+    private void HandleChangeTargetPlayer(ulong playerClientId)
     {
-        if (_ghostId != receivedGhostId) return;
         if (playerClientId == MusicalGhost.NullPlayerId)
         {
             _targetPlayer = null;
@@ -377,21 +352,19 @@ public class EnforcerGhostAIClient : MonoBehaviour
         _targetPlayer = player;
     }
 
-    private void HandleEnterDeathState(string receivedGhostId)
+    private void HandleEnterDeathState()
     {
-        if (_ghostId != receivedGhostId) return;
-
-        SetBool(_ghostId, IsDead, true);
-        SetBool(_ghostId, IsRunning, false);
-        SetBool(_ghostId, IsStunned, false);
-        SetBool(_ghostId, IsHoldingShotgun, false);
+        SetBool(IsDead, true);
+        SetBool(IsRunning, false);
+        SetBool(IsStunned, false);
+        SetBool(IsHoldingShotgun, false);
 
         creatureVoiceSource.Stop(true);
         creatureSfxSource.Stop(true);
-        PlayVoice(_ghostId, (int)AudioClipTypes.Death, 1);
+        PlayVoice((int)AudioClipTypes.Death, 1);
 
         shieldRenderer.enabled = false;
-        HandleDropShotgun(_ghostId, transform.position);
+        HandleDropShotgun(transform.position);
 
         if (Random.value > 0.5f) StartCoroutine(PlayFartAfterTime(3f));
         else Destroy(this);
@@ -408,13 +381,13 @@ public class EnforcerGhostAIClient : MonoBehaviour
 
     public void OnAnimationEventStartReloadShotgun()
     {
-        netcodeController.DoShotgunAnimationServerRpc(_ghostId, "reload");
+        netcodeController.DoShotgunAnimationServerRpc("reload");
         PlaySfx(shotgunDropShellSfx);
     }
 
     public void OnAnimationEventPickupShotgun()
     {
-        netcodeController.GrabShotgunPhaseTwoServerRpc(_ghostId);
+        netcodeController.GrabShotgunPhaseTwoServerRpc();
     }
 
     public void OnAnimationEventPlayShotgunOpenBarrelAudio()
@@ -437,28 +410,23 @@ public class EnforcerGhostAIClient : MonoBehaviour
         PlaySfx(shotgunGrabShellSfx);
     }
 
-    private void SetBool(string receivedGhostId, int parameter, bool value)
+    private void SetBool(int parameter, bool value)
     {
-        if (_ghostId != receivedGhostId) return;
         animator.SetBool(parameter, value);
     }
 
-    private void SetFloat(string receivedGhostId, int parameter, float value)
+    private void SetFloat(int parameter, float value)
     {
-        if (_ghostId != receivedGhostId) return;
         animator.SetFloat(parameter, value);
     }
 
-    private void SetTrigger(string receivedGhostId, int parameter)
+    private void SetTrigger(int parameter)
     {
-        if (_ghostId != receivedGhostId) return;
         animator.SetTrigger(parameter);
     }
 
-    private void PlayVoice(string receivedGhostId, int typeIndex, int randomNum, bool interrupt = true)
+    private void PlayVoice(int typeIndex, int randomNum, bool interrupt = true)
     {
-        if (_ghostId != receivedGhostId) return;
-
         AudioClip audioClip = typeIndex switch
         {
             (int)AudioClipTypes.Death => dieSfx,
@@ -475,7 +443,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
 
         if (!audioClip)
         {
-            _mls.LogError($"Enforcer ghost voice audio clip index '{typeIndex}' and randomNum: '{randomNum}' is null");
+            HarpGhostPlugin.Logger.LogError($"Enforcer ghost voice audio clip index '{typeIndex}' and randomNum: '{randomNum}' is null");
             return;
         }
 
@@ -484,7 +452,7 @@ public class EnforcerGhostAIClient : MonoBehaviour
 
     private void PlayVoice(AudioClip clip, bool interrupt = true)
     {
-        LogDebug($"Playing audio clip: {clip.name}");
+        HarpGhostPlugin.LogVerbose($"Playing audio clip: {clip.name}");
         if (!clip) return;
         if (interrupt) creatureVoiceSource.Stop(true);
         creatureVoiceSource.pitch = clip == fartSfx[0] ? Random.Range(0.6f, 1.3f) : Random.Range(0.8f, 1.1f);
@@ -494,33 +462,17 @@ public class EnforcerGhostAIClient : MonoBehaviour
 
     private void PlaySfx(AudioClip clip, bool interrupt = true)
     {
-        LogDebug($"Playing audio clip: {clip.name}");
+        HarpGhostPlugin.LogVerbose($"Playing audio clip: {clip.name}");
         if (!clip) return;
         if (interrupt) creatureVoiceSource.Stop(true);
         creatureSfxSource.PlayOneShot(clip);
         WalkieTalkie.TransmitOneShotAudio(creatureSfxSource, clip, creatureSfxSource.volume);
     }
 
-    private void HandleInitializeConfigValues(string receivedGhostId)
+    private void HandleInitializeConfigValues()
     {
-        if (_ghostId != receivedGhostId) return;
-
         _shieldBehaviourEnabled = EnforcerGhostConfig.Instance.EnforcerGhostShieldEnabled.Value;
         creatureSfxSource.volume = EnforcerGhostConfig.Default.EnforcerGhostSfxVolume.Value;
         creatureVoiceSource.volume = EnforcerGhostConfig.Default.EnforcerGhostVoiceSfxVolume.Value;
-    }
-
-    private void HandleUpdateGhostIdentifier(string receivedGhostId)
-    {
-        _ghostId = receivedGhostId;
-        _mls = BepInEx.Logging.Logger.CreateLogSource(
-            $"{HarpGhostPlugin.ModGuid} | Enforcer Ghost AI {_ghostId} | Client");
-    }
-
-    private void LogDebug(string msg)
-    {
-#if DEBUG
-        _mls?.LogInfo(msg);
-#endif
     }
 }

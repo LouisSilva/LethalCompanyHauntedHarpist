@@ -1,18 +1,46 @@
 ﻿using GameNetcodeStuff;
 using LethalCompanyHarpGhost.Types;
+using System;
+using Unity.Collections;
+using Unity.Netcode;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace LethalCompanyHarpGhost;
 
 public class MusicalGhost : EnemyAI
 {
     /// <summary>
+    /// A unique identifier for the object, stored as a networked fixed-size string.
+    /// This ID is generated as a GUID on the server and synchronized to all clients.
+    /// </summary>
+    private readonly NetworkVariable<FixedString32Bytes> _networkGhostId = new();
+
+    /// <summary>
+    /// Gets the unique identifier (GhostId) for this object as a string.
+    /// </summary>
+    public string GhostId => _networkGhostId.Value.ToString();
+
+    /// <summary>
     /// A constant representing a null or unassigned player ID.
     /// </summary>
     internal const ulong NullPlayerId = 69420;
-    
+
     internal readonly PlayerTargetableConditions PlayerTargetableConditions = new();
-    
+
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+        if (!IsServer) return;
+        _networkGhostId.Value = new FixedString32Bytes(Guid.NewGuid().ToString("N").Substring(0, 8));
+    }
+
+    public override void Start()
+    {
+        base.Start();
+        Random.InitState(StartOfRound.Instance.randomMapSeed + GhostId.GetHashCode() - thisEnemyIndex);
+    }
+
     /// <summary>
     /// Determines if there is an unobstructed line of sight to a position within a specified view cone and range.
     /// </summary>
@@ -32,14 +60,14 @@ public class MusicalGhost : EnemyAI
         // LogVerbose($"In {nameof(HasLineOfSight)}");
 
         if (!eyeTransform) return false;
-        
+
         Vector3 eyePosition = eyeTransform.position;
         Vector3 directionToTarget = targetPosition - eyePosition;
         float sqrDistance = directionToTarget.sqrMagnitude;
-        
+
         // If the target is directly on top of you, then treat them as visible
         if (sqrDistance <= 0.0001f) return true;
-        
+
         // 1). Get effective range by taking fog into account
         float effectiveRange = viewRange;
         if (isOutside && !enemyType.canSeeThroughFog &&
@@ -47,7 +75,7 @@ public class MusicalGhost : EnemyAI
         {
             effectiveRange = Mathf.Clamp(viewRange, 0f, 30f);
         }
-        
+
         // 2). Range check
         float effectiveRangeSqr = effectiveRange * effectiveRange;
         if (sqrDistance > effectiveRangeSqr)
@@ -55,7 +83,7 @@ public class MusicalGhost : EnemyAI
             // LogVerbose($"Distance check failed: {Mathf.Sqrt(sqrDistance)} (distance) > {effectiveRange} (effectiveRange)");
             return false;
         }
-        
+
         // 3). FOV check. The proximity can bypass the FOV check, but not the physics obstruction check.
         float distance = Mathf.Sqrt(sqrDistance);
         if (!(proximityAwareness >= 0f && distance <= proximityAwareness))
@@ -69,7 +97,7 @@ public class MusicalGhost : EnemyAI
                 return false;
             }
         }
-        
+
         // 4). Obstruction check
         if (Physics.Linecast(eyePosition, targetPosition, StartOfRound.Instance.collidersAndRoomMaskAndDefault, QueryTriggerInteraction.Ignore))
         {
@@ -79,7 +107,7 @@ public class MusicalGhost : EnemyAI
 
         return true;
     }
-    
+
     /// <summary>
     /// Finds the closest visible and targetable player.
     /// Uses a buffer distance to prevent rapid target switching.
@@ -102,9 +130,9 @@ public class MusicalGhost : EnemyAI
         // LogVerbose($"In {nameof(GetClosestVisiblePlayer)}");
         PlayerControllerB bestTarget = null;
         float bestTargetDistanceSqr = float.MaxValue;
-        
+
         PlayerControllerB[] allPlayers = StartOfRound.Instance.allPlayerScripts;
-        
+
         // First, re-validate the current target
         float currentTargetDistanceSqr = float.MaxValue;
         if (currentTargetPlayer && PlayerTargetableConditions.IsPlayerTargetable(currentTargetPlayer))
@@ -123,7 +151,7 @@ public class MusicalGhost : EnemyAI
         {
             PlayerControllerB potentialTarget = allPlayers[i];
             // LogVerbose($"Evaluating player {potentialTarget.playerUsername}");
-            
+
             // Skip the check if this player is the current target player; they have already been validated
             if (potentialTarget == currentTargetPlayer) continue;
             if (!PlayerTargetableConditions.IsPlayerTargetable(potentialTarget))
@@ -131,14 +159,14 @@ public class MusicalGhost : EnemyAI
                 // LogVerbose($"Player {potentialTarget.playerUsername} is not targetable.");
                 continue;
             }
-            
+
             Vector3 targetPosition = potentialTarget.gameplayCamera.transform.position;
             if (!HasLineOfSight(targetPosition, eyeTransform, viewWidth, viewRange, proximityAwareness))
             {
                 // LogVerbose($"Player {potentialTarget.playerUsername} is not in LOS.");
                 continue;
             }
-            
+
             float potentialTargetDistanceSqr = (potentialTarget.transform.position - eyeTransform.position).sqrMagnitude;
             if (potentialTargetDistanceSqr < bestTargetDistanceSqr)
             {
@@ -146,7 +174,7 @@ public class MusicalGhost : EnemyAI
                 bestTargetDistanceSqr = potentialTargetDistanceSqr;
             }
         }
-        
+
         // If we switched targets, ensure that the new target is significantly closer
         if (bestTarget && currentTargetPlayer && bestTarget != currentTargetPlayer)
         {
@@ -159,4 +187,27 @@ public class MusicalGhost : EnemyAI
 
         return bestTarget;
     }
+
+    #region Logging
+    internal void LogInfo(object message) => HarpGhostPlugin.Logger?.LogInfo($"{GetLogPrefix()} {message}");
+
+    internal void LogVerbose(object message)
+    {
+        // if (HarpGhostPlugin.Config?.VerboseLoggingEnabled ?? false)
+        //     HarpGhostPlugin.Logger.LogDebug($"{GetLogPrefix()} {message}");
+
+        HarpGhostPlugin.Logger.LogDebug($"{GetLogPrefix()} {message}");
+    }
+
+    internal void LogDebug(object message) => HarpGhostPlugin.Logger.LogDebug($"{GetLogPrefix()} {message}");
+
+    internal void LogError(object message) => HarpGhostPlugin.Logger.LogError($"{GetLogPrefix()} {message}");
+
+    internal void LogWarning(object message) => HarpGhostPlugin.Logger.LogWarning($"{GetLogPrefix()} {message}");
+
+    protected virtual string GetLogPrefix()
+    {
+        return $"[{enemyType.enemyName}]";
+    }
+    #endregion
 }

@@ -1,21 +1,14 @@
-﻿using BepInEx.Logging;
-using GameNetcodeStuff;
-using System;
+﻿using GameNetcodeStuff;
 using System.Collections;
 using System.Runtime.CompilerServices;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
-using Logger = BepInEx.Logging.Logger;
-using Random = UnityEngine.Random;
 
 namespace LethalCompanyHarpGhost.EnforcerGhost;
 
 public class EnforcerGhostAIServer : MusicalGhost
 {
-    private ManualLogSource _mls;
-    internal string GhostId;
-
     internal enum States
     {
         Escorting = 0,
@@ -60,6 +53,7 @@ public class EnforcerGhostAIServer : MusicalGhost
     private bool _inStunAnimation;
     private bool _isReloading;
     private bool _isShieldEnabled;
+    private bool _isSubscribedToNetworkEvents;
     internal bool FullySpawned;
 
     public override void Start()
@@ -67,42 +61,32 @@ public class EnforcerGhostAIServer : MusicalGhost
         base.Start();
         if (!IsServer) return;
 
-        GhostId = Guid.NewGuid().ToString();
-        _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Enforcer Ghost AI {GhostId} | Server");
-
         netcodeController = GetComponent<EnforcerGhostNetcodeController>();
-        if (!netcodeController) _mls.LogError("Netcode Controller is null");
+        if (!netcodeController) LogError("Netcode Controller is null");
 
         agent = GetComponent<NavMeshAgent>();
-        if (!agent) _mls.LogError("NavMeshAgent component not found on " + name);
+        if (!agent) LogError("NavMeshAgent component not found on " + name);
         agent.enabled = true;
 
-        netcodeController.SyncGhostIdentifierClientRpc(GhostId);
-
-        Random.InitState(StartOfRound.Instance.randomMapSeed + GhostId.GetHashCode() - thisEnemyIndex);
         InitializeConfigValues();
-        netcodeController.ChangeAnimationParameterBoolClientRpc(GhostId, EnforcerGhostAIClient.IsDead, false);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(GhostId, EnforcerGhostAIClient.IsStunned, false);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(GhostId, EnforcerGhostAIClient.IsRunning, false);
-        netcodeController.ChangeAnimationParameterBoolClientRpc(GhostId, EnforcerGhostAIClient.IsHoldingShotgun, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(EnforcerGhostAIClient.IsDead, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(EnforcerGhostAIClient.IsStunned, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(EnforcerGhostAIClient.IsRunning, false);
+        netcodeController.ChangeAnimationParameterBoolClientRpc(EnforcerGhostAIClient.IsHoldingShotgun, false);
 
         StartCoroutine(SpawnAnimation());
 
-        LogDebug("Enforcer Ghost Spawned");
+        LogVerbose("Enforcer Ghost Spawned");
     }
 
     private void OnEnable()
     {
-        if (!netcodeController) return;
-        netcodeController.OnGrabShotgunPhaseTwo += HandleGrabShotgunPhaseTwo;
-        netcodeController.OnSpawnShotgun += HandleSpawnShotgun;
+        SubscribeToNetworkEvents();
     }
 
     private void OnDisable()
     {
-        if (!netcodeController) return;
-        netcodeController.OnGrabShotgunPhaseTwo -= HandleGrabShotgunPhaseTwo;
-        netcodeController.OnSpawnShotgun -= HandleSpawnShotgun;
+        UnsubscribeFromNetworkEvents();
     }
 
     private void FixedUpdate()
@@ -136,14 +120,14 @@ public class EnforcerGhostAIServer : MusicalGhost
 
         if (stunNormalizedTimer <= 0.0 && _inStunAnimation)
         {
-            //netcodeController.DoAnimationClientRpc(ghostId, EnforcerGhostAIClient.Recover);
+            //netcodeController.DoAnimationClientRpc(EnforcerGhostAIClient.Recover);
             _inStunAnimation = false;
-            netcodeController.ChangeAnimationParameterBoolClientRpc(GhostId, EnforcerGhostAIClient.IsStunned, false);
+            netcodeController.ChangeAnimationParameterBoolClientRpc(EnforcerGhostAIClient.IsStunned, false);
         }
 
         if (StartOfRound.Instance.allPlayersDead)
         {
-            netcodeController.ChangeAnimationParameterBoolClientRpc(GhostId, EnforcerGhostAIClient.IsRunning, false);
+            netcodeController.ChangeAnimationParameterBoolClientRpc(EnforcerGhostAIClient.IsRunning, false);
             return;
         }
 
@@ -153,7 +137,7 @@ public class EnforcerGhostAIServer : MusicalGhost
         {
             LogDebug("Enabling shield through timer");
             _isShieldEnabled = true;
-            netcodeController.EnableShieldClientRpc(GhostId);
+            netcodeController.EnableShieldClientRpc();
         }
     }
 
@@ -252,7 +236,7 @@ public class EnforcerGhostAIServer : MusicalGhost
 
                 if (shieldBehaviourEnabled && _isShieldEnabled)
                 {
-                    netcodeController.DisableShieldClientRpc(GhostId);
+                    netcodeController.DisableShieldClientRpc();
                     _isShieldEnabled = false;
                     _shieldRecoverTimer = shieldRegenerateTime;
                 }
@@ -263,7 +247,7 @@ public class EnforcerGhostAIServer : MusicalGhost
 
                 // _targetPosition is the last seen position of a player before they went out of view
                 TargetPosition = targetPlayer.transform.position;
-                netcodeController.IncreaseTargetPlayerFearLevelClientRpc(GhostId);
+                netcodeController.IncreaseTargetPlayerFearLevelClientRpc();
 
                 AimAtPosition(targetPlayer.transform.position);
 
@@ -282,7 +266,7 @@ public class EnforcerGhostAIServer : MusicalGhost
 
                 if (!_heldShotgun)
                 {
-                    _mls.LogError("Missing shotgun.");
+                    LogError("Missing shotgun.");
                     return;
                 }
 
@@ -311,10 +295,10 @@ public class EnforcerGhostAIServer : MusicalGhost
                 // Shoot the gun if the ghost has an accurate enough shot
                 if (dotProduct > accuracyThreshold)
                 {
-                    netcodeController.ShootGunClientRpc(GhostId);
+                    netcodeController.ShootGunClientRpc();
                     _shootTimer = shootDelay;
                     _heldShotgun.shellsLoaded = Mathf.Clamp(_heldShotgun.shellsLoaded - 1, 0, 2);
-                    netcodeController.UpdateShotgunShellsLoadedClientRpc(GhostId, _heldShotgun.shellsLoaded);
+                    netcodeController.UpdateShotgunShellsLoadedClientRpc(_heldShotgun.shellsLoaded);
                 }
 
                 break;
@@ -334,18 +318,18 @@ public class EnforcerGhostAIServer : MusicalGhost
         if (!IsServer) yield break;
 
         FullySpawned = false;
-        netcodeController.PlayTeleportVfxClientRpc(GhostId);
-        netcodeController.PlayCreatureVoiceClientRpc(GhostId, (int)EnforcerGhostAIClient.AudioClipTypes.Spawn, 1,
+        netcodeController.PlayTeleportVfxClientRpc();
+        netcodeController.PlayCreatureVoiceClientRpc((int)EnforcerGhostAIClient.AudioClipTypes.Spawn, 1,
             false);
         yield return new WaitForSeconds(0.75f);
-        netcodeController.SpawnShotgunServerRpc(GhostId);
-        netcodeController.GrabShotgunClientRpc(GhostId);
+        netcodeController.SpawnShotgunServerRpc();
+        netcodeController.GrabShotgunClientRpc();
         yield return new WaitForSeconds(2f);
         FullySpawned = true;
 
         LogDebug("Enabling shield through spawn animation");
         _isShieldEnabled = true;
-        netcodeController.EnableShieldClientRpc(GhostId);
+        netcodeController.EnableShieldClientRpc();
     }
 
     private IEnumerator ReloadShotgun()
@@ -357,8 +341,8 @@ public class EnforcerGhostAIServer : MusicalGhost
         agentMaxSpeed = 0f;
 
         LogDebug("In reload coroutine");
-        netcodeController.UpdateShotgunShellsLoadedClientRpc(GhostId, 2);
-        netcodeController.DoAnimationClientRpc(GhostId, EnforcerGhostAIClient.ReloadShotgun);
+        netcodeController.UpdateShotgunShellsLoadedClientRpc(2);
+        netcodeController.DoAnimationClientRpc(EnforcerGhostAIClient.ReloadShotgun);
 
         yield return new WaitForSeconds(reloadTime - 0.3f);
         _heldShotgun.shellsLoaded = 2;
@@ -378,7 +362,7 @@ public class EnforcerGhostAIServer : MusicalGhost
     private void BeginChasingPlayer(ulong playerClientId)
     {
         if (!IsServer) return;
-        netcodeController.ChangeTargetPlayerClientRpc(GhostId, playerClientId);
+        netcodeController.ChangeTargetPlayerClientRpc(playerClientId);
         PlayerControllerB player = GhostUtils.GetPlayerFromClientId(playerClientId);
         SetMovingTowardsTargetPlayer(player);
     }
@@ -475,7 +459,7 @@ public class EnforcerGhostAIServer : MusicalGhost
                 _hasBegunInvestigating = false;
                 moveTowardsDestination = false;
 
-                netcodeController.EnterDeathStateClientRpc(GhostId);
+                netcodeController.EnterDeathStateClientRpc();
                 Escortee?.EscorteeBreakoff();
 
                 break;
@@ -501,7 +485,7 @@ public class EnforcerGhostAIServer : MusicalGhost
         Escortee?.EscorteeBreakoff(playerWhoHit);
         if (shieldBehaviourEnabled && _isShieldEnabled)
         {
-            netcodeController.DisableShieldClientRpc(GhostId);
+            netcodeController.DisableShieldClientRpc();
             _isShieldEnabled = false;
             _shieldRecoverTimer = shieldRegenerateTime;
         }
@@ -509,7 +493,7 @@ public class EnforcerGhostAIServer : MusicalGhost
 
         if (enemyHP > 0)
         {
-            netcodeController.PlayCreatureVoiceClientRpc(GhostId, (int)EnforcerGhostAIClient.AudioClipTypes.Damage, 4);
+            netcodeController.PlayCreatureVoiceClientRpc((int)EnforcerGhostAIClient.AudioClipTypes.Damage, 4);
         }
         else
         {
@@ -534,22 +518,22 @@ public class EnforcerGhostAIServer : MusicalGhost
         if (!IsServer || isEnemyDead || currentBehaviourStateIndex is (int)States.Dead) return;
         if (shieldBehaviourEnabled && _isShieldEnabled)
         {
-            netcodeController.DisableShieldClientRpc(GhostId);
+            netcodeController.DisableShieldClientRpc();
             _isShieldEnabled = false;
             _shieldRecoverTimer = shieldRegenerateTime;
         }
 
-        netcodeController.PlayCreatureVoiceClientRpc(GhostId, (int)EnforcerGhostAIClient.AudioClipTypes.Stun, 1);
-        // netcodeController.DropShotgunForStun(ghostId, transform.position);
-        // netcodeController.ChangeAnimationParameterBoolClientRpc(ghostId, HarpGhostAnimationController.IsStunned, true);
-        // netcodeController.DoAnimationClientRpc(ghostId, HarpGhostAnimationController.Stunned);
+        netcodeController.PlayCreatureVoiceClientRpc((int)EnforcerGhostAIClient.AudioClipTypes.Stun, 1);
+        // netcodeController.DropShotgunForStun(transform.position);
+        // netcodeController.ChangeAnimationParameterBoolClientRpc(HarpGhostAnimationController.IsStunned, true);
+        // netcodeController.DoAnimationClientRpc(HarpGhostAnimationController.Stunned);
         _inStunAnimation = true;
         Escortee?.EscorteeBreakoff(setStunnedByPlayer ? setStunnedByPlayer : null);
     }
 
-    private void HandleGrabShotgunPhaseTwo(string receivedGhostId)
+    private void HandleGrabShotgunPhaseTwo()
     {
-        if (!IsServer || GhostId != receivedGhostId || _heldShotgun) return;
+        if (!IsServer || _heldShotgun) return;
         if (!_shotgunObjectRef.TryGet(out NetworkObject networkObject))
         {
             LogDebug("Could not get shotgun object reference");
@@ -559,9 +543,8 @@ public class EnforcerGhostAIServer : MusicalGhost
         _heldShotgun = networkObject.gameObject.GetComponent<ShotgunItem>();
     }
 
-    private void HandleSpawnShotgun(string receivedGhostId, NetworkObjectReference shotgunObject, int shotgunScrapValue)
+    private void HandleSpawnShotgun(NetworkObjectReference shotgunObject, int shotgunScrapValue)
     {
-        if (GhostId != receivedGhostId) return;
         _shotgunObjectRef = shotgunObject;
     }
 
@@ -596,7 +579,7 @@ public class EnforcerGhostAIServer : MusicalGhost
 
         _shootTimer = shootDelay;
 
-        netcodeController.InitializeConfigValuesClientRpc(GhostId);
+        netcodeController.InitializeConfigValuesClientRpc();
     }
 
     private void CalculateAgentSpeed()
@@ -628,10 +611,29 @@ public class EnforcerGhostAIServer : MusicalGhost
         agent.acceleration = Mathf.Lerp(agent.acceleration, agentMaxAcceleration, accelerationAdjustment);
     }
 
-    private void LogDebug(string msg)
+    /// <summary>
+    /// Subscribe to the needed network events.
+    /// </summary>
+    private void SubscribeToNetworkEvents()
     {
-#if DEBUG
-        _mls?.LogInfo(msg);
-#endif
+        if (!IsServer || _isSubscribedToNetworkEvents) return;
+
+        netcodeController.OnGrabShotgunPhaseTwo += HandleGrabShotgunPhaseTwo;
+        netcodeController.OnSpawnShotgun += HandleSpawnShotgun;
+
+        _isSubscribedToNetworkEvents = true;
+    }
+
+    /// <summary>
+    /// Unsubscribe to the network events.
+    /// </summary>
+    private void UnsubscribeFromNetworkEvents()
+    {
+        if (!IsServer || !_isSubscribedToNetworkEvents) return;
+
+        netcodeController.OnGrabShotgunPhaseTwo -= HandleGrabShotgunPhaseTwo;
+        netcodeController.OnSpawnShotgun -= HandleSpawnShotgun;
+
+        _isSubscribedToNetworkEvents = false;
     }
 }

@@ -12,6 +12,7 @@ using LobbyCompatibility.Enums;
 using LobbyCompatibility.Features;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -29,20 +30,10 @@ namespace LethalCompanyHarpGhost;
 [BepInDependency("BMX.LobbyCompatibility", BepInDependency.DependencyFlags.SoftDependency)]
 public class HarpGhostPlugin : BaseUnityPlugin
 {
-    public const string ModGuid = $"HauntedHarpist|{MyPluginInfo.PLUGIN_VERSION}";
-    private const string ModName = "Lethal Company Haunted Harpist Mod";
-
-    private readonly Harmony _harmony = new(ModGuid);
-
-    private static readonly ManualLogSource Mls = BepInEx.Logging.Logger.CreateLogSource(ModGuid);
-
-    private static HarpGhostPlugin _instance;
-
-    private static readonly Dictionary<string, List<AudioClip>> InstrumentAudioClips = new();
-
-    public static HarpGhostConfig HarpGhostConfig { get; internal set; }
-    public static BagpipeGhostConfig BagpipeGhostConfig { get; internal set; }
-    public static EnforcerGhostConfig EnforcerGhostConfig { get; internal set; }
+    public static HarpGhostPlugin Instance { get; private set; }
+    internal new static ManualLogSource Logger { get; private set; }
+    // internal new static HarpGhostConfig Config { get; private set; }
+    private Harmony _harmony;
 
     private static EnemyType _harpGhostEnemyType;
     private static EnemyType _bagpipesGhostEnemyType;
@@ -56,21 +47,42 @@ public class HarpGhostPlugin : BaseUnityPlugin
     public static GameObject ShotgunPrefab;
     public static RuntimeAnimatorController CustomShotgunAnimator;
 
+    private static readonly Dictionary<string, List<AudioClip>> InstrumentAudioClips = new();
+
+    public static HarpGhostConfig HarpGhostConfig { get; internal set; }
+    public static BagpipeGhostConfig BagpipeGhostConfig { get; internal set; }
+    public static EnforcerGhostConfig EnforcerGhostConfig { get; internal set; }
+
     private void Awake()
     {
-        if (_instance == null) _instance = this;
+        Stopwatch timer = Stopwatch.StartNew();
+
+        Logger = BepInEx.Logging.Logger.CreateLogSource($"{MyPluginInfo.PLUGIN_NAME}|{MyPluginInfo.PLUGIN_VERSION}");
+        Instance = this;
+
         if (LobbyCompatibilityChecker.Enabled) LobbyCompatibilityChecker.Init();
 
-        InitializeNetworkStuff();
+        LogVerbose("Creating Harmony instance...");
+        _harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
+        _harmony.PatchAll();
+
+        // if (!Config.HarpGhost)
+        // {
+        //     Logger.LogInfo("HarpGhost is disabled, not loading asset bundle.");
+        //     return;
+        // }
+
+        _harmony.PatchAll(typeof(HarpGhostPlugin));
+
+        NetcodePatcher();
 
         Assets.LoadAssetBundle("harpghostbundle");
         if (!Assets.MainAssetBundle)
         {
-            Mls.LogError("MainAssetBundle is null");
+            Logger.LogError("MainAssetBundle is null.");
             return;
         }
 
-        _harmony.PatchAll();
         HarpGhostConfig = new HarpGhostConfig(Config);
         BagpipeGhostConfig = new BagpipeGhostConfig(Config);
         EnforcerGhostConfig = new EnforcerGhostConfig(Config);
@@ -84,16 +96,10 @@ public class HarpGhostPlugin : BaseUnityPlugin
         // SetupTuba();
         SetupPlushie();
 
-        _harmony.PatchAll();
-        _harmony.PatchAll(typeof(HarpGhostPlugin));
-        Mls.LogInfo($"Plugin {ModName} is loaded!");
+        timer.Stop();
+        Logger.LogInfo(
+            $"{MyPluginInfo.PLUGIN_GUID}:{MyPluginInfo.PLUGIN_VERSION} has setup in {timer.ElapsedMilliseconds}ms.");
     }
-
-    // private void OnDisable()
-    // {
-    //     Assets.MainAssetBundle.Unload(false);
-    //     Mls.LogDebug($"Unloaded assetbundles.");
-    // }
 
     private void SetupHarpGhost()
     {
@@ -161,7 +167,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
             enforcerGhostTerminalNode, enforcerGhostTerminalKeyword);
 
         CustomShotgunAnimator = Assets.MainAssetBundle.LoadAsset<RuntimeAnimatorController>("AnimatorShotgun");
-        if (CustomShotgunAnimator == null) Mls.LogError("custom shotgun animator is null");
+        if (!CustomShotgunAnimator) Logger.LogError("custom shotgun animator is null");
     }
 
     private void SetupHarp()
@@ -169,13 +175,13 @@ public class HarpGhostPlugin : BaseUnityPlugin
         HarpItem = Assets.MainAssetBundle.LoadAsset<Item>("HarpItemData");
         if (!HarpItem)
         {
-            Mls.LogError("Failed to load HarpItemData from AssetBundle.");
+            Logger.LogError("Failed to load HarpItemData from AssetBundle.");
             return;
         }
 
         if (!HarpItem.spawnPrefab)
         {
-            Mls.LogError("Failed to load spawnPrefab from HarpItemData.");
+            Logger.LogError("Failed to load spawnPrefab from HarpItemData.");
             return;
         }
 
@@ -186,7 +192,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
         InstrumentBehaviour harpBehaviour = HarpItem.spawnPrefab.GetComponent<InstrumentBehaviour>();
         if (!harpBehaviour)
         {
-            Mls.LogError("Failed to load harp item behaviour script from harp spawnPrefab.");
+            Logger.LogError("Failed to load harp item behaviour script from harp spawnPrefab.");
             return;
         }
 
@@ -203,7 +209,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
         BagpipesItem = Assets.MainAssetBundle.LoadAsset<Item>("BagpipesItemData");
         if (!BagpipesItem)
         {
-            Mls.LogError("Failed to load BagpipesItemData from AssetBundle");
+            Logger.LogError("Failed to load BagpipesItemData from AssetBundle");
             return;
         }
 
@@ -223,7 +229,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
         TubaItem = Assets.MainAssetBundle.LoadAsset<Item>("TubaItemData");
         if (!TubaItem)
         {
-            Mls.LogError("Failed to load TubaItemData from AssetBundle");
+            Logger.LogError("Failed to load TubaItemData from AssetBundle");
             return;
         }
 
@@ -237,7 +243,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
         _plushieItem = Assets.MainAssetBundle.LoadAsset<Item>("GhostPlushieItemData");
         if (!_plushieItem)
         {
-            Mls.LogError("Failed to load GhostPlushieItemData from AssetBundle");
+            Logger.LogError("Failed to load GhostPlushieItemData from AssetBundle");
             return;
         }
 
@@ -274,7 +280,7 @@ public class HarpGhostPlugin : BaseUnityPlugin
                 if (!InstrumentAudioClips.ContainsKey(instrumentName))
                     InstrumentAudioClips[instrumentName] = [];
                 InstrumentAudioClips[instrumentName].Add(clip);
-                Mls.LogDebug($"{instrumentName} audio clip '{audioClipName}' loaded asynchronously");
+                LogVerbose($"{instrumentName} audio clip '{audioClipName}' loaded asynchronously");
             }));
         }
     }
@@ -343,32 +349,59 @@ public class HarpGhostPlugin : BaseUnityPlugin
         return (spawnRateByLevelType, spawnRateByCustomLevelType);
     }
 
-    private static void InitializeNetworkStuff()
+    private static void NetcodePatcher()
     {
-        IEnumerable<Type> types;
         try
         {
-            types = Assembly.GetExecutingAssembly().GetTypes();
-        }
-        catch (ReflectionTypeLoadException e)
-        {
-            types = e.Types.Where(t => t != null);
-        }
-
-        foreach (Type type in types)
-        {
-            MethodInfo[] methods =
-                type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-            for (int i = 0; i < methods.Length; i++)
+            IEnumerable<Type> types = Assembly.GetExecutingAssembly().GetLoadableTypes();
+            foreach (Type type in types)
             {
-                MethodInfo method = methods[i];
-                object[] attributes = method.GetCustomAttributes(typeof(RuntimeInitializeOnLoadMethodAttribute), false);
-                if (attributes.Length > 0)
+                MethodInfo[] methods =
+                    type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+
+                foreach (MethodInfo method in methods)
                 {
-                    method.Invoke(null, null);
+                    if (!Attribute.IsDefined(method, typeof(RuntimeInitializeOnLoadMethodAttribute)))
+                        continue;
+
+                    // Needed because patching the network stuff in the generic StateManagedAI class produces an error
+                    if (method.ContainsGenericParameters)
+                    {
+                        Logger.LogDebug(
+                            $"[NetcodePatcher] Skipping generic method {type.FullName}.{method.Name} with [RuntimeInitializeOnLoadMethod] attribute.");
+                        continue;
+                    }
+
+                    try
+                    {
+                        method.Invoke(null, null);
+                    }
+                    catch (Exception invokeException)
+                    {
+                        Logger.LogError($"Error invoking method {type.FullName}.{method.Name}: {invokeException}");
+                    }
                 }
             }
         }
+        catch (ReflectionTypeLoadException reflectionException)
+        {
+            Logger.LogError($"[NetcodePatcher] Error loading types from assembly: {reflectionException}");
+
+            for (int i = 0; i < reflectionException.LoaderExceptions.Length; i++)
+            {
+                Exception loaderException = reflectionException.LoaderExceptions[i];
+                if (loaderException != null)
+                {
+                    Logger.LogError($"[NetcodePatcher] Loader Exception: {loaderException.Message}");
+                }
+            }
+        }
+    }
+
+    internal static void LogVerbose(object message)
+    {
+        //if (Config.VerboseLoggingEnabled)
+        Logger.LogDebug(message);
     }
 }
 

@@ -1,19 +1,13 @@
-﻿using BepInEx.Logging;
-using GameNetcodeStuff;
+﻿using GameNetcodeStuff;
 using LethalCompanyHarpGhost.Items;
 using System.Collections;
-using System.Diagnostics.CodeAnalysis;
 using Unity.Netcode;
 using UnityEngine;
-using Logger = BepInEx.Logging.Logger;
 
 namespace LethalCompanyHarpGhost.HarpGhost;
 
 public class HarpGhostAIClient : MonoBehaviour
 {
-    [SuppressMessage("ReSharper", "NotAccessedField.Local")] private ManualLogSource _mls;
-    private string _ghostId;
-
     private static readonly int AlternativeColourFadeInTimer = Shader.PropertyToID("_AlternativeColourFadeInTimer");
 
 #pragma warning disable 0649
@@ -52,7 +46,6 @@ public class HarpGhostAIClient : MonoBehaviour
         netcodeController.OnChangeTargetPlayer += HandleChangeTargetPlayer;
         netcodeController.OnDamageTargetPlayer += HandleDamageTargetPlayer;
         netcodeController.OnIncreaseTargetPlayerFearLevel += HandleIncreaseTargetPlayerFearLevel;
-        netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
         netcodeController.OnGhostEyesTurnRed += HandleGhostEyesTurnRed;
     }
 
@@ -66,13 +59,11 @@ public class HarpGhostAIClient : MonoBehaviour
         netcodeController.OnChangeTargetPlayer -= HandleChangeTargetPlayer;
         netcodeController.OnDamageTargetPlayer -= HandleDamageTargetPlayer;
         netcodeController.OnIncreaseTargetPlayerFearLevel -= HandleIncreaseTargetPlayerFearLevel;
-        netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
         netcodeController.OnGhostEyesTurnRed -= HandleGhostEyesTurnRed;
     }
 
     private void Start()
     {
-        _mls = Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Harp Ghost AI {_ghostId} | Client");
         _propertyBlock = new MaterialPropertyBlock();
 
         InitializeConfigValues();
@@ -83,14 +74,8 @@ public class HarpGhostAIClient : MonoBehaviour
         enableGhostAngryModel = HarpGhostConfig.Default.HarpGhostAngryEyesEnabled.Value;
     }
 
-    private void HandleUpdateGhostIdentifier(string receivedGhostId)
+    private void HandleGhostEyesTurnRed()
     {
-        _ghostId = receivedGhostId;
-    }
-
-    private void HandleGhostEyesTurnRed(string receivedGhostId)
-    {
-        if (_ghostId != receivedGhostId) return;
         if (enableGhostAngryModel && !_isTransitioningMaterial) StartCoroutine(GhostEyesTurnRed());
     }
 
@@ -111,15 +96,12 @@ public class HarpGhostAIClient : MonoBehaviour
             rendererRightEye.SetPropertyBlock(_propertyBlock);
 
             if (_transitioningMaterialTimer >= 5f) yield break;
-
-            LogDebug($"Transition material timer: {_transitioningMaterialTimer}");
             yield return new WaitForSeconds(0.01f);
         }
     }
 
-    private void HandleIncreaseTargetPlayerFearLevel(string receivedGhostId)
+    private void HandleIncreaseTargetPlayerFearLevel()
     {
-        if (_ghostId != receivedGhostId) return;
         if (!_targetPlayer || GameNetworkManager.Instance.localPlayerController != _targetPlayer) return;
 
         if (_targetPlayer.HasLineOfSightToPosition(eye.position, 115f, 50, 3f))
@@ -135,21 +117,21 @@ public class HarpGhostAIClient : MonoBehaviour
         }
     }
 
-    private void HandleOnPlayInstrumentMusic(string receivedGhostId)
+    private void HandleOnPlayInstrumentMusic()
     {
-        if (_ghostId != receivedGhostId || !_heldInstrument) return;
+        if (!_heldInstrument) return;
         _heldInstrument.StartMusicServerRpc();
     }
 
-    private void HandleOnStopInstrumentMusic(string receivedGhostId)
+    private void HandleOnStopInstrumentMusic()
     {
-        if (_ghostId != receivedGhostId || !_heldInstrument) return;
+        if (!_heldInstrument) return;
         _heldInstrument.StopMusicServerRpc();
     }
 
-    private void HandleDropInstrument(string receivedGhostId, Vector3 dropPosition)
+    private void HandleDropInstrument(Vector3 dropPosition)
     {
-        if (_ghostId != receivedGhostId || !_heldInstrument) return;
+        if (!_heldInstrument) return;
         _heldInstrument.parentObject = null;
         _heldInstrument.transform.SetParent(StartOfRound.Instance.propsContainer, true);
         _heldInstrument.EnablePhysics(true);
@@ -168,9 +150,9 @@ public class HarpGhostAIClient : MonoBehaviour
         _heldInstrument = null;
     }
 
-    private void HandleGrabInstrument(string receivedGhostId)
+    private void HandleGrabInstrument()
     {
-        if (_ghostId != receivedGhostId || _heldInstrument) return;
+        if (_heldInstrument) return;
         if (!_instrumentObjectRef.TryGet(out NetworkObject networkObject)) return;
         _heldInstrument = networkObject.gameObject.GetComponent<InstrumentBehaviour>();
 
@@ -181,16 +163,15 @@ public class HarpGhostAIClient : MonoBehaviour
         _heldInstrument.grabbable = false;
     }
 
-    private void HandleSpawnInstrument(string receivedGhostId, NetworkObjectReference instrumentObject, int instrumentScrapValue)
+    private void HandleSpawnInstrument(NetworkObjectReference instrumentObject, int instrumentScrapValue)
     {
-        if (_ghostId != receivedGhostId) return;
+
         _instrumentObjectRef = instrumentObject;
         _instrumentScrapValue = instrumentScrapValue;
     }
 
-    private void HandleChangeTargetPlayer(string receivedGhostId, ulong targetPlayerObjectId)
+    private void HandleChangeTargetPlayer(ulong targetPlayerObjectId)
     {
-        if (_ghostId != receivedGhostId) return;
         if (targetPlayerObjectId == MusicalGhost.NullPlayerId)
         {
             _targetPlayer = null;
@@ -201,16 +182,8 @@ public class HarpGhostAIClient : MonoBehaviour
         _targetPlayer = player;
     }
 
-    private void HandleDamageTargetPlayer(string receivedGhostId, int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
+    private void HandleDamageTargetPlayer(int damage, CauseOfDeath causeOfDeath = CauseOfDeath.Unknown)
     {
-        if (_ghostId != receivedGhostId) return;
         _targetPlayer.DamagePlayer(damage, causeOfDeath: causeOfDeath);
-    }
-
-    private void LogDebug(string msg)
-    {
-        #if DEBUG
-        _mls?.LogInfo(msg);
-        #endif
     }
 }

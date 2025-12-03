@@ -1,5 +1,4 @@
 ﻿using System;
-using BepInEx.Logging;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -7,86 +6,81 @@ namespace LethalCompanyHarpGhost.EnforcerGhost;
 
 public class EnforcerGhostNetcodeController : NetworkBehaviour
 {
-    private ManualLogSource _mls;
-
 #pragma warning disable 0649
     [SerializeField] private EnforcerGhostAIServer enforcerGhostAIServer;
 #pragma warning restore 0649
 
-    internal event Action<string, int> OnDoAnimation;
-    internal event Action<string, int, bool> OnChangeAnimationParameterBool;
-    internal event Action<string> OnInitializeConfigValues;
-    internal event Action<string> OnUpdateGhostIdentifier;
-    internal event Action<string> OnEnterDeathState;
-    internal event Action<string, int, int, bool> OnPlayCreatureVoice;
-    internal event Action<string, NetworkObjectReference, int> OnSpawnShotgun;
-    internal event Action<string> OnGrabShotgun;
-    internal event Action<string> OnGrabShotgunPhaseTwo;
-    internal event Action<string> OnGrabShotgunAfterStun;
-    internal event Action<string, Vector3> OnDropShotgun;
-    internal event Action<string, Vector3> OnDropShotgunWhenStunned;
-    internal event Action<string> OnIncreaseTargetPlayerFearLevel;
-    internal event Action<string, ulong> OnChangeTargetPlayer;
-    internal event Action<string> OnShootGun;
-    internal event Action<string, int> OnUpdateShotgunShellsLoaded;
-    internal event Action<string, string> OnDoShotgunAnimation;
-    internal event Action<string, bool> OnSetMeshEnabled;
-    internal event Action<string> OnPlayTeleportVfx;
-    internal event Action<string> OnEnableShield;
-    internal event Action<string> OnDisableShield;
+    internal event Action<int> OnDoAnimation;
+    internal event Action<int, bool> OnChangeAnimationParameterBool;
+    internal event Action OnInitializeConfigValues;
+    internal event Action OnEnterDeathState;
+    internal event Action<int, int, bool> OnPlayCreatureVoice;
+    internal event Action<NetworkObjectReference, int> OnSpawnShotgun;
+    internal event Action OnGrabShotgun;
+    internal event Action OnGrabShotgunPhaseTwo;
+    internal event Action OnGrabShotgunAfterStun;
+    internal event Action<Vector3> OnDropShotgun;
+    internal event Action<Vector3> OnDropShotgunWhenStunned;
+    internal event Action OnIncreaseTargetPlayerFearLevel;
+    internal event Action<ulong> OnChangeTargetPlayer;
+    internal event Action OnShootGun;
+    internal event Action<int> OnUpdateShotgunShellsLoaded;
+    internal event Action<string> OnDoShotgunAnimation;
+    internal event Action<bool> OnSetMeshEnabled;
+    internal event Action OnPlayTeleportVfx;
+    internal event Action OnEnableShield;
+    internal event Action OnDisableShield;
 
     private void Start()
     {
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Enforcer Ghost Netcode Controller");
-
         enforcerGhostAIServer = GetComponent<EnforcerGhostAIServer>();
-        if (enforcerGhostAIServer == null) _mls.LogError("enforcerGhostAI is null");
+        if (!enforcerGhostAIServer) HarpGhostPlugin.Logger.LogError("enforcerGhostAI is null");
     }
 
     [ClientRpc]
-    internal void DisableShieldClientRpc(string receivedGhostId)
+    internal void DisableShieldClientRpc()
     {
-        OnDisableShield?.Invoke(receivedGhostId);
+        OnDisableShield?.Invoke();
     }
 
     [ClientRpc]
-    internal void EnableShieldClientRpc(string receivedGhostId)
+    internal void EnableShieldClientRpc()
     {
-        OnEnableShield?.Invoke(receivedGhostId);
+        OnEnableShield?.Invoke();
     }
 
     [ClientRpc]
-    internal void DropShotgunForStunClientRpc(string receivedGhostId, Vector3 dropPosition)
+    internal void DropShotgunForStunClientRpc(Vector3 dropPosition)
     {
-        OnDropShotgunWhenStunned?.Invoke(receivedGhostId, dropPosition);
+        OnDropShotgunWhenStunned?.Invoke(dropPosition);
     }
 
     [ClientRpc]
-    internal void GrabShotgunAfterStunClientRpc(string receivedGhostId)
+    internal void GrabShotgunAfterStunClientRpc()
     {
-        OnGrabShotgunAfterStun?.Invoke(receivedGhostId);
+        OnGrabShotgunAfterStun?.Invoke();
     }
 
     [ClientRpc]
-    internal void PlayTeleportVfxClientRpc(string receivedGhostId)
+    internal void PlayTeleportVfxClientRpc()
     {
-        OnPlayTeleportVfx?.Invoke(receivedGhostId);
+        OnPlayTeleportVfx?.Invoke();
     }
 
     [ClientRpc]
-    internal void SetMeshEnabledClientRpc(string receivedGhostId, bool meshEnabled)
+    internal void SetMeshEnabledClientRpc(bool meshEnabled)
     {
-        OnSetMeshEnabled?.Invoke(receivedGhostId, meshEnabled);
+        OnSetMeshEnabled?.Invoke(meshEnabled);
     }
 
     [ClientRpc]
-    internal void InitializeConfigValuesClientRpc(string receivedGhostId)
+    internal void InitializeConfigValuesClientRpc()
     {
-        OnInitializeConfigValues?.Invoke(receivedGhostId);
+        OnInitializeConfigValues?.Invoke();
     }
 
     [ServerRpc]
-    internal void SpawnShotgunServerRpc(string receivedGhostId)
+    internal void SpawnShotgunServerRpc()
     {
         GameObject shotgunObject = Instantiate(
             HarpGhostPlugin.ShotgunPrefab,
@@ -102,114 +96,99 @@ public class EnforcerGhostNetcodeController : NetworkBehaviour
         RoundManager.Instance.totalScrapValueInLevel += shotgunScrapValue;
 
         shotgunObject.GetComponent<NetworkObject>().Spawn();
-        SpawnShotgunClientRpc(receivedGhostId, shotgunObject, shotgunScrapValue);
+        SpawnShotgunClientRpc(shotgunObject, shotgunScrapValue);
     }
 
     [ClientRpc]
-    private void SpawnShotgunClientRpc(string receivedGhostId, NetworkObjectReference shotgunObject,
+    private void SpawnShotgunClientRpc(NetworkObjectReference shotgunObject,
         int shotgunScrapValue)
     {
-        OnSpawnShotgun?.Invoke(receivedGhostId, shotgunObject, shotgunScrapValue);
+        OnSpawnShotgun?.Invoke(shotgunObject, shotgunScrapValue);
     }
 
     [ClientRpc]
-    internal void GrabShotgunClientRpc(string receivedGhostId)
+    internal void GrabShotgunClientRpc()
     {
-        OnGrabShotgun?.Invoke(receivedGhostId);
+        OnGrabShotgun?.Invoke();
     }
 
     [ServerRpc(RequireOwnership = false)]
-    internal void GrabShotgunPhaseTwoServerRpc(string receivedGhostId)
+    internal void GrabShotgunPhaseTwoServerRpc()
     {
-        GrabShotgunPhaseTwoClientRpc(receivedGhostId);
+        GrabShotgunPhaseTwoClientRpc();
     }
 
     [ClientRpc]
-    internal void ChangeTargetPlayerClientRpc(string receivedGhostId, ulong playerClientId)
+    internal void ChangeTargetPlayerClientRpc(ulong playerClientId)
     {
-        OnChangeTargetPlayer?.Invoke(receivedGhostId, playerClientId);
+        OnChangeTargetPlayer?.Invoke(playerClientId);
     }
 
     [ClientRpc]
-    internal void IncreaseTargetPlayerFearLevelClientRpc(string receivedGhostId)
+    internal void IncreaseTargetPlayerFearLevelClientRpc()
     {
-        OnIncreaseTargetPlayerFearLevel?.Invoke(receivedGhostId);
+        OnIncreaseTargetPlayerFearLevel?.Invoke();
     }
 
     [ClientRpc]
-    internal void UpdateShotgunShellsLoadedClientRpc(string receivedGhostId, int shells)
+    internal void UpdateShotgunShellsLoadedClientRpc(int shells)
     {
-        OnUpdateShotgunShellsLoaded?.Invoke(receivedGhostId, shells);
+        OnUpdateShotgunShellsLoaded?.Invoke(shells);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    internal void DoShotgunAnimationServerRpc(string receivedGhostId, string animationId)
+    internal void DoShotgunAnimationServerRpc(string animationId)
     {
-        DoShotgunAnimationClientRpc(receivedGhostId, animationId);
+        DoShotgunAnimationClientRpc(animationId);
     }
 
     [ClientRpc]
-    private void DoShotgunAnimationClientRpc(string receivedGhostId, string animationId)
+    private void DoShotgunAnimationClientRpc(string animationId)
     {
-        OnDoShotgunAnimation?.Invoke(receivedGhostId, animationId);
+        OnDoShotgunAnimation?.Invoke(animationId);
     }
 
     [ClientRpc]
-    private void GrabShotgunPhaseTwoClientRpc(string receivedGhostId)
+    private void GrabShotgunPhaseTwoClientRpc()
     {
-        OnGrabShotgunPhaseTwo?.Invoke(receivedGhostId);
+        OnGrabShotgunPhaseTwo?.Invoke();
     }
 
     [ClientRpc]
-    internal void DropShotgunClientRpc(string receivedGhostId, Vector3 targetPosition)
+    internal void DropShotgunClientRpc(Vector3 targetPosition)
     {
-        OnDropShotgun?.Invoke(receivedGhostId, targetPosition);
+        OnDropShotgun?.Invoke(targetPosition);
     }
 
     [ClientRpc]
-    internal void ShootGunClientRpc(string receivedGhostId)
+    internal void ShootGunClientRpc()
     {
-        OnShootGun?.Invoke(receivedGhostId);
+        OnShootGun?.Invoke();
     }
 
     [ClientRpc]
-    internal void ChangeAnimationParameterBoolClientRpc(string receivedGhostId, int animationId, bool value)
+    internal void ChangeAnimationParameterBoolClientRpc(int animationId, bool value)
     {
-        OnChangeAnimationParameterBool?.Invoke(receivedGhostId, animationId, value);
+        OnChangeAnimationParameterBool?.Invoke(animationId, value);
     }
 
     [ClientRpc]
-    internal void DoAnimationClientRpc(string receivedGhostId, int animationId)
+    internal void DoAnimationClientRpc(int animationId)
     {
-        OnDoAnimation?.Invoke(receivedGhostId, animationId);
+        OnDoAnimation?.Invoke(animationId);
     }
 
     [ClientRpc]
-    internal void SyncGhostIdentifierClientRpc(string receivedGhostId)
-    {
-        OnUpdateGhostIdentifier?.Invoke(receivedGhostId);
-    }
-
-    [ClientRpc]
-    internal void PlayCreatureVoiceClientRpc(string receivedGhostId, int typeIndex, int clipArrayLength,
-        bool interrupt = true)
+    internal void PlayCreatureVoiceClientRpc(int typeIndex, int clipArrayLength, bool interrupt = true)
     {
         int randomNum = UnityEngine.Random.Range(0, clipArrayLength);
-        LogDebug(
-            $"Invoking OnPlayCreatureVoice | Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
-        OnPlayCreatureVoice?.Invoke(receivedGhostId, typeIndex, randomNum, interrupt);
+        HarpGhostPlugin.LogVerbose($"Invoking OnPlayCreatureVoice | Audio clip index: {typeIndex}, audio clip random number: {randomNum}");
+        OnPlayCreatureVoice?.Invoke(typeIndex, randomNum, interrupt);
     }
 
     [ClientRpc]
-    internal void EnterDeathStateClientRpc(string receivedGhostId)
+    internal void EnterDeathStateClientRpc()
     {
-        OnEnterDeathState?.Invoke(receivedGhostId);
-    }
-
-    private void LogDebug(string msg)
-    {
-#if DEBUG
-        _mls?.LogInfo(msg);
-#endif
+        OnEnterDeathState?.Invoke();
     }
 }

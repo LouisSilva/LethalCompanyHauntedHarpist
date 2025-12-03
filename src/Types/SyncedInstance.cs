@@ -36,7 +36,7 @@ public class SyncedInstance<T>
         if (!IsClient) return;
 
         using FastBufferWriter stream = new(IntSize, Allocator.Temp);
-        MessageManager.SendNamedMessage($"{HarpGhostPlugin.ModGuid}_OnRequestConfigSync", 0uL, stream);
+        MessageManager.SendNamedMessage($"{MyPluginInfo.PLUGIN_GUID}_OnRequestConfigSync", 0uL, stream);
     }
 
     private static void OnRequestSync(ulong clientId, FastBufferReader _)
@@ -55,7 +55,7 @@ public class SyncedInstance<T>
             stream.WriteValueSafe(in value);
             stream.WriteBytesSafe(array);
 
-            MessageManager.SendNamedMessage($"{HarpGhostPlugin.ModGuid}_OnReceiveConfigSync", clientId, stream);
+            MessageManager.SendNamedMessage($"{MyPluginInfo.PLUGIN_GUID}_OnReceiveConfigSync", clientId, stream);
         }
         catch (Exception e)
         {
@@ -92,14 +92,14 @@ public class SyncedInstance<T>
     {
         if (IsHost)
         {
-            MessageManager.RegisterNamedMessageHandler($"{HarpGhostPlugin.ModGuid}_OnRequestConfigSync", OnRequestSync);
+            MessageManager.RegisterNamedMessageHandler($"{MyPluginInfo.PLUGIN_GUID}_OnRequestConfigSync", OnRequestSync);
             Synced = true;
 
             return;
         }
 
         Synced = false;
-        MessageManager.RegisterNamedMessageHandler($"{HarpGhostPlugin.ModGuid}_OnReceiveConfigSync", OnReceiveSync);
+        MessageManager.RegisterNamedMessageHandler($"{MyPluginInfo.PLUGIN_GUID}_OnReceiveConfigSync", OnReceiveSync);
         RequestSync();
     }
 

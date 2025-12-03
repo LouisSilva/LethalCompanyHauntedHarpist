@@ -11,8 +11,6 @@ internal static class Assets
 {
     internal static AssetBundle MainAssetBundle;
 
-    private static string GetAssemblyName() => Assembly.GetExecutingAssembly().FullName.Split(',')[0];
-
     internal static void LoadAssetBundle(string assetBundleName)
     {
         try

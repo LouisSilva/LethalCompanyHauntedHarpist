@@ -1,5 +1,4 @@
-﻿using BepInEx.Logging;
-using LethalCompanyHarpGhost.Items;
+﻿using LethalCompanyHarpGhost.Items;
 using System.Runtime.CompilerServices;
 using Unity.Netcode;
 using UnityEngine;
@@ -9,9 +8,6 @@ namespace LethalCompanyHarpGhost.BagpipesGhost;
 
 public class BagpipesGhostAIClient : MonoBehaviour
 {
-    private ManualLogSource _mls;
-    private string _ghostId;
-
     public enum AudioClipTypes
     {
         Death = 0,
@@ -68,7 +64,6 @@ public class BagpipesGhostAIClient : MonoBehaviour
         netcodeController.OnGrabBagpipes += HandleGrabInstrument;
         netcodeController.OnPlayBagpipesMusic += HandleOnPlayInstrumentMusic;
         netcodeController.OnStopBagpipesMusic += HandleOnStopInstrumentMusic;
-        netcodeController.OnUpdateGhostIdentifier += HandleUpdateGhostIdentifier;
         netcodeController.OnDestroyBagpipes += HandleDestroyBagpipes;
         netcodeController.OnSetMeshEnabled += HandleSetMeshEnabled;
 
@@ -89,7 +84,6 @@ public class BagpipesGhostAIClient : MonoBehaviour
         netcodeController.OnGrabBagpipes -= HandleGrabInstrument;
         netcodeController.OnPlayBagpipesMusic -= HandleOnPlayInstrumentMusic;
         netcodeController.OnStopBagpipesMusic -= HandleOnStopInstrumentMusic;
-        netcodeController.OnUpdateGhostIdentifier -= HandleUpdateGhostIdentifier;
         netcodeController.OnDestroyBagpipes -= HandleDestroyBagpipes;
         netcodeController.OnSetMeshEnabled -= HandleSetMeshEnabled;
 
@@ -104,43 +98,37 @@ public class BagpipesGhostAIClient : MonoBehaviour
 
     private void Start()
     {
-        _mls = BepInEx.Logging.Logger.CreateLogSource($"{HarpGhostPlugin.ModGuid} | Bagpipes Ghost AI {_ghostId} | Client");
         renderer.enabled = true;
     }
 
-    private void HandlePlayTeleportVfx(string receivedGhostId)
+    private void HandlePlayTeleportVfx()
     {
-        if (_ghostId != receivedGhostId) return;
         teleportVfx.SendEvent("OnPlayTeleport");
         PlaySfx(tornadoTeleportSfx);
     }
 
-    private void HandleDestroyBagpipes(string receivedGhostId)
+    private void HandleDestroyBagpipes()
     {
-        if (_ghostId != receivedGhostId) return;
         if (_heldInstrument)
             Destroy(_heldInstrument.gameObject);
 
         _heldInstrument = null;
     }
 
-    private void HandleOnPlayInstrumentMusic(string receivedGhostId)
+    private void HandleOnPlayInstrumentMusic()
     {
-        if (_ghostId != receivedGhostId) return;
         if (!_heldInstrument) return;
         _heldInstrument.StartMusicServerRpc();
     }
 
-    private void HandleOnStopInstrumentMusic(string receivedGhostId)
+    private void HandleOnStopInstrumentMusic()
     {
-        if (_ghostId != receivedGhostId) return;
         if (!_heldInstrument) return;
         _heldInstrument.StopMusicServerRpc();
     }
 
-    private void HandleDropInstrument(string receivedGhostId, Vector3 dropPosition)
+    private void HandleDropInstrument(Vector3 dropPosition)
     {
-        if (_ghostId != receivedGhostId) return;
         if (!_heldInstrument) return;
         _heldInstrument.parentObject = null;
         _heldInstrument.transform.SetParent(StartOfRound.Instance.propsContainer, true);
@@ -160,9 +148,8 @@ public class BagpipesGhostAIClient : MonoBehaviour
         _heldInstrument = null;
     }
 
-    private void HandleGrabInstrument(string receivedGhostId)
+    private void HandleGrabInstrument()
     {
-        if (_ghostId != receivedGhostId) return;
         if (!_instrumentObjectRef.TryGet(out NetworkObject networkObject)) return;
         _heldInstrument = networkObject.gameObject.GetComponent<InstrumentBehaviour>();
 
@@ -173,22 +160,19 @@ public class BagpipesGhostAIClient : MonoBehaviour
         _heldInstrument.grabbable = false;
     }
 
-    private void HandleSpawnInstrument(string receivedGhostId, NetworkObjectReference instrumentObject, int instrumentScrapValue)
+    private void HandleSpawnInstrument(NetworkObjectReference instrumentObject, int instrumentScrapValue)
     {
-        if (_ghostId != receivedGhostId) return;
         _instrumentObjectRef = instrumentObject;
         _instrumentScrapValue = instrumentScrapValue;
     }
 
-    private void HandleSetMeshEnabled(string receivedGhostId, bool meshEnabled)
+    private void HandleSetMeshEnabled(bool meshEnabled)
     {
-        if (_ghostId != receivedGhostId) return;
         renderer.enabled = meshEnabled;
     }
 
-    private void PlayVoice(string receivedGhostId, int typeIndex, int randomNum, bool interrupt = true)
+    private void PlayVoice(int typeIndex, int randomNum, bool interrupt = true)
     {
-        if (_ghostId != receivedGhostId) return;
         creatureVoiceSource.pitch = Random.Range(0.8f, 1.1f);
 
         AudioClip audioClip = typeIndex switch
@@ -206,11 +190,11 @@ public class BagpipesGhostAIClient : MonoBehaviour
 
         if (!audioClip)
         {
-            _mls.LogError($"Bagpipes ghost voice audio clip index '{typeIndex}' and randomNum: '{randomNum}' is null");
+            HarpGhostPlugin.Logger.LogError($"Bagpipes ghost voice audio clip index '{typeIndex}' and randomNum: '{randomNum}' is null");
             return;
         }
 
-        LogDebug($"Playing audio clip: {audioClip.name}");
+        HarpGhostPlugin.LogVerbose($"Playing audio clip: {audioClip.name}");
         if (interrupt) creatureVoiceSource.Stop(true);
         creatureVoiceSource.PlayOneShot(audioClip);
         WalkieTalkie.TransmitOneShotAudio(creatureVoiceSource, audioClip, creatureVoiceSource.volume);
@@ -224,9 +208,8 @@ public class BagpipesGhostAIClient : MonoBehaviour
         WalkieTalkie.TransmitOneShotAudio(creatureSfxSource, clip, volume);
     }
 
-    private void SetBool(string receivedGhostId, int parameter, bool value)
+    private void SetBool(int parameter, bool value)
     {
-        if (_ghostId != receivedGhostId) return;
         animator.SetBool(parameter, value);
     }
 
@@ -235,40 +218,25 @@ public class BagpipesGhostAIClient : MonoBehaviour
         return animator.GetBool(parameter);
     }
 
-    private void SetTrigger(string receivedGhostId, int parameter)
+    private void SetTrigger(int parameter)
     {
-        if (_ghostId != receivedGhostId) return;
         animator.SetTrigger(parameter);
     }
 
-    private void HandleOnEnterDeathState(string receivedGhostId)
+    private void HandleOnEnterDeathState()
     {
-        if (_ghostId != receivedGhostId) return;
-        HandleDropInstrument(_ghostId, transform.position);
-        SetBool(_ghostId, IsDead, true);
-        SetBool(_ghostId, IsRunning, false);
-        SetBool(_ghostId, IsStunned, false);
+        HandleDropInstrument(transform.position);
+        SetBool(IsDead, true);
+        SetBool(IsRunning, false);
+        SetBool(IsStunned, false);
         creatureVoiceSource.Stop(true);
         creatureSfxSource.Stop(true);
-        PlayVoice(_ghostId, (int)AudioClipTypes.Death, 1);
+        PlayVoice((int)AudioClipTypes.Death, 1);
         Destroy(this);
     }
 
-    private void HandleOnInitializeConfigValues(string receivedGhostId)
+    private void HandleOnInitializeConfigValues()
     {
-        if (_ghostId != receivedGhostId) return;
         creatureVoiceSource.volume = BagpipeGhostConfig.Default.BagpipeGhostVoiceSfxVolume.Value;
-    }
-
-    private void LogDebug(string msg)
-    {
-        #if DEBUG
-        _mls?.LogInfo(msg);
-        #endif
-    }
-
-    private void HandleUpdateGhostIdentifier(string receivedGhostId)
-    {
-        _ghostId = receivedGhostId;
     }
 }
